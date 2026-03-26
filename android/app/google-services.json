@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "266624432519",
+    "project_id": "quan-ly-nha-hang-20f37",
+    "storage_bucket": "quan-ly-nha-hang-20f37.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:266624432519:android:f31b06df96910cf667bb22",
+        "android_client_info": {
+          "package_name": "com.example.quanlynhahang"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-AHafsF-75PYAH6JPzEw47FzzNIsvJAk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
