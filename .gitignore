@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Seed script secrets (DO NOT commit)
+scripts/serviceAccountKey.json
+scripts/node_modules/

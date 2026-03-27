@@ -1,0 +1,440 @@
+{
+  "restaurant": {
+    "name": "Vị Lai Quán (未来馆)",
+    "founded": 2026,
+    "firestore_project": "quan-ly-nha-hang-20f37",
+    "supabase_bucket": "vilaiquan"
+  },
+  "categories": [
+    { "id": "appetizer", "name": "Khai vị" },
+    { "id": "main",      "name": "Món chính" },
+    { "id": "dessert",   "name": "Tráng miệng" },
+    { "id": "drink",     "name": "Nước uống" }
+  ],
+  "dishes": [
+    {
+      "id": "dish_01",
+      "name": "Gỏi cuốn",
+      "price": 30000,
+      "category": "appetizer",
+      "description": "Gỏi cuốn tươi với tôm, thịt heo và rau sống",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_01.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:00:00+07:00"
+    },
+    {
+      "id": "dish_02",
+      "name": "Chả giò",
+      "price": 40000,
+      "category": "appetizer",
+      "description": "Chả giò nhân thịt heo và rau củ, chiên vàng giòn",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_02.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:01:00+07:00"
+    },
+    {
+      "id": "dish_03",
+      "name": "Súp cua",
+      "price": 35000,
+      "category": "appetizer",
+      "description": "Súp cua thịt nóng hổi, đậm đà hương vị biển",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_03.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:02:00+07:00"
+    },
+    {
+      "id": "dish_04",
+      "name": "Salad trộn",
+      "price": 45000,
+      "category": "appetizer",
+      "description": "Salad rau củ tươi trộn sốt mè rang thơm ngon",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_04.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:03:00+07:00"
+    },
+    {
+      "id": "dish_05",
+      "name": "Bánh mì bơ tỏi",
+      "price": 25000,
+      "category": "appetizer",
+      "description": "Bánh mì nướng bơ tỏi giòn thơm, ăn kèm khai vị",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_05.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:04:00+07:00"
+    },
+    {
+      "id": "dish_06",
+      "name": "Cơm chiên hải sản",
+      "price": 70000,
+      "category": "main",
+      "description": "Cơm chiên với tôm, mực, cua và rau củ tươi",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_06.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:05:00+07:00"
+    },
+    {
+      "id": "dish_07",
+      "name": "Bò lúc lắc",
+      "price": 120000,
+      "category": "main",
+      "description": "Thịt bò tươi xào lúc lắc tiêu xanh, ăn kèm cơm trắng",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_07.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:06:00+07:00"
+    },
+    {
+      "id": "dish_08",
+      "name": "Gà nướng mật ong",
+      "price": 90000,
+      "category": "main",
+      "description": "Gà ta nướng mật ong thảo mộc, da giòn vàng ươm",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_08.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:07:00+07:00"
+    },
+    {
+      "id": "dish_09",
+      "name": "Lẩu thái",
+      "price": 150000,
+      "category": "main",
+      "description": "Lẩu thái chua cay đặc trưng với hải sản tươi và nấm",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_09.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:08:00+07:00"
+    },
+    {
+      "id": "dish_10",
+      "name": "Phở bò",
+      "price": 50000,
+      "category": "main",
+      "description": "Phở bò Hà Nội truyền thống, nước dùng hầm 12 tiếng",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_10.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:09:00+07:00"
+    },
+    {
+      "id": "dish_11",
+      "name": "Bún bò Huế",
+      "price": 55000,
+      "category": "main",
+      "description": "Bún bò Huế chính thống, sả, ớt và giò heo",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_11.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:10:00+07:00"
+    },
+    {
+      "id": "dish_12",
+      "name": "Cơm tấm sườn",
+      "price": 60000,
+      "category": "main",
+      "description": "Cơm tấm Nam Bộ với sườn nướng, bì chả và trứng",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_12.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:11:00+07:00"
+    },
+    {
+      "id": "dish_13",
+      "name": "Mì xào hải sản",
+      "price": 80000,
+      "category": "main",
+      "description": "Mì xào với tôm, mực và rau củ đa dạng",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_13.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:12:00+07:00"
+    },
+    {
+      "id": "dish_14",
+      "name": "Cá kho tộ",
+      "price": 100000,
+      "category": "main",
+      "description": "Cá basa kho tộ đậm đà, ăn kèm cơm trắng nóng hổi",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_14.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:13:00+07:00"
+    },
+    {
+      "id": "dish_15",
+      "name": "Thịt kho trứng",
+      "price": 75000,
+      "category": "main",
+      "description": "Thịt ba chỉ kho trứng kiểu Nam Bộ, nước dừa béo ngậy",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_15.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:14:00+07:00"
+    },
+    {
+      "id": "dish_16",
+      "name": "Bún chả",
+      "price": 60000,
+      "category": "main",
+      "description": "Bún chả Hà Nội với chả nướng than hoa thơm lừng",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_16.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:15:00+07:00"
+    },
+    {
+      "id": "dish_17",
+      "name": "Cơm gà xối mỡ",
+      "price": 65000,
+      "category": "main",
+      "description": "Cơm gà xối mỡ giòn rụm, nước mắm chanh tỏi ớt",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_17.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:16:00+07:00"
+    },
+    {
+      "id": "dish_18",
+      "name": "Pizza hải sản",
+      "price": 120000,
+      "category": "main",
+      "description": "Pizza đế mỏng với tôm, mực và phô mai mozzarella",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_18.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:17:00+07:00"
+    },
+    {
+      "id": "dish_19",
+      "name": "Spaghetti bò bằm",
+      "price": 90000,
+      "category": "main",
+      "description": "Mì Ý sốt bolognese bò bằm đậm đà kiểu Ý",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_19.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:18:00+07:00"
+    },
+    {
+      "id": "dish_20",
+      "name": "Hamburger bò",
+      "price": 80000,
+      "category": "main",
+      "description": "Burger bò Mỹ với phô mai cheddar và rau tươi",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_20.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:19:00+07:00"
+    },
+    {
+      "id": "dish_21",
+      "name": "Bánh flan",
+      "price": 20000,
+      "category": "dessert",
+      "description": "Bánh flan caramel mềm mịn, thơm ngậy hương vani",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_21.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:20:00+07:00"
+    },
+    {
+      "id": "dish_22",
+      "name": "Kem vani",
+      "price": 25000,
+      "category": "dessert",
+      "description": "Kem vani Ý béo ngậy, phục vụ trong ly waffle tươi",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_22.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:21:00+07:00"
+    },
+    {
+      "id": "dish_23",
+      "name": "Chè đậu đỏ",
+      "price": 20000,
+      "category": "dessert",
+      "description": "Chè đậu đỏ nước dừa thơm béo, ăn lạnh mát mẻ",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_23.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:22:00+07:00"
+    },
+    {
+      "id": "dish_24",
+      "name": "Trái cây dĩa",
+      "price": 30000,
+      "category": "dessert",
+      "description": "Đĩa trái cây tươi nhiều loại theo mùa",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_24.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:23:00+07:00"
+    },
+    {
+      "id": "dish_25",
+      "name": "Bánh tiramisu",
+      "price": 40000,
+      "category": "dessert",
+      "description": "Bánh tiramisu Ý với mascarpone và cà phê espresso",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_25.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:24:00+07:00"
+    },
+    {
+      "id": "dish_26",
+      "name": "Coca Cola",
+      "price": 15000,
+      "category": "drink",
+      "description": "Coca Cola lon lạnh 330ml",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_26.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:25:00+07:00"
+    },
+    {
+      "id": "dish_27",
+      "name": "Trà đào",
+      "price": 30000,
+      "category": "drink",
+      "description": "Trà đào cam sả đá tươi mát, thơm dịu",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_27.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:26:00+07:00"
+    },
+    {
+      "id": "dish_28",
+      "name": "Cà phê sữa",
+      "price": 25000,
+      "category": "drink",
+      "description": "Cà phê phin truyền thống với sữa đặc, đá hoặc nóng",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_28.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": true,
+      "created_at": "2026-03-27T08:27:00+07:00"
+    },
+    {
+      "id": "dish_29",
+      "name": "Nước cam",
+      "price": 35000,
+      "category": "drink",
+      "description": "Nước ép cam tươi vắt nguyên chất, không đường",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_29.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:28:00+07:00"
+    },
+    {
+      "id": "dish_30",
+      "name": "Sinh tố xoài",
+      "price": 40000,
+      "category": "drink",
+      "description": "Sinh tố xoài cát Hòa Lộc đặc sánh với sữa tươi",
+      "image_url": "https://supabase.co/storage/v1/object/public/vilaiquan/dishes/dish_30.jpg",
+      "status": "available",
+      "isAvailable": true,
+      "isBestSeller": false,
+      "created_at": "2026-03-27T08:29:00+07:00"
+    }
+  ],
+  "tables": [
+    { "id": "table_1",  "name": "Bàn 1",  "status": "available", "capacity": 4 },
+    { "id": "table_2",  "name": "Bàn 2",  "status": "available", "capacity": 2 },
+    { "id": "table_3",  "name": "Bàn 3",  "status": "available", "capacity": 6 },
+    { "id": "table_4",  "name": "Bàn 4",  "status": "available", "capacity": 4 },
+    { "id": "table_5",  "name": "Bàn 5",  "status": "available", "capacity": 4 },
+    { "id": "table_6",  "name": "Bàn 6",  "status": "available", "capacity": 2 },
+    { "id": "table_7",  "name": "Bàn 7",  "status": "available", "capacity": 6 },
+    { "id": "table_8",  "name": "Bàn 8",  "status": "available", "capacity": 4 },
+    { "id": "table_9",  "name": "Bàn 9",  "status": "available", "capacity": 4 },
+    { "id": "table_10", "name": "Bàn 10", "status": "available", "capacity": 2 },
+    { "id": "table_11", "name": "Bàn 11", "status": "available", "capacity": 4 },
+    { "id": "table_12", "name": "Bàn 12", "status": "available", "capacity": 6 },
+    { "id": "table_13", "name": "Bàn 13", "status": "available", "capacity": 4 },
+    { "id": "table_14", "name": "Bàn 14", "status": "available", "capacity": 2 },
+    { "id": "table_15", "name": "Bàn 15", "status": "available", "capacity": 4 },
+    { "id": "table_16", "name": "Bàn 16", "status": "available", "capacity": 6 },
+    { "id": "table_17", "name": "Bàn 17", "status": "available", "capacity": 4 },
+    { "id": "table_18", "name": "Bàn 18", "status": "available", "capacity": 4 },
+    { "id": "table_19", "name": "Bàn 19", "status": "available", "capacity": 2 },
+    { "id": "table_20", "name": "Bàn 20", "status": "available", "capacity": 4 }
+  ],
+  "chatbot_data": [
+    {
+      "id": "faq_01",
+      "question": "Tên quán là gì?",
+      "answer": "Chúng tôi là Vị Lai Quán (未来馆) – nhà hàng phong cách hiện đại, thành lập năm 2026."
+    },
+    {
+      "id": "faq_02",
+      "question": "Quán được thành lập năm nào?",
+      "answer": "Vị Lai Quán (未来馆) được thành lập vào năm 2026."
+    },
+    {
+      "id": "faq_03",
+      "question": "Món nào ngon nhất ở đây?",
+      "answer": "Khách hàng yêu thích nhất là Bò lúc lắc và Lẩu thái – hai món best-seller nổi tiếng của chúng tôi!"
+    },
+    {
+      "id": "faq_04",
+      "question": "Quán có bao nhiêu món?",
+      "answer": "Thực đơn hiện tại có 30 món: 5 khai vị, 15 món chính, 5 tráng miệng và 5 đồ uống. Menu được cập nhật định kỳ."
+    },
+    {
+      "id": "faq_05",
+      "question": "Giờ mở cửa là mấy giờ?",
+      "answer": "Vị Lai Quán mở cửa từ 8:00 sáng đến 22:00 tối hàng ngày, kể cả cuối tuần và ngày lễ."
+    },
+    {
+      "id": "faq_06",
+      "question": "Quán có bao nhiêu bàn?",
+      "answer": "Hiện tại quán có 20 bàn với sức chứa từ 2 đến 6 người mỗi bàn. Vui lòng đặt bàn trước để được phục vụ tốt nhất!"
+    },
+    {
+      "id": "faq_07",
+      "question": "Có phục vụ giao hàng không?",
+      "answer": "Có! Chúng tôi hỗ trợ đặt món online với giao hàng tận nơi. Hệ thống GPS sẽ xác định vị trí của bạn tự động."
+    },
+    {
+      "id": "faq_08",
+      "question": "Có phù hợp cho gia đình không?",
+      "answer": "Hoàn toàn phù hợp! Vị Lai Quán có không gian ấm cúng, menu đa dạng cho mọi lứa tuổi và bàn sức chứa lên đến 6 người."
+    }
+  ]
+}
