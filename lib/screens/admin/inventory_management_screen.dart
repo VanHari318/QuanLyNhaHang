@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/inventory_provider.dart';
-import '../models/inventory_model.dart';
-import '../components/inventory_item_card.dart';
+import '../../providers/inventory_provider.dart';
+import '../../models/inventory_model.dart';
+import '../../components/inventory_item_card.dart';
 
 /// Màn hình quản lý kho nguyên liệu – MD3 enhanced
 class InventoryManagementScreen extends StatelessWidget {

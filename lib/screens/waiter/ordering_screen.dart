@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/table_model.dart';
-import '../models/dish_model.dart';
-import '../models/order_model.dart';
-import '../providers/menu_provider.dart';
-import '../providers/order_provider.dart';
+import '../../models/table_model.dart';
+import '../../models/dish_model.dart';
+import '../../models/order_model.dart';
+import '../../providers/menu_provider.dart';
+import '../../providers/order_provider.dart';
 
 /// Màn hình đặt món cho waiter – dùng DishModel (API mới)
 class OrderingScreen extends StatefulWidget {

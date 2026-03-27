@@ -3,10 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../providers/menu_provider.dart';
-import '../models/dish_model.dart';
-import '../models/category_model.dart';
-import '../services/cloudinary_service.dart';
+import '../../providers/menu_provider.dart';
+import '../../models/dish_model.dart';
+import '../../models/category_model.dart';
+import '../../services/cloudinary_service.dart';
+import 'dish_detail_dialog.dart';
 
 /// Màn hình quản lý món ăn – MD3
 class MenuManagementScreen extends StatelessWidget {
@@ -263,9 +264,17 @@ class _DishTile extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (_) => DishDetailDialog(dish: dish),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
           children: [
             // Image
             ClipRRect(
@@ -353,8 +362,9 @@ class _DishTile extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _placeholder(ColorScheme cs) {
     return Container(

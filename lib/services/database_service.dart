@@ -22,6 +22,7 @@ class DatabaseService {
   CollectionReference<Map<String, dynamic>> get _inventory => _db.collection('inventory');
   CollectionReference<Map<String, dynamic>> get _invLogs   => _db.collection('inventory_logs');
   CollectionReference<Map<String, dynamic>> get _chatbot   => _db.collection('chatbot_data');
+  CollectionReference<Map<String, dynamic>> get _bulkIngredients => _db.collection('bulk_ingredients_100');
 
   // ─── TABLES ─────────────────────────────────────────────────────────────────
 
@@ -237,6 +238,42 @@ class DatabaseService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((s) => s.docs.map((d) => InventoryLogModel.fromMap(d.data())).toList());
+  }
+
+  // ─── RECIPES (BULK INGREDIENTS) ──────────────────────────────────────────────
+
+  Future<Map<String, dynamic>?> getDishRecipe(String dishId) async {
+    final doc = await _bulkIngredients.doc(dishId).get();
+    if (doc.exists) return doc.data();
+    return null;
+  }
+
+  Future<void> saveDishRecipe(String dishId, int servings, List<Map<String, dynamic>> ingredients) async {
+    final batch = _db.batch();
+    
+    for (final ing in ingredients) {
+      final name = ing['name'] as String;
+      final unit = ing['unit'] as String;
+      
+      final invQuery = await _inventory.where('name', isEqualTo: name).limit(1).get();
+      if (invQuery.docs.isEmpty) {
+        final newId = DateTime.now().millisecondsSinceEpoch.toString() + '_' + math.Random().nextInt(100).toString();
+        final newItem = InventoryModel(
+          id: newId,
+          name: name,
+          quantity: 0,
+          unit: unit,
+        );
+        batch.set(_inventory.doc(newId), newItem.toMap());
+      }
+    }
+    
+    batch.set(_bulkIngredients.doc(dishId), {
+      'servings': servings,
+      'ingredients': ingredients,
+    });
+    
+    await batch.commit();
   }
 
   // ─── CHATBOT ─────────────────────────────────────────────────────────────────

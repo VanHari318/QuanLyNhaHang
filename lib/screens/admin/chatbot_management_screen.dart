@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/chatbot_provider.dart';
-import '../models/chatbot_model.dart';
+import '../../providers/chatbot_provider.dart';
+import '../../models/chatbot_model.dart';
 
 /// Màn hình quản lý FAQ ChatBot – MD3
 class ChatbotManagementScreen extends StatelessWidget {

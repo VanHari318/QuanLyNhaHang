@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/table_provider.dart';
-import '../models/table_model.dart';
-import '../models/user_model.dart';
-import '../providers/auth_provider.dart';
+import '../../providers/table_provider.dart';
+import '../../models/table_model.dart';
+import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
 import 'ordering_screen.dart';
-import '../utils/logout_helper.dart';
+import '../../utils/logout_helper.dart';
 
 /// Màn hình chọn bàn cho waiter – dùng table.name (thay table.number)
 class TableSelectionScreen extends StatelessWidget {

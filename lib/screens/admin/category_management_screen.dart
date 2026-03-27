@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/category_model.dart';
-import '../services/database_service.dart';
+import '../../models/category_model.dart';
+import '../../services/database_service.dart';
 
 /// Màn hình quản lý danh mục – MD3
 class CategoryManagementScreen extends StatefulWidget {

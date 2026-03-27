@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../models/user_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../services/cloudinary_service.dart';
+import '../../services/cloudinary_service.dart';
 
 /// Màn hình đăng nhập / đăng ký – MD3
 class LoginScreen extends StatefulWidget {

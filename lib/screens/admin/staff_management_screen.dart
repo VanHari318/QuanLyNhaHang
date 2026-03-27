@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/user_model.dart';
-import '../services/database_service.dart';
+import '../../models/user_model.dart';
+import '../../services/database_service.dart';
 
 /// Màn hình quản lý nhân sự – MD3
 class StaffManagementScreen extends StatefulWidget {

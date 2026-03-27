@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/table_model.dart';
-import '../services/database_service.dart';
+import '../../models/table_model.dart';
+import '../../services/database_service.dart';
 
 /// Màn hình quản lý bàn – MD3 grid view
 class TableManagementScreen extends StatelessWidget {

@@ -10,11 +10,11 @@ import 'providers/table_provider.dart';
 import 'providers/inventory_provider.dart';
 import 'providers/chatbot_provider.dart';
 import 'models/user_model.dart';
-import 'screens/login_screen.dart';
-import 'screens/admin_dashboard.dart';
-import 'screens/waiter_screen.dart';
-import 'screens/kitchen_screen.dart';
-import 'screens/cashier_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/admin/admin_dashboard.dart';
+import 'screens/waiter/waiter_screen.dart';
+import 'screens/kitchen/kitchen_screen.dart';
+import 'screens/cashier/cashier_screen.dart';
 import 'utils/logout_helper.dart';
 
 void main() async {
