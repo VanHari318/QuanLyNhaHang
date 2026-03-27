@@ -6,6 +6,7 @@ import '../models/table_model.dart';
 import '../models/category_model.dart';
 import '../models/inventory_model.dart';
 import '../models/chatbot_model.dart';
+import 'dart:math' as math;
 
 /// Lớp service tương tác với Firestore – project: quan-ly-nha-hang-20f37
 class DatabaseService {
@@ -124,7 +125,74 @@ class DatabaseService {
   }
 
   Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
+    // Tự động trừ kho nếu đơn hàng chuyển sang hoàn thành (completed)
+    if (status == OrderStatus.completed) {
+      final orderDoc = await _orders.doc(orderId).get();
+      if (orderDoc.exists) {
+        final order = OrderModel.fromMap(orderDoc.data()!);
+        // Kiểm tra tránh trừ 2 lần (nếu status cũ đã là completed rồi thì bỏ qua)
+        if (order.status != OrderStatus.completed) {
+          await _deductInventoryForOrder(order);
+        }
+      }
+    }
     await _orders.doc(orderId).update({'status': status.name});
+  }
+
+  Future<void> _deductInventoryForOrder(OrderModel order) async {
+    final batch = _db.batch();
+    
+    // Quét từng món trong đơn hàng
+    for (final item in order.items) {
+      final dishId = item.dish.id;
+      final qty = item.quantity;
+      
+      // 1. Lấy công thức nấu 100 suất
+      final recipeDoc = await _db.collection('bulk_ingredients_100').doc(dishId).get();
+      if (!recipeDoc.exists) continue;
+      
+      final recipeData = recipeDoc.data()!;
+      final servings = (recipeData['servings'] as num?)?.toInt() ?? 100;
+      final ingredients = recipeData['ingredients'] as List<dynamic>? ?? [];
+      
+      // 2. Tính lượng nguyên liệu trừ đi và update inventory
+      for (final ing in ingredients) {
+        final name = ing['name'] as String;
+        final totalNeeded100 = (ing['total_quantity'] as num).toDouble();
+        final unitStr = ing['unit'] as String;
+        
+        // Tính định mức 1 suất -> nhân với số lượng đặt
+        double deductAmount = (totalNeeded100 / servings) * qty;
+        
+        // Quy đổi sang kg/lít nếu nguyên liệu dùng đơn vị > 1000g/ml
+        if (totalNeeded100 >= 1000 && (unitStr == 'g' || unitStr == 'ml')) {
+          deductAmount = deductAmount / 1000;
+        }
+
+        // 3. Tìm nguyên liệu thực tế trong kho (theo tên chuẩn xác)
+        final invQuery = await _inventory.where('name', isEqualTo: name).limit(1).get();
+        if (invQuery.docs.isNotEmpty) {
+          final invDoc = invQuery.docs.first;
+          final currentQty = (invDoc.data()['quantity'] as num).toDouble();
+          
+          final newQty = currentQty - deductAmount;
+          batch.update(invDoc.reference, {'quantity': newQty < 0 ? 0 : newQty});
+          
+          // 4. Ghi log tự động xuất kho
+          final logId = DateTime.now().millisecondsSinceEpoch.toString() + '_' + invDoc.id + '_' + math.Random().nextInt(100).toString();
+          final log = InventoryLogModel(
+             id: logId,
+             itemId: invDoc.id,
+             itemName: name,
+             type: InventoryLogType.export,
+             quantity: deductAmount,
+             note: 'Auto xuất món ${item.dish.name} (SL: $qty)'
+          );
+          batch.set(_invLogs.doc(logId), log.toMap());
+        }
+      }
+    }
+    await batch.commit();
   }
 
   // ─── INVENTORY ───────────────────────────────────────────────────────────────
@@ -146,7 +214,7 @@ class DatabaseService {
   /// Nhập hoặc xuất kho: cập nhật quantity + ghi log
   Future<void> adjustInventory(InventoryModel item, InventoryLogModel log) async {
     final batch = _db.batch();
-    batch.update(_inventory.doc(item.id), {'quantity': item.quantity});
+    batch.set(_inventory.doc(item.id), {'quantity': item.quantity}, SetOptions(merge: true));
     batch.set(_invLogs.doc(log.id), log.toMap());
     await batch.commit();
   }

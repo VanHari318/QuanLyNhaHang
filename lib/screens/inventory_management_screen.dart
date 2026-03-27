@@ -2,51 +2,84 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
 import '../models/inventory_model.dart';
+import '../components/inventory_item_card.dart';
 
-/// Màn hình quản lý kho nguyên liệu – MD3
-class InventoryManagementScreen extends StatefulWidget {
+/// Màn hình quản lý kho nguyên liệu – MD3 enhanced
+class InventoryManagementScreen extends StatelessWidget {
   const InventoryManagementScreen({super.key});
 
   @override
-  State<InventoryManagementScreen> createState() =>
-      _InventoryManagementScreenState();
+  Widget build(BuildContext context) {
+    return const _InventoryBody();
+  }
 }
 
-class _InventoryManagementScreenState
-    extends State<InventoryManagementScreen> {
+class _InventoryBody extends StatefulWidget {
+  const _InventoryBody();
+
+  @override
+  State<_InventoryBody> createState() => _InventoryBodyState();
+}
+
+class _InventoryBodyState extends State<_InventoryBody>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final inv = context.watch<InventoryProvider>();
     final cs = Theme.of(context).colorScheme;
 
+    final lowItems = inv.items.where((i) => _isLow(i)).toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Kho Nguyên Liệu')),
-      body: inv.items.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inventory_2_rounded,
-                      size: 64, color: cs.outlineVariant),
-                  const SizedBox(height: 12),
-                  Text('Kho trống',
-                      style: TextStyle(color: cs.onSurfaceVariant)),
-                ],
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: inv.items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 4),
-              itemBuilder: (_, i) => _InventoryTile(
-                item: inv.items[i],
-                onImport: () => _showAdjustDialog(context, inv.items[i],
-                    isImport: true),
-                onExport: () => _showAdjustDialog(context, inv.items[i],
-                    isImport: false),
-                onDelete: () => inv.deleteItem(inv.items[i].id),
-              ),
+      appBar: AppBar(
+        title: const Text('Kho Nguyên Liệu'),
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.inventory_2_rounded),
+              text: 'Tất cả (${inv.items.length})',
             ),
+            Tab(
+              icon: Icon(Icons.warning_amber_rounded,
+                  color: lowItems.isNotEmpty ? cs.error : null),
+              text: 'Sắp hết (${lowItems.length})',
+            ),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabs,
+        children: [
+          _ItemList(
+            items: inv.items,
+            onImport: (item) => _showAdjustDialog(context, item, isImport: true),
+            onExport: (item) => _showAdjustDialog(context, item, isImport: false),
+            onDelete: (item) => _confirmDelete(context, item, inv),
+          ),
+          _ItemList(
+            items: lowItems,
+            onImport: (item) => _showAdjustDialog(context, item, isImport: true),
+            onExport: (item) => _showAdjustDialog(context, item, isImport: false),
+            onDelete: (item) => _confirmDelete(context, item, inv),
+            emptyLabel: '✅ Kho đủ hàng, không có mặt hàng sắp hết!',
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddDialog(context),
         icon: const Icon(Icons.add_rounded),
@@ -55,9 +88,45 @@ class _InventoryManagementScreenState
     );
   }
 
+  void _confirmDelete(BuildContext context, InventoryModel item, InventoryProvider inv) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc chắn muốn xóa nguyên liệu "${item.name}" khỏi hệ thống? Hành động này không thể hoàn tác.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await inv.deleteItem(item.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Đã xóa ${item.name}')),
+                );
+              }
+            },
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  bool _isLow(InventoryModel item) =>
+      item.maxQuantity > 0
+          ? item.quantity < item.maxQuantity * 0.2
+          : item.quantity < 5;
+
   void _showAddDialog(BuildContext context) {
     final nameCtrl = TextEditingController();
     final qtyCtrl = TextEditingController(text: '0');
+    final maxQtyCtrl = TextEditingController();
     final unitCtrl = TextEditingController();
 
     showDialog(
@@ -81,6 +150,15 @@ class _InventoryManagementScreenState
           ),
           const SizedBox(height: 10),
           TextField(
+            controller: maxQtyCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+                labelText: 'Số lượng tối đa (để tính %)',
+                prefixIcon: Icon(Icons.exposure_rounded),
+                hintText: 'Để trống = không giới hạn'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
             controller: unitCtrl,
             decoration: const InputDecoration(
                 labelText: 'Đơn vị (kg, lít, cái...)',
@@ -94,11 +172,14 @@ class _InventoryManagementScreenState
           FilledButton(
             onPressed: () async {
               if (nameCtrl.text.isEmpty) return;
+              final qty = double.tryParse(qtyCtrl.text) ?? 0;
+              final maxQty = double.tryParse(maxQtyCtrl.text) ?? 0;
               final item = InventoryModel(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
                 name: nameCtrl.text.trim(),
-                quantity: double.tryParse(qtyCtrl.text) ?? 0,
+                quantity: qty,
                 unit: unitCtrl.text.trim(),
+                maxQuantity: maxQty > 0 ? maxQty : qty * 5, // default: 5× initial
               );
               await context.read<InventoryProvider>().addItem(item);
               if (context.mounted) Navigator.pop(context);
@@ -110,8 +191,7 @@ class _InventoryManagementScreenState
     );
   }
 
-  void _showAdjustDialog(
-      BuildContext context, InventoryModel item,
+  void _showAdjustDialog(BuildContext context, InventoryModel item,
       {required bool isImport}) {
     final qtyCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
@@ -123,13 +203,14 @@ class _InventoryManagementScreenState
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('Nguyên liệu: ${item.name}',
               style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text('Tồn kho hiện tại: ${item.quantity} ${item.unit}'),
+          Text('Tồn kho: ${item.quantity} ${item.unit}'),
           const SizedBox(height: 12),
           TextField(
             controller: qtyCtrl,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Số lượng ${isImport ? "nhập" : "xuất"}',
+              labelText:
+                  'Số lượng ${isImport ? "nhập" : "xuất"}',
               prefixIcon: const Icon(Icons.numbers),
             ),
           ),
@@ -137,7 +218,8 @@ class _InventoryManagementScreenState
           TextField(
             controller: noteCtrl,
             decoration: const InputDecoration(
-                labelText: 'Ghi chú', prefixIcon: Icon(Icons.note_outlined)),
+                labelText: 'Ghi chú',
+                prefixIcon: Icon(Icons.note_outlined)),
           ),
         ]),
         actions: [
@@ -152,14 +234,30 @@ class _InventoryManagementScreenState
             ),
             onPressed: () async {
               final qty = double.tryParse(qtyCtrl.text) ?? 0;
-              if (qty <= 0) return;
-              final provider = context.read<InventoryProvider>();
-              if (isImport) {
-                await provider.importStock(item, qty, noteCtrl.text);
-              } else {
-                await provider.exportStock(item, qty, noteCtrl.text);
+              if (qty <= 0) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Số lượng phải lớn hơn 0')),
+                  );
+                }
+                return;
               }
-              if (context.mounted) Navigator.pop(context);
+              
+              try {
+                final provider = context.read<InventoryProvider>();
+                if (isImport) {
+                  await provider.importStock(item, qty, noteCtrl.text);
+                } else {
+                  await provider.exportStock(item, qty, noteCtrl.text);
+                }
+                if (context.mounted) Navigator.pop(context);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lỗi: $e')),
+                  );
+                }
+              }
             },
             child: Text(isImport ? 'Nhập kho' : 'Xuất kho'),
           ),
@@ -169,90 +267,49 @@ class _InventoryManagementScreenState
   }
 }
 
-// ── Inventory tile ────────────────────────────────────────────────────────────
-class _InventoryTile extends StatelessWidget {
-  final InventoryModel item;
-  final VoidCallback onImport;
-  final VoidCallback onExport;
-  final VoidCallback onDelete;
+// ── Item list ─────────────────────────────────────────────────────────────────
+class _ItemList extends StatelessWidget {
+  final List<InventoryModel> items;
+  final void Function(InventoryModel) onImport;
+  final void Function(InventoryModel) onExport;
+  final void Function(InventoryModel) onDelete;
+  final String emptyLabel;
 
-  const _InventoryTile({
-    required this.item,
+  const _ItemList({
+    required this.items,
     required this.onImport,
     required this.onExport,
     required this.onDelete,
+    this.emptyLabel = 'Kho trống',
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isLow = item.quantity < 5;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(children: [
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              color: (isLow ? cs.errorContainer : cs.primaryContainer),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.inventory_2_rounded,
-              color: isLow ? cs.onErrorContainer : cs.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                Row(children: [
-                  Text(
-                    '${item.quantity} ${item.unit}',
-                    style: TextStyle(
-                        color: isLow ? cs.error : cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w600),
-                  ),
-                  if (isLow) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: cs.errorContainer,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text('Sắp hết',
-                          style: TextStyle(
-                              color: cs.onErrorContainer,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ],
-                ]),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_box_rounded, color: Colors.green),
-            onPressed: onImport,
-            tooltip: 'Nhập kho',
-          ),
-          IconButton(
-            icon: Icon(Icons.remove_circle_outline_rounded, color: cs.error),
-            onPressed: onExport,
-            tooltip: 'Xuất kho',
-          ),
-          IconButton(
-            icon: Icon(Icons.delete_outline_rounded, color: cs.outlineVariant),
-            onPressed: onDelete,
-            tooltip: 'Xóa',
-          ),
-        ]),
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_rounded,
+                size: 64, color: cs.outlineVariant),
+            const SizedBox(height: 12),
+            Text(emptyLabel,
+                style: TextStyle(color: cs.onSurfaceVariant),
+                textAlign: TextAlign.center),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 4),
+      itemBuilder: (_, i) => InventoryItemCard(
+        item: items[i],
+        onImport: () => onImport(items[i]),
+        onExport: () => onExport(items[i]),
+        onDelete: () => onDelete(items[i]),
       ),
     );
   }

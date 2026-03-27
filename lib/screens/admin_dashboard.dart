@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/init_data_service.dart';
+import '../providers/inventory_provider.dart';
+import '../services/database_service.dart';
+import '../models/order_model.dart';
 import '../utils/logout_helper.dart';
+import '../components/dashboard_card.dart';
+import '../components/order_item_card.dart';
 import 'menu_management_screen.dart';
 import 'category_management_screen.dart';
 import 'table_management_screen.dart';
@@ -12,80 +16,318 @@ import 'inventory_management_screen.dart';
 import 'dashboard_stats_screen.dart';
 import 'chatbot_management_screen.dart';
 
-/// Admin Dashboard – MD3 NavigationDrawer layout
-class AdminDashboard extends StatelessWidget {
+/// Admin Dashboard – Vị Lai Quán (未来馆) – Premium MD3 layout
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  final _db = DatabaseService();
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final admin = Provider.of<AuthProvider>(context, listen: false).user;
+    final inv = context.watch<InventoryProvider>();
+
+    // Count low-stock items
+    final lowStockCount = inv.items.where((item) {
+      return item.maxQuantity > 0
+          ? item.quantity < item.maxQuantity * 0.2
+          : item.quantity < 5;
+    }).length;
 
     return Scaffold(
-      // ── AppBar
-      appBar: AppBar(
-        title: const Text('Quản Lý Nhà Hàng'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Đăng xuất',
-            onPressed: () => LogoutHelper.showLogoutDialog(context),
-          ),
-        ],
-      ),
-
-      // ── Body: realtime stats + module grid
+      backgroundColor: cs.surfaceContainerLowest,
       body: CustomScrollView(
         slivers: [
-          // Welcome banner
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [cs.primary, cs.tertiary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          // ── SliverAppBar with gradient header ──────────────────────────
+          SliverAppBar(
+            expandedHeight: 160,
+            pinned: true,
+            backgroundColor: cs.primary,
+            foregroundColor: cs.onPrimary,
+            actions: [
+              IconButton(
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications_outlined, size: 26),
+                    if (lowStockCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFC107),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: cs.primary, width: 1.5),
+                          ),
+                          child: Center(
+                            child: Text('$lowStockCount',
+                                style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.black)),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(20),
+                tooltip: 'Thông báo',
+                onPressed: () => _push(context, const InventoryManagementScreen()),
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: cs.onPrimary.withValues(alpha: 0.2),
-                    child: Icon(Icons.admin_panel_settings_rounded,
-                        color: cs.onPrimary, size: 30),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Xin chào, Admin 👋',
-                          style: TextStyle(
-                              color: cs.onPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700)),
-                      Text(admin?.name ?? '',
-                          style: TextStyle(
-                              color: cs.onPrimary.withValues(alpha: 0.8),
-                              fontSize: 14)),
+              IconButton(
+                icon: const Icon(Icons.logout_rounded),
+                tooltip: 'Đăng xuất',
+                onPressed: () => LogoutHelper.showLogoutDialog(context),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      cs.primary,
+                      const Color(0xFF8B0000),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Row(
+                          children: [
+                            // Logo
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '未来馆',
+                                  style: TextStyle(
+                                    color: const Color(0xFFFFC107),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 2,
+                                  ),
+                                ),
+                                Text(
+                                  'Vị Lai Quán · Admin',
+                                  style: TextStyle(
+                                    color: cs.onPrimary.withValues(alpha: 0.9),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            // Admin avatar
+                            CircleAvatar(
+                              radius: 26,
+                              backgroundColor:
+                                  const Color(0xFFFFC107).withValues(alpha: 0.25),
+                              child: Text(
+                                admin?.name.isNotEmpty == true
+                                    ? admin!.name[0].toUpperCase()
+                                    : 'A',
+                                style: const TextStyle(
+                                  color: Color(0xFFFFC107),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Xin chào, ${admin?.name ?? "Admin"} 👋',
+                          style: TextStyle(
+                            color: cs.onPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Section 1: KPI Cards ─────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SectionHeader(label: '📊 Tổng quan hôm nay'),
+                  const SizedBox(height: 12),
+                  StreamBuilder<List<OrderModel>>(
+                    stream: _db.getOrders(),
+                    builder: (ctx, snap) {
+                      final orders = snap.data ?? [];
+                      final now = DateTime.now();
+                      final todayOrders = orders.where((o) =>
+                          o.createdAt.year == now.year &&
+                          o.createdAt.month == now.month &&
+                          o.createdAt.day == now.day).toList();
+
+                      final todayRevenue = todayOrders
+                          .where((o) => o.status == OrderStatus.completed)
+                          .fold(0.0, (sum, o) => sum + o.totalPrice);
+
+                      // Top dish from today
+                      final dishCount = <String, int>{};
+                      for (final o in todayOrders) {
+                        for (final item in o.items) {
+                          dishCount[item.dish.name] =
+                              (dishCount[item.dish.name] ?? 0) + item.quantity;
+                        }
+                      }
+                      final topDish = dishCount.isNotEmpty
+                          ? (dishCount.entries.toList()
+                                ..sort((a, b) => b.value.compareTo(a.value)))
+                              .first
+                              .key
+                          : '–';
+
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.90,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          DashboardCard(
+                            icon: Icons.monetization_on_rounded,
+                            title: 'Doanh thu hôm nay',
+                            value: '${_fmt(todayRevenue)}đ',
+                            color: const Color(0xFFD32F2F),
+                            onTap: () => _push(context, const DashboardStatsScreen()),
+                          ),
+                          DashboardCard(
+                            icon: Icons.receipt_long_rounded,
+                            title: 'Số đơn hôm nay',
+                            value: '${todayOrders.length}',
+                            color: Colors.blue,
+                            badge: todayOrders
+                                    .where((o) => o.status == OrderStatus.pending)
+                                    .isNotEmpty
+                                ? '${todayOrders.where((o) => o.status == OrderStatus.pending).length} chờ xử lý'
+                                : null,
+                            badgeColor: Colors.orange,
+                            onTap: () => _push(context, const OrderManagementScreen()),
+                          ),
+                          DashboardCard(
+                            icon: Icons.whatshot_rounded,
+                            title: 'Món bán chạy',
+                            value: topDish,
+                            color: Colors.orange,
+                            onTap: () => _push(context, const DashboardStatsScreen()),
+                          ),
+                          DashboardCard(
+                            icon: Icons.warning_amber_rounded,
+                            title: 'Kho sắp hết',
+                            value: '$lowStockCount món',
+                            color: lowStockCount > 0 ? cs.error : Colors.green,
+                            badge: lowStockCount > 0 ? 'Cần bổ sung!' : 'Ổn định',
+                            badgeColor: lowStockCount > 0 ? cs.error : Colors.green,
+                            onTap: () =>
+                                _push(context, const InventoryManagementScreen()),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
             ),
           ),
 
-          // Module grid
+          // ── Section 2: Realtime Order Feed ───────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _SectionHeader(label: '⚡ Đơn hàng mới nhất'),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () =>
+                            _push(context, const OrderManagementScreen()),
+                        child: const Text('Xem tất cả →'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  StreamBuilder<List<OrderModel>>(
+                    stream: _db.getOrders(),
+                    builder: (ctx, snap) {
+                      if (!snap.hasData) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      final orders = snap.data!.take(5).toList();
+                      if (orders.isEmpty) {
+                        return _emptyFeed(cs);
+                      }
+                      return Column(
+                        children: orders
+                            .map((o) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: OrderItemCard(
+                                    order: o,
+                                    onTap: () =>
+                                        _push(context, const OrderManagementScreen()),
+                                  ),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Section 3: Module Grid ────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: _SectionHeader(label: '🧭 Quản lý'),
+            ),
+          ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             sliver: SliverGrid.count(
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.15,
               children: [
                 _ModuleCard(
                   icon: Icons.bar_chart_rounded,
@@ -114,7 +356,7 @@ class AdminDashboard extends StatelessWidget {
                 _ModuleCard(
                   icon: Icons.receipt_long_rounded,
                   label: 'Đơn Hàng',
-                  color: Colors.red,
+                  color: const Color(0xFFD32F2F),
                   onTap: () => _push(context, const OrderManagementScreen()),
                 ),
                 _ModuleCard(
@@ -138,14 +380,6 @@ class AdminDashboard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Seed data card
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _SeedDataCard(),
-            ),
-          ),
         ],
       ),
     );
@@ -153,6 +387,47 @@ class AdminDashboard extends StatelessWidget {
 
   void _push(BuildContext context, Widget screen) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  Widget _emptyFeed(ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inbox_outlined, color: cs.outlineVariant, size: 28),
+          const SizedBox(width: 10),
+          Text('Chưa có đơn hàng nào',
+              style: TextStyle(color: cs.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
+
+  String _fmt(double price) {
+    final s = price.toInt().toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
+      buf.write(s[i]);
+    }
+    return buf.toString();
+  }
+}
+
+// ── Section header ────────────────────────────────────────────────────────────
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  const _SectionHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+    );
   }
 }
 
@@ -176,7 +451,7 @@ class _ModuleCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -202,82 +477,6 @@ class _ModuleCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Seed data card ────────────────────────────────────────────────────────────
-class _SeedDataCard extends StatefulWidget {
-  @override
-  State<_SeedDataCard> createState() => _SeedDataCardState();
-}
-
-class _SeedDataCardState extends State<_SeedDataCard> {
-  bool _loading = false;
-
-  Future<void> _seed() async {
-    setState(() => _loading = true);
-    try {
-      await InitDataService().seedAll();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('✅ Đã tạo dữ liệu mẫu: 20 bàn + 30 món + 4 danh mục')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      color: cs.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.auto_awesome_rounded, color: cs.onSecondaryContainer, size: 28),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Khởi tạo dữ liệu mẫu',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: cs.onSecondaryContainer,
-                            fontWeight: FontWeight.w700,
-                          )),
-                  Text('20 bàn • 30 món • 4 danh mục',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: cs.onSecondaryContainer.withValues(alpha: 0.8),
-                          )),
-                ],
-              ),
-            ),
-            _loading
-                ? const SizedBox(
-                    width: 24, height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : FilledButton(
-                    onPressed: _seed,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: cs.secondary,
-                      foregroundColor: cs.onSecondary,
-                    ),
-                    child: const Text('Seed'),
-                  ),
-          ],
         ),
       ),
     );

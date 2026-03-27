@@ -44,16 +44,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Material Design 3 – full theme configuration
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFFE65100), // Deep Orange seed
+      seedColor: const Color(0xFFD32F2F), // Đỏ – Vị Lai Quán primary
       brightness: Brightness.light,
     );
 
     return MaterialApp(
-      title: 'Restaurant Management',
+      title: 'Vị Lai Quán – Quản Lý',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,
+        fontFamily: 'Roboto',
 
         // AppBar – MD3 uses surface as default background
         appBarTheme: AppBarTheme(
@@ -67,8 +68,8 @@ class MyApp extends StatelessWidget {
 
         // Card – MD3 elevated card
         cardTheme: CardThemeData(
-          elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           clipBehavior: Clip.antiAlias,
           color: colorScheme.surface,
           surfaceTintColor: colorScheme.surfaceTint,

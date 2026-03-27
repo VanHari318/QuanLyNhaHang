@@ -4,12 +4,14 @@ class InventoryModel {
   final String name;
   final double quantity;
   final String unit;  // kg | lít | cái | túi...
+  final double maxQuantity; // ngưỡng tối đa để tính % còn lại
 
   const InventoryModel({
     required this.id,
     required this.name,
     required this.quantity,
     required this.unit,
+    this.maxQuantity = 0, // 0 = không đặt (dùng fallback < 5)
   });
 
   Map<String, dynamic> toMap() => {
@@ -17,6 +19,7 @@ class InventoryModel {
     'name': name,
     'quantity': quantity,
     'unit': unit,
+    'maxQuantity': maxQuantity,
   };
 
   factory InventoryModel.fromMap(Map<String, dynamic> map) {
@@ -25,15 +28,17 @@ class InventoryModel {
       name: map['name'] ?? '',
       quantity: (map['quantity'] ?? 0).toDouble(),
       unit: map['unit'] ?? '',
+      maxQuantity: (map['maxQuantity'] ?? 0).toDouble(),
     );
   }
 
-  InventoryModel copyWith({String? name, double? quantity, String? unit}) {
+  InventoryModel copyWith({String? name, double? quantity, String? unit, double? maxQuantity}) {
     return InventoryModel(
       id: id,
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
+      maxQuantity: maxQuantity ?? this.maxQuantity,
     );
   }
 }
