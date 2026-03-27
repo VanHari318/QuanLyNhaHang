@@ -8,6 +8,7 @@ import '../models/table_model.dart';
 import '../models/user_model.dart';
 import '../utils/logout_helper.dart';
 
+/// Màn hình thu ngân – dùng OrderModel API mới (dish thay foodItem, tableId thay tableNumber)
 class CashierScreen extends StatelessWidget {
   const CashierScreen({super.key});
 
@@ -17,80 +18,133 @@ class CashierScreen extends StatelessWidget {
     final isAdmin = user?.role == UserRole.admin;
     final orderProvider = Provider.of<OrderProvider>(context);
     final tableProvider = Provider.of<TableProvider>(context);
+    final cs = Theme.of(context).colorScheme;
 
-    // Filter orders for the cashier (ready for payment)
     final readyOrders = orderProvider.orders
         .where((o) => o.status == OrderStatus.ready)
         .toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cashier Panel'),
-        leading: isAdmin ? IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ) : null,
+        title: const Text('Thu Ngân'),
+        leading: isAdmin
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context))
+            : null,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: () => LogoutHelper.showLogoutDialog(context),
           ),
         ],
       ),
-      body: readyOrders.isEmpty 
-        ? const Center(child: Text('No orders ready for checkout'))
-        : ListView.builder(
-            itemCount: readyOrders.length,
-            itemBuilder: (context, index) {
-              final order = readyOrders[index];
-              return Card(
-                margin: const EdgeInsets.all(8),
-                child: ListTile(
-                  title: Text('Table ${order.tableNumber}'),
-                  subtitle: Text('Total: ${order.totalPrice.toStringAsFixed(0)}đ'),
-                  trailing: ElevatedButton(
-                    onPressed: () async {
-                      // 1. Mark order as completed
-                      await orderProvider.updateStatus(order.id, OrderStatus.completed);
-                      
-                      // 2. Mark table as available (find the table ID first)
-                      final table = tableProvider.tables.firstWhere((t) => t.number == order.tableNumber);
-                      await tableProvider.updateStatus(table.id, TableStatus.available);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Payment completed. Table is now free.')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-                    child: const Text('Checkout'),
+      body: readyOrders.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.payment_rounded,
+                      size: 64, color: cs.outlineVariant),
+                  const SizedBox(height: 12),
+                  Text('Không có đơn nào chờ thanh toán',
+                      style: TextStyle(color: cs.onSurfaceVariant)),
+                ],
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(12),
+              itemCount: readyOrders.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final order = readyOrders[index];
+                // tableId hoặc "Online"
+                final tableLabel = order.tableId ?? 'Online';
+                return Card(
+                  child: ListTile(
+                    leading: Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.table_bar_rounded,
+                          color: Colors.green),
+                    ),
+                    title: Text(tableLabel,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(
+                        'Tổng: ${_formatPrice(order.totalPrice)}đ\n${order.items.length} món'),
+                    isThreeLine: true,
+                    trailing: FilledButton(
+                      style: FilledButton.styleFrom(
+                          backgroundColor: Colors.green),
+                      onPressed: () async {
+                        await orderProvider.updateStatus(
+                            order.id, OrderStatus.completed);
+                        // Trả bàn về trạng thái trống nếu dine-in
+                        if (order.tableId != null) {
+                          try {
+                            final table = tableProvider.tables.firstWhere(
+                                (t) => t.id == order.tableId);
+                            await tableProvider.updateStatus(
+                                table.id, TableStatus.available);
+                          } catch (_) {}
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('✅ Thanh toán thành công')),
+                          );
+                        }
+                      },
+                      child: const Text('Thanh toán'),
+                    ),
+                    onTap: () => _showDetails(context, order),
                   ),
-                  onTap: () => _showOrderDetails(context, order),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
     );
   }
 
-  void _showOrderDetails(BuildContext context, OrderModel order) {
+  void _showDetails(BuildContext context, OrderModel order) {
+    final tableLabel = order.tableId ?? 'Online';
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Order Details - Table ${order.tableNumber}'),
+      builder: (_) => AlertDialog(
+        title: Text('Chi tiết – $tableLabel'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ...order.items.map((item) => Text('${item.quantity}x ${item.foodItem.name} - ${item.foodItem.price * item.quantity}đ')),
+            ...order.items.map((item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(
+                      '${item.quantity}× ${item.dish.name}  –  ${_formatPrice(item.dish.price * item.quantity)}đ'),
+                )),
             const Divider(),
-            Text('Total: ${order.totalPrice.toStringAsFixed(0)}đ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Tổng: ${_formatPrice(order.totalPrice)}đ',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 17)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng')),
         ],
       ),
     );
   }
-}
 
+  String _formatPrice(double p) {
+    final s = p.toInt().toString();
+    final b = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
+      b.write(s[i]);
+    }
+    return b.toString();
+  }
+}

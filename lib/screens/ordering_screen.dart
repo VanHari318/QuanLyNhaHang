@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/table_model.dart';
-import '../models/food_item.dart';
+import '../models/dish_model.dart';
 import '../models/order_model.dart';
 import '../providers/menu_provider.dart';
 import '../providers/order_provider.dart';
 
+/// Màn hình đặt món cho waiter – dùng DishModel (API mới)
 class OrderingScreen extends StatefulWidget {
   final TableModel table;
   const OrderingScreen({super.key, required this.table});
@@ -15,82 +16,154 @@ class OrderingScreen extends StatefulWidget {
 }
 
 class _OrderingScreenState extends State<OrderingScreen> {
-  final Map<FoodItem, int> _cart = {};
+  final Map<DishModel, int> _cart = {};
 
-  void _addToCart(FoodItem item) {
+  void _addToCart(DishModel dish) {
     setState(() {
-      _cart[item] = (_cart[item] ?? 0) + 1;
+      _cart[dish] = (_cart[dish] ?? 0) + 1;
+    });
+  }
+
+  void _removeFromCart(DishModel dish) {
+    setState(() {
+      if ((_cart[dish] ?? 0) <= 1) {
+        _cart.remove(dish);
+      } else {
+        _cart[dish] = _cart[dish]! - 1;
+      }
     });
   }
 
   double get _totalPrice {
-    return _cart.entries.fold(0, (sum, entry) => sum + (entry.key.price * entry.value));
+    return _cart.entries.fold(0, (sum, e) => sum + (e.key.price * e.value));
   }
 
-  void _placeOrder() async {
+  Future<void> _placeOrder() async {
     if (_cart.isEmpty) return;
 
-    final List<OrderItem> items = _cart.entries.map((e) => OrderItem(
-      foodItem: e.key,
-      quantity: e.value,
-    )).toList();
+    final items = _cart.entries
+        .map((e) => OrderItem(dish: e.key, quantity: e.value))
+        .toList();
 
     final order = OrderModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      tableNumber: widget.table.number,
+      type: OrderType.dine_in,
+      tableId: widget.table.id,
       items: items,
       totalPrice: _totalPrice,
       status: OrderStatus.pending,
-      type: OrderType.dineIn,
-      createdAt: DateTime.now(),
     );
 
+    if (!mounted) return;
     await Provider.of<OrderProvider>(context, listen: false).placeOrder(order);
-    Navigator.pop(context); // Go back to table selection
+
+    if (!mounted) return;
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Order sent to kitchen')),
+      const SnackBar(content: Text('Đã gửi order vào bếp 🍳')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final menuProvider = Provider.of<MenuProvider>(context);
+    final cs = Theme.of(context).colorScheme;
+    // Dùng allItems (tất cả món còn dùng được)
+    final dishes = menuProvider.allItems.where((d) => d.isAvailable).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Table ${widget.table.number} Order')),
+      appBar: AppBar(
+        title: Text('${widget.table.name} – Gọi món'),
+      ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: menuProvider.items.length,
-              itemBuilder: (context, index) {
-                final item = menuProvider.items[index];
-                return ListTile(
-                  title: Text(item.name),
-                  subtitle: Text('${item.price}đ'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.add_circle, color: Colors.blue),
-                    onPressed: () => _addToCart(item),
+              padding: const EdgeInsets.all(8),
+              itemCount: dishes.length,
+              itemBuilder: (ctx, i) {
+                final dish = dishes[i];
+                final qty = _cart[dish] ?? 0;
+                return Card(
+                  child: ListTile(
+                    leading: dish.imageUrl.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(dish.imageUrl,
+                                width: 48, height: 48, fit: BoxFit.cover),
+                          )
+                        : Container(
+                            width: 48, height: 48,
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.fastfood_rounded,
+                                color: cs.onSurfaceVariant),
+                          ),
+                    title: Text(dish.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${dish.price.toInt()}đ'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (qty > 0) ...[
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            color: cs.error,
+                            onPressed: () => _removeFromCart(dish),
+                          ),
+                          Text('$qty',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.primary,
+                                  fontSize: 16)),
+                        ],
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: cs.primary,
+                          onPressed: () => _addToCart(dish),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
             ),
           ),
-          if (_cart.isNotEmpty) 
+          // Cart summary
+          if (_cart.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+                color: cs.surface,
+                boxShadow: [
+                  BoxShadow(
+                      color: cs.shadow.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -3))
+                ],
               ),
               child: Column(
                 children: [
-                  Text('Total: ${_totalPrice.toStringAsFixed(0)}đ', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _placeOrder,
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                    child: const Text('Send to Kitchen'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Tổng cộng',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      Text('${_totalPrice.toInt()}đ',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: cs.primary, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.send_rounded),
+                      label: const Text('Gửi vào bếp'),
+                      onPressed: _placeOrder,
+                    ),
                   ),
                 ],
               ),

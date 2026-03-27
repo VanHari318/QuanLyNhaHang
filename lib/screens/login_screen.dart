@@ -3,12 +3,11 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/cloudinary_service.dart';
 
+/// Màn hình đăng nhập / đăng ký – MD3
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -17,114 +16,220 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _nameController = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
   bool _isLogin = true;
+  bool _obscurePassword = true;
+  bool _isLoading = false;
   File? _imageFile;
   XFile? _webImage;
-  bool _isUploading = false;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _nameCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-    if (pickedFile != null) {
+    final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (img != null) {
       setState(() {
         if (kIsWeb) {
-          _webImage = pickedFile;
+          _webImage = img;
         } else {
-          _imageFile = File(pickedFile.path);
+          _imageFile = File(img.path);
         }
       });
     }
   }
 
-  void _submit() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    bool success;
-    
-    if (_isLogin) {
-      success = await authProvider.login(_emailController.text.trim(), _passwordController.text.trim());
-    } else {
-      setState(() => _isUploading = true);
-      
-      String imageUrl = await CloudinaryService.uploadImage(
-        imageFile: _imageFile,
-        webImage: _webImage,
-        preset: CloudinaryService.avatarPreset,
-        folder: CloudinaryService.avatarFolder,
-      );
-      
-      success = await authProvider.register(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-        _nameController.text.trim(),
-        UserRole.customer, 
-        imageUrl: imageUrl,
-      );
-      
-      setState(() => _isUploading = false);
+  Future<void> _submit() async {
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text.trim();
+    if (email.isEmpty || password.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    final auth = context.read<AuthProvider>();
+    bool ok;
+
+    try {
+      if (_isLogin) {
+        ok = await auth.login(email, password);
+      } else {
+        String imageUrl = '';
+        if (_imageFile != null || _webImage != null) {
+          imageUrl = await CloudinaryService.uploadImage(
+            imageFile: _imageFile,
+            webImage: _webImage,
+            preset: CloudinaryService.avatarPreset,
+            folder: CloudinaryService.avatarFolder,
+          );
+        }
+        ok = await auth.register(
+          email, password, _nameCtrl.text.trim(),
+          UserRole.customer, imageUrl: imageUrl,
+        );
+      }
+    } catch (_) {
+      ok = false;
     }
 
-    if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Action Failed. Check Console or Credentials.')),
-      );
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isLogin
+                ? 'Email hoặc mật khẩu không đúng'
+                : 'Đăng ký thất bại. Vui lòng thử lại.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text(_isLogin ? 'Login' : 'Register Account')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            if (!_isLogin) ...[
-              GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.grey[300],
-                  backgroundImage: _webImage != null 
-                    ? NetworkImage(_webImage!.path) 
-                    : (_imageFile != null ? FileImage(_imageFile!) : null),
-                  child: (_imageFile == null && _webImage == null) ? const Icon(Icons.camera_alt, size: 40) : null,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 40),
+              // Logo / Header
+              Center(
+                child: Column(children: [
+                  Container(
+                    width: 80, height: 80,
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Icon(Icons.restaurant_rounded,
+                        size: 44, color: cs.onPrimaryContainer),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Nhà Hàng Manager',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text(
+                    _isLogin ? 'Đăng nhập để tiếp tục' : 'Tạo tài khoản mới',
+                    style: TextStyle(color: cs.onSurfaceVariant),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 40),
+
+              // Avatar picker (register only)
+              if (!_isLogin) ...[
+                Center(
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: Stack(children: [
+                      CircleAvatar(
+                        radius: 44,
+                        backgroundColor: cs.surfaceContainerHighest,
+                        backgroundImage: _webImage != null
+                            ? NetworkImage(_webImage!.path)
+                            : (_imageFile != null
+                                ? FileImage(_imageFile!) as ImageProvider
+                                : null),
+                        child: (_imageFile == null && _webImage == null)
+                            ? Icon(Icons.person_rounded,
+                                size: 44, color: cs.onSurfaceVariant)
+                            : null,
+                      ),
+                      Positioned(
+                        right: 0, bottom: 0,
+                        child: Container(
+                          width: 28, height: 28,
+                          decoration: BoxDecoration(
+                            color: cs.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.camera_alt_rounded,
+                              size: 16, color: cs.onPrimary),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _nameCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Họ và tên',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Email
+              TextField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+
+              // Password
               TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Full Name'),
+                controller: _passwordCtrl,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Mật khẩu',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : FilledButton(
+                        onPressed: _submit,
+                        child: Text(
+                            _isLogin ? 'Đăng nhập' : 'Đăng ký'),
+                      ),
+              ),
+              const SizedBox(height: 12),
+
+              // Toggle
+              Center(
+                child: TextButton(
+                  onPressed: () => setState(() => _isLogin = !_isLogin),
+                  child: Text(_isLogin
+                      ? 'Chưa có tài khoản? Đăng ký ngay'
+                      : 'Đã có tài khoản? Đăng nhập'),
+                ),
               ),
             ],
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            if (_isUploading) 
-              const CircularProgressIndicator()
-            else
-              ElevatedButton(
-                onPressed: _submit,
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                child: Text(_isLogin ? 'Login' : 'Register'),
-              ),
-            TextButton(
-              onPressed: () => setState(() => _isLogin = !_isLogin),
-              child: Text(_isLogin ? 'New Staff? Register here' : 'Already have an account? Login'),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-

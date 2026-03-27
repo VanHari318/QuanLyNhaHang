@@ -1,31 +1,55 @@
 import 'package:flutter/material.dart';
-import '../models/food_item.dart';
+import '../models/dish_model.dart';
 import '../services/database_service.dart';
 
+/// Provider quản lý menu món ăn với category filter và best-seller toggle
 class MenuProvider with ChangeNotifier {
-  final DatabaseService _dbService = DatabaseService();
-  List<FoodItem> _items = [];
+  final _db = DatabaseService();
+
+  List<DishModel> _allItems = [];
+  String _selectedCategory = ''; // '' = tất cả
   bool _isLoading = false;
 
-  List<FoodItem> get items => _items;
+  List<DishModel> get allItems => _allItems;
+  String get selectedCategory => _selectedCategory;
   bool get isLoading => _isLoading;
 
+  /// Danh sách đã lọc theo category
+  List<DishModel> get filteredItems {
+    if (_selectedCategory.isEmpty) return _allItems;
+    return _allItems.where((d) => d.category == _selectedCategory).toList();
+  }
+
   MenuProvider() {
-    _dbService.getMenu().listen((items) {
-      _items = items;
+    // Lắng nghe tất cả món từ Firestore realtime
+    _db.getDishes().listen((items) {
+      _allItems = items;
       notifyListeners();
     });
   }
 
-  Future<void> addItem(FoodItem item) async {
-    await _dbService.addFoodItem(item);
+  void setCategory(String category) {
+    _selectedCategory = category;
+    notifyListeners();
   }
 
-  Future<void> updateItem(FoodItem item) async {
-    await _dbService.updateFoodItem(item);
+  Future<void> addDish(DishModel dish) async {
+    await _db.saveDish(dish);
   }
 
-  Future<void> deleteItem(String id) async {
-    await _dbService.deleteFoodItem(id);
+  Future<void> updateDish(DishModel dish) async {
+    await _db.updateDish(dish);
+  }
+
+  Future<void> deleteDish(String id) async {
+    await _db.deleteDish(id);
+  }
+
+  Future<void> toggleBestSeller(String id, bool value) async {
+    await _db.toggleBestSeller(id, value);
+  }
+
+  Future<void> toggleAvailability(String id, bool value) async {
+    await _db.toggleDishAvailability(id, value);
   }
 }

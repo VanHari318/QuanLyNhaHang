@@ -6,6 +6,7 @@ import '../models/order_model.dart';
 import '../models/user_model.dart';
 import '../utils/logout_helper.dart';
 
+/// Màn hình bếp – dùng OrderModel API mới (item.dish thay item.foodItem)
 class KitchenScreen extends StatelessWidget {
   const KitchenScreen({super.key});
 
@@ -14,83 +15,135 @@ class KitchenScreen extends StatelessWidget {
     final user = Provider.of<AuthProvider>(context).user;
     final isAdmin = user?.role == UserRole.admin;
     final orderProvider = Provider.of<OrderProvider>(context);
+    final cs = Theme.of(context).colorScheme;
 
-    // Filter orders for the kitchen (pending and preparing)
     final activeOrders = orderProvider.orders
-        .where((o) => o.status == OrderStatus.pending || o.status == OrderStatus.preparing)
+        .where((o) =>
+            o.status == OrderStatus.pending ||
+            o.status == OrderStatus.preparing)
         .toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kitchen Panel'),
-        leading: isAdmin ? IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ) : null,
+        title: const Text('Bếp'),
+        leading: isAdmin
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context))
+            : null,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: () => LogoutHelper.showLogoutDialog(context),
           ),
         ],
       ),
-      body: activeOrders.isEmpty 
-        ? const Center(child: Text('No active orders'))
-        : ListView.builder(
-            itemCount: activeOrders.length,
-            itemBuilder: (context, index) {
-              final order = activeOrders[index];
-              return Card(
-                margin: const EdgeInsets.all(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Table ${order.tableNumber}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          _buildStatusChip(order.status),
-                        ],
-                      ),
-                      const Divider(),
-                      ...order.items.map((item) => Text('${item.quantity}x ${item.foodItem.name}')),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (order.status == OrderStatus.pending)
-                            ElevatedButton(
-                              onPressed: () => orderProvider.updateStatus(order.id, OrderStatus.preparing),
-                              child: const Text('Start Preparing'),
-                            ),
-                          if (order.status == OrderStatus.preparing)
-                            ElevatedButton(
-                              onPressed: () => orderProvider.updateStatus(order.id, OrderStatus.ready),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                              child: const Text('Mark as Ready'),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-    );
-  }
+      body: activeOrders.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.kitchen_rounded,
+                      size: 64, color: cs.outlineVariant),
+                  const SizedBox(height: 12),
+                  Text('Không có đơn hàng đang chờ',
+                      style: TextStyle(color: cs.onSurfaceVariant)),
+                ],
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(12),
+              itemCount: activeOrders.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (ctx, i) {
+                final order = activeOrders[i];
+                final tableLabel = order.tableId ?? 'Online';
+                final isPending = order.status == OrderStatus.pending;
 
-  Widget _buildStatusChip(OrderStatus status) {
-    Color color = Colors.grey;
-    if (status == OrderStatus.pending) color = Colors.orange;
-    if (status == OrderStatus.preparing) color = Colors.blue;
-    
-    return Chip(
-      label: Text(status.name.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.white)),
-      backgroundColor: color,
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(tableLabel,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w800)),
+                            _StatusChip(status: order.status),
+                          ],
+                        ),
+                        const Divider(height: 16),
+                        // Items – dùng item.dish thay item.foodItem
+                        ...order.items.map((item) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(children: [
+                                Text('${item.quantity}×',
+                                    style: TextStyle(
+                                        color: cs.primary,
+                                        fontWeight: FontWeight.w700)),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(item.dish.name)),
+                                if (item.note?.isNotEmpty == true)
+                                  Text('📝 ${item.note}',
+                                      style: TextStyle(
+                                          color: cs.onSurfaceVariant,
+                                          fontSize: 12)),
+                              ]),
+                            )),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: isPending
+                              ? FilledButton.icon(
+                                  icon: const Icon(Icons.play_arrow_rounded),
+                                  label: const Text('Bắt đầu làm'),
+                                  onPressed: () => orderProvider.updateStatus(
+                                      order.id, OrderStatus.preparing),
+                                )
+                              : FilledButton.icon(
+                                  icon: const Icon(Icons.check_circle_rounded),
+                                  label: const Text('Xong'),
+                                  style: FilledButton.styleFrom(
+                                      backgroundColor: Colors.green),
+                                  onPressed: () => orderProvider.updateStatus(
+                                      order.id, OrderStatus.ready),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
 
+class _StatusChip extends StatelessWidget {
+  final OrderStatus status;
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, label) = switch (status) {
+      OrderStatus.pending => (Colors.orange, 'Chờ'),
+      OrderStatus.preparing => (Colors.blue, 'Đang làm'),
+      _ => (Colors.grey, status.name),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontWeight: FontWeight.w700, fontSize: 12)),
+    );
+  }
+}

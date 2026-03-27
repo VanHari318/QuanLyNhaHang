@@ -1,156 +1,488 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/menu_provider.dart';
-import '../models/food_item.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../services/cloudinary_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../providers/menu_provider.dart';
+import '../models/dish_model.dart';
+import '../models/category_model.dart';
+import '../services/cloudinary_service.dart';
 
-class MenuManagementScreen extends StatefulWidget {
+/// Màn hình quản lý món ăn – MD3
+class MenuManagementScreen extends StatelessWidget {
   const MenuManagementScreen({super.key});
 
   @override
-  State<MenuManagementScreen> createState() => _MenuManagementScreenState();
+  Widget build(BuildContext context) {
+    return const _MenuManagementBody();
+  }
 }
 
-class _MenuManagementScreenState extends State<MenuManagementScreen> {
+class _MenuManagementBody extends StatefulWidget {
+  const _MenuManagementBody();
+
+  @override
+  State<_MenuManagementBody> createState() => _MenuManagementBodyState();
+}
+
+class _MenuManagementBodyState extends State<_MenuManagementBody> {
   final _picker = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
-    final menuProvider = Provider.of<MenuProvider>(context);
+    final menuProvider = context.watch<MenuProvider>();
+    final cs = Theme.of(context).colorScheme;
+    final categories = [
+      const CategoryModel(id: '', name: 'Tất cả'),
+      ...CategoryModel.defaults,
+    ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu Management')),
-      body: ListView.builder(
-        itemCount: menuProvider.items.length,
-        itemBuilder: (context, index) {
-          final item = menuProvider.items[index];
-          return ListTile(
-            leading: item.imageUrl.isNotEmpty && !item.imageUrl.startsWith('/')
-              ? Image.network(item.imageUrl, width: 50, height: 50, fit: BoxFit.cover)
-              : const Icon(Icons.fastfood, size: 50),
-            title: Text(item.name),
-            subtitle: Text('${item.price.toStringAsFixed(0)}đ - ${item.category}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => _showFoodItemDialog(item: item),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => menuProvider.deleteItem(item.id),
-                ),
-              ],
-            ),
-          );
-        },
+      appBar: AppBar(
+        title: const Text('Quản Lý Món Ăn'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: _CategoryFilterBar(
+            categories: categories,
+            selected: menuProvider.selectedCategory,
+            onSelected: menuProvider.setCategory,
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showFoodItemDialog(),
-        child: const Icon(Icons.add),
+      body: menuProvider.filteredItems.isEmpty
+          ? _emptyState(cs)
+          : ListView.separated(
+              padding: const EdgeInsets.all(12),
+              itemCount: menuProvider.filteredItems.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (context, index) {
+                final dish = menuProvider.filteredItems[index];
+                return _DishTile(
+                  dish: dish,
+                  onEdit: () => _showDishDialog(context, dish: dish),
+                  onDelete: () => _confirmDelete(context, dish),
+                  onToggleBestSeller: (val) =>
+                      menuProvider.toggleBestSeller(dish.id, val),
+                  onToggleAvailable: (val) =>
+                      menuProvider.toggleAvailability(dish.id, val),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showDishDialog(context),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Thêm món'),
       ),
     );
   }
 
-  void _showFoodItemDialog({FoodItem? item}) {
-    final nameController = TextEditingController(text: item?.name);
-    final descController = TextEditingController(text: item?.description);
-    final priceController = TextEditingController(text: item?.price.toString());
-    final catController = TextEditingController(text: item?.category);
-    
-    File? localImage;
-    XFile? localWebImage;
-    bool isUploading = false;
+  Widget _emptyState(ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.restaurant_menu_rounded, size: 72, color: cs.outlineVariant),
+          const SizedBox(height: 16),
+          Text('Chưa có món ăn nào',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 16)),
+        ],
+      ),
+    );
+  }
 
+  Future<void> _confirmDelete(BuildContext context, DishModel dish) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Xóa món ăn'),
+        content: Text('Bạn muốn xóa "${dish.name}"?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy')),
+          FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Xóa')),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await context.read<MenuProvider>().deleteDish(dish.id);
+    }
+  }
+
+  void _showDishDialog(BuildContext context, {DishModel? dish}) {
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(item == null ? 'Add Food Item' : 'Edit Food Item'),
-          content: SingleChildScrollView(
-            child: Column(
+      builder: (_) => _DishDialog(existingDish: dish, picker: _picker),
+    );
+  }
+}
+
+// ── Category filter bar ───────────────────────────────────────────────────────
+class _CategoryFilterBar extends StatelessWidget {
+  final List<CategoryModel> categories;
+  final String selected;
+  final void Function(String) onSelected;
+
+  const _CategoryFilterBar({
+    required this.categories,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final cat = categories[i];
+          final isSelected = cat.id == selected;
+          return FilterChip(
+            label: Text(cat.name),
+            selected: isSelected,
+            onSelected: (_) => onSelected(cat.id),
+            showCheckmark: false,
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Dish list tile ────────────────────────────────────────────────────────────
+class _DishTile extends StatelessWidget {
+  final DishModel dish;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final void Function(bool) onToggleBestSeller;
+  final void Function(bool) onToggleAvailable;
+
+  const _DishTile({
+    required this.dish,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggleBestSeller,
+    required this.onToggleAvailable,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: dish.imageUrl.isNotEmpty
+                  ? Image.network(dish.imageUrl,
+                      width: 64, height: 64, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          _placeholder(cs))
+                  : _placeholder(cs),
+            ),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(dish.name,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600)),
+                      if (dish.isBestSeller)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('⭐ Hot',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w600)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_formatPrice(dish.price)}đ  •  ${CategoryModel.labelOf(dish.category)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            // Actions
+            Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-                TextField(controller: descController, decoration: const InputDecoration(labelText: 'Description')),
-                TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number),
-                TextField(controller: catController, decoration: const InputDecoration(labelText: 'Category')),
-                const SizedBox(height: 10),
-                if (localImage != null || localWebImage != null)
-                  Image(
-                    image: kIsWeb ? NetworkImage(localWebImage!.path) : FileImage(localImage!) as ImageProvider,
-                    height: 100,
-                    width: 100,
-                    fit: BoxFit.cover,
-                  )
-                else if (item?.imageUrl != null && item!.imageUrl.isNotEmpty)
-                  Image.network(item.imageUrl, height: 100, width: 100, fit: BoxFit.cover),
-                
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-                    if (image != null) {
-                      setDialogState(() {
-                        if (kIsWeb) {
-                          localWebImage = image;
-                        } else {
-                          localImage = File(image.path);
-                        }
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.image),
-                  label: const Text('Pick Image'),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.edit_rounded,
+                          size: 20, color: cs.primary),
+                      onPressed: onEdit,
+                      tooltip: 'Sửa',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete_outline_rounded,
+                          size: 20, color: cs.error),
+                      onPressed: onDelete,
+                      tooltip: 'Xóa',
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star_rounded,
+                        size: 16,
+                        color: dish.isBestSeller
+                            ? Colors.amber
+                            : cs.outlineVariant),
+                    Switch(
+                      value: dish.isBestSeller,
+                      onChanged: onToggleBestSeller,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            isUploading 
-              ? const CircularProgressIndicator()
-              : ElevatedButton(
-                  onPressed: () async {
-                    setDialogState(() => isUploading = true);
-                    
-                    String finalImageUrl = item?.imageUrl ?? '';
-                    
-                    if (localImage != null || localWebImage != null) {
-                      finalImageUrl = await CloudinaryService.uploadImage(
-                        imageFile: localImage,
-                        webImage: localWebImage,
-                        preset: CloudinaryService.foodPreset,
-                        folder: CloudinaryService.foodFolder,
-                      );
-                    }
-
-                    final newItem = FoodItem(
-                      id: item?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-                      name: nameController.text,
-                      description: descController.text,
-                      price: double.tryParse(priceController.text) ?? 0.0,
-                      imageUrl: finalImageUrl,
-                      category: catController.text,
-                    );
-                    
-                    if (item == null) {
-                      await Provider.of<MenuProvider>(context, listen: false).addItem(newItem);
-                    } else {
-                      await Provider.of<MenuProvider>(context, listen: false).updateItem(newItem);
-                    }
-                    
-                    Navigator.pop(context);
-                  },
-                  child: Text(item == null ? 'Add' : 'Save'),
-                ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _placeholder(ColorScheme cs) {
+    return Container(
+      width: 64, height: 64,
+      color: cs.surfaceContainerHighest,
+      child: Icon(Icons.fastfood_rounded,
+          color: cs.onSurfaceVariant, size: 30),
+    );
+  }
+
+  String _formatPrice(double price) {
+    final s = price.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(s[i]);
+    }
+    return buffer.toString();
+  }
+}
+
+// ── Dish dialog (Add / Edit) ──────────────────────────────────────────────────
+class _DishDialog extends StatefulWidget {
+  final DishModel? existingDish;
+  final ImagePicker picker;
+
+  const _DishDialog({this.existingDish, required this.picker});
+
+  @override
+  State<_DishDialog> createState() => _DishDialogState();
+}
+
+class _DishDialogState extends State<_DishDialog> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _descCtrl;
+  late final TextEditingController _priceCtrl;
+  late String _selectedCat;
+  late bool _isBestSeller;
+
+  File? _localImage;
+  XFile? _webImage;
+  bool _uploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.existingDish;
+    _nameCtrl = TextEditingController(text: d?.name);
+    _descCtrl = TextEditingController(text: d?.description);
+    _priceCtrl = TextEditingController(text: d?.price.toStringAsFixed(0));
+    _selectedCat = d?.category ?? 'main';
+    _isBestSeller = d?.isBestSeller ?? false;
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    _priceCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final img = await widget.picker.pickImage(source: ImageSource.gallery);
+    if (img != null) {
+      setState(() {
+        if (kIsWeb) {
+          _webImage = img;
+        } else {
+          _localImage = File(img.path);
+        }
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    if (_nameCtrl.text.trim().isEmpty) return;
+    setState(() => _uploading = true);
+
+    String imageUrl = widget.existingDish?.imageUrl ?? '';
+    if (_localImage != null || _webImage != null) {
+      imageUrl = await CloudinaryService.uploadImage(
+        imageFile: _localImage,
+        webImage: _webImage,
+        preset: CloudinaryService.foodPreset,
+        folder: CloudinaryService.foodFolder,
+      );
+    }
+
+    final dish = DishModel(
+      id: widget.existingDish?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _nameCtrl.text.trim(),
+      description: _descCtrl.text.trim(),
+      price: double.tryParse(_priceCtrl.text) ?? 0,
+      imageUrl: imageUrl,
+      category: _selectedCat,
+      isBestSeller: _isBestSeller,
+      isAvailable: widget.existingDish?.isAvailable ?? true,
+    );
+
+    final provider = context.read<MenuProvider>();
+    if (widget.existingDish == null) {
+      await provider.addDish(dish);
+    } else {
+      await provider.updateDish(dish);
+    }
+
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isEdit = widget.existingDish != null;
+
+    return AlertDialog(
+      title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Image picker
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: _buildImagePreview(cs),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Tên món *', prefixIcon: Icon(Icons.restaurant)),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _descCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Mô tả', prefixIcon: Icon(Icons.description_outlined)),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _priceCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Giá (VNĐ) *', prefixIcon: Icon(Icons.attach_money)),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: _selectedCat,
+              decoration: const InputDecoration(
+                  labelText: 'Danh mục', prefixIcon: Icon(Icons.category_outlined)),
+              items: CategoryModel.defaults
+                  .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedCat = v!),
+            ),
+            const SizedBox(height: 6),
+            SwitchListTile.adaptive(
+              title: const Text('Best Seller ⭐'),
+              value: _isBestSeller,
+              onChanged: (v) => setState(() => _isBestSeller = v),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy')),
+        _uploading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                    width: 24, height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2)))
+            : FilledButton(
+                onPressed: _save,
+                child: Text(isEdit ? 'Lưu' : 'Thêm'),
+              ),
+      ],
+    );
+  }
+
+  Widget _buildImagePreview(ColorScheme cs) {
+    if (_localImage != null) {
+      return Image.file(_localImage!, fit: BoxFit.cover);
+    }
+    if (_webImage != null) {
+      return Image.network(_webImage!.path, fit: BoxFit.cover);
+    }
+    if (widget.existingDish?.imageUrl.isNotEmpty == true) {
+      return Image.network(widget.existingDish!.imageUrl, fit: BoxFit.cover);
+    }
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate_rounded,
+            size: 36, color: cs.onSurfaceVariant),
+        const SizedBox(height: 6),
+        Text('Chọn ảnh', style: TextStyle(color: cs.onSurfaceVariant)),
+      ],
     );
   }
 }
