@@ -94,7 +94,7 @@ class OrderModel {
       ),
       tableId: map['tableId'],
       items: parsedItems,
-      totalPrice: (map['totalPrice'] ?? 0.0).toDouble(),
+      totalPrice: double.tryParse(map['totalPrice']?.toString() ?? '0') ?? 0.0,
       status: OrderStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => OrderStatus.pending,
