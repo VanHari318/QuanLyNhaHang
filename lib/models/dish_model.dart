@@ -39,18 +39,27 @@ class DishModel {
 
   /// Tạo từ Firestore document
   factory DishModel.fromMap(Map<String, dynamic> map) {
+    // createdAt có thể là Timestamp (Firestore) hoặc String (ISO) tuỳ nguồn
+    DateTime parsedDate = DateTime.now();
+    final raw = map['createdAt'];
+    if (raw != null) {
+      if (raw is String) {
+        parsedDate = DateTime.tryParse(raw) ?? DateTime.now();
+      } else if (raw.runtimeType.toString().contains('Timestamp')) {
+        parsedDate = raw.toDate();
+      }
+    }
+
     return DishModel(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       price: (map['price'] ?? 0.0).toDouble(),
-      imageUrl: map['imageUrl'] ?? '',
+      imageUrl: map['imageUrl'] ?? map['image_url'] ?? '',
       category: map['category'] ?? '',
-      isAvailable: map['isAvailable'] ?? true,
-      isBestSeller: map['isBestSeller'] ?? false,
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
-          : DateTime.now(),
+      isAvailable: map['isAvailable'] ?? map['is_available'] ?? true,
+      isBestSeller: map['isBestSeller'] ?? map['is_best_seller'] ?? false,
+      createdAt: parsedDate,
     );
   }
 

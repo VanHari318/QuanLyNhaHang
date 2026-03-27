@@ -146,7 +146,7 @@ class _FullOrderCard extends StatelessWidget {
                   children: [
                     Text(
                       order.type == OrderType.dine_in
-                          ? '🪑 ${order.tableId ?? "Bàn?"}'
+                          ? '🪑 ${order.tableId ?? "Tại Bàn"}'
                           : '🛵 Giao hàng online',
                       style: Theme.of(context)
                           .textTheme

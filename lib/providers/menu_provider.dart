@@ -8,16 +8,36 @@ class MenuProvider with ChangeNotifier {
 
   List<DishModel> _allItems = [];
   String _selectedCategory = ''; // '' = tất cả
+  String _searchQuery = '';
+  bool? _isSortAsc;
   bool _isLoading = false;
 
   List<DishModel> get allItems => _allItems;
   String get selectedCategory => _selectedCategory;
+  String get searchQuery => _searchQuery;
+  bool? get isSortAsc => _isSortAsc;
   bool get isLoading => _isLoading;
 
-  /// Danh sách đã lọc theo category
+  /// Danh sách đã lọc theo category, search và sort
   List<DishModel> get filteredItems {
-    if (_selectedCategory.isEmpty) return _allItems;
-    return _allItems.where((d) => d.category == _selectedCategory).toList();
+    var list = _allItems.toList();
+
+    // 1. Lọc theo Category
+    if (_selectedCategory.isNotEmpty) {
+      list = list.where((d) => d.category == _selectedCategory).toList();
+    }
+
+    // 2. Lọc theo Search Query
+    if (_searchQuery.isNotEmpty) {
+      list = list.where((d) => d.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    }
+
+    // 3. Sắp xếp theo Giá
+    if (_isSortAsc != null) {
+      list.sort((a, b) => _isSortAsc! ? a.price.compareTo(b.price) : b.price.compareTo(a.price));
+    }
+
+    return list;
   }
 
   MenuProvider() {
@@ -30,6 +50,22 @@ class MenuProvider with ChangeNotifier {
 
   void setCategory(String category) {
     _selectedCategory = category;
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  void toggleSortByPrice() {
+    if (_isSortAsc == null) {
+      _isSortAsc = true;
+    } else if (_isSortAsc == true) {
+      _isSortAsc = false;
+    } else {
+      _isSortAsc = null; // Reset
+    }
     notifyListeners();
   }
 

@@ -113,11 +113,23 @@ class DatabaseService {
   // ─── ORDERS ──────────────────────────────────────────────────────────────────
 
   Stream<List<OrderModel>> getOrders({OrderType? type}) {
-    Query<Map<String, dynamic>> q = _orders.orderBy('createdAt', descending: true);
+    // Dùng query đơn giản để tránh lỗi Firestore Composite Index
+    // Sort được thực hiện client-side sau khi nhận data
+    Query<Map<String, dynamic>> q = _orders;
     if (type != null) q = q.where('type', isEqualTo: type.name);
-    return q.snapshots().map(
-      (s) => s.docs.map((d) => OrderModel.fromMap(d.data())).toList(),
-    );
+    return q.snapshots().map((s) {
+      final result = <OrderModel>[];
+      for (final doc in s.docs) {
+        try {
+          result.add(OrderModel.fromMap(doc.data()));
+        } catch (_) {
+          // Bỏ qua document lỗi format, không crash toàn stream
+        }
+      }
+      // Sort client-side theo createdAt mới nhất
+      result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return result;
+    });
   }
 
   Future<void> placeOrder(OrderModel order) async {
@@ -243,21 +255,25 @@ class DatabaseService {
     await _chatbot.doc(id).delete();
   }
 
-  // ─── DASHBOARD STATS ─────────────────────────────────────────────────────────
 
-  /// Doanh thu theo ngày (lọc orders completed trong ngày đó)
+  /// Tổng doanh thu ngày cụ thể (filter client-side, tránh Composite Index)
   Future<double> getRevenueForDate(DateTime date) async {
-    final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
+    // Lấy tất cả completed orders rồi filter theo ngày phía client
     final snap = await _orders
         .where('status', isEqualTo: OrderStatus.completed.name)
-        .where('createdAt', isGreaterThanOrEqualTo: start.toIso8601String())
-        .where('createdAt', isLessThan: end.toIso8601String())
         .get();
-    return snap.docs.fold<double>(
-      0,
-      (sum, d) => sum + ((d.data()['totalPrice'] ?? 0) as num).toDouble(),
-    );
+
+    double total = 0;
+    for (final doc in snap.docs) {
+      try {
+        final order = OrderModel.fromMap(doc.data());
+        final d = order.createdAt;
+        if (d.year == date.year && d.month == date.month && d.day == date.day) {
+          total += order.totalPrice;
+        }
+      } catch (_) {}
+    }
+    return total;
   }
 
   /// Top 5 món bán chạy (đếm tần suất xuất hiện trong orders completed)

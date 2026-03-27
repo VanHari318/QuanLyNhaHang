@@ -42,7 +42,7 @@ class TableManagementScreen extends StatelessWidget {
                     crossAxisCount: 4,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 0.9,
+                    childAspectRatio: 0.72,
                   ),
                   itemCount: tables.length,
                   itemBuilder: (ctx, i) => _TableCard(

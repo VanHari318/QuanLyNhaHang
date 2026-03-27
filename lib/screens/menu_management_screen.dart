@@ -27,6 +27,7 @@ class _MenuManagementBody extends StatefulWidget {
 
 class _MenuManagementBodyState extends State<_MenuManagementBody> {
   final _picker = ImagePicker();
+  bool _isSearching = false;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +40,36 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản Lý Món Ăn'),
+        title: _isSearching
+            ? TextField(
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Tìm món ăn...',
+                  hintStyle: TextStyle(color: cs.onSurfaceVariant),
+                  border: InputBorder.none,
+                ),
+                onChanged: menuProvider.setSearchQuery,
+              )
+            : const Text('Quản Lý Món Ăn'),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close_rounded : Icons.search_rounded),
+            tooltip: 'Tìm kiếm',
+            onPressed: () {
+              setState(() => _isSearching = !_isSearching);
+              if (!_isSearching) menuProvider.setSearchQuery('');
+            },
+          ),
+          IconButton(
+            icon: Icon(
+              menuProvider.isSortAsc == null
+                  ? Icons.sort_rounded
+                  : (menuProvider.isSortAsc! ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
+            ),
+            tooltip: 'Sắp xếp giá',
+            onPressed: menuProvider.toggleSortByPrice,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: _CategoryFilterBar(
@@ -133,29 +163,84 @@ class _CategoryFilterBar extends StatelessWidget {
     required this.onSelected,
   });
 
+  // Icon & màu cho từng danh mục
+  static IconData _iconFor(String id) {
+    const m = {
+      '': Icons.grid_view_rounded,
+      'appetizer': Icons.lunch_dining_rounded,
+      'main': Icons.set_meal_rounded,
+      'dessert': Icons.icecream_rounded,
+      'drink': Icons.local_drink_rounded,
+    };
+    return m[id] ?? Icons.restaurant_rounded;
+  }
+
+  static Color _colorFor(String id) {
+    const m = {
+      '': Color(0xFF5C6BC0),          // Indigo – "Tất cả"
+      'appetizer': Color(0xFFFF7043), // Deep orange – Khai vị
+      'main': Color(0xFFD32F2F),      // Red – Món chính
+      'dessert': Color(0xFFAB47BC),   // Purple – Tráng miệng
+      'drink': Color(0xFF00897B),     // Teal – Đồ uống
+    };
+    return m[id] ?? const Color(0xFF757575);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
+    return Container(
+      color: Theme.of(context).colorScheme.surface,
+      height: 72,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, i) {
           final cat = categories[i];
           final isSelected = cat.id == selected;
-          return FilterChip(
-            label: Text(cat.name),
-            selected: isSelected,
-            onSelected: (_) => onSelected(cat.id),
-            showCheckmark: false,
+          final color = _colorFor(cat.id);
+          final icon = _iconFor(cat.id);
+
+          return GestureDetector(
+            onTap: () => onSelected(cat.id),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? color : color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isSelected ? color : color.withValues(alpha: 0.35),
+                  width: isSelected ? 0 : 1.2,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon,
+                      size: 18,
+                      color: isSelected ? Colors.white : color),
+                  const SizedBox(width: 6),
+                  Text(
+                    cat.name,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? Colors.white : color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       ),
     );
   }
 }
+
 
 // ── Dish list tile ────────────────────────────────────────────────────────────
 class _DishTile extends StatelessWidget {

@@ -67,6 +67,25 @@ class OrderModel {
   };
 
   factory OrderModel.fromMap(Map<String, dynamic> map) {
+    // createdAt có thể là Firestore Timestamp hoặc String ISO
+    DateTime parsedDate = DateTime.now();
+    final raw = map['createdAt'];
+    if (raw != null) {
+      if (raw is String) {
+        parsedDate = DateTime.tryParse(raw) ?? DateTime.now();
+      } else if (raw.runtimeType.toString().contains('Timestamp')) {
+        parsedDate = raw.toDate();
+      }
+    }
+
+    // Parse items an toàn, nếu lỗi bỏ qua item đó
+    List<OrderItem> parsedItems = [];
+    try {
+      parsedItems = (map['items'] as List<dynamic>? ?? [])
+          .map((x) => OrderItem.fromMap(x as Map<String, dynamic>))
+          .toList();
+    } catch (_) {}
+
     return OrderModel(
       id: map['id'] ?? '',
       type: OrderType.values.firstWhere(
@@ -74,9 +93,7 @@ class OrderModel {
         orElse: () => OrderType.dine_in,
       ),
       tableId: map['tableId'],
-      items: (map['items'] as List<dynamic>? ?? [])
-          .map((x) => OrderItem.fromMap(x as Map<String, dynamic>))
-          .toList(),
+      items: parsedItems,
       totalPrice: (map['totalPrice'] ?? 0.0).toDouble(),
       status: OrderStatus.values.firstWhere(
         (e) => e.name == map['status'],
@@ -86,9 +103,7 @@ class OrderModel {
           ? OrderLocation.fromMap(map['location'])
           : null,
       customerNote: map['customerNote'],
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: parsedDate,
     );
   }
 }
