@@ -430,6 +430,7 @@ Color _statusColor(OrderStatus s, ColorScheme cs) => switch (s) {
       OrderStatus.pending => Colors.orange,
       OrderStatus.preparing => Colors.blue,
       OrderStatus.ready => Colors.teal,
+      OrderStatus.served => Colors.purple,
       OrderStatus.completed => Colors.green,
       OrderStatus.cancelled => cs.error,
     };
@@ -438,6 +439,7 @@ String _statusLabel(OrderStatus s) => switch (s) {
       OrderStatus.pending => 'Chờ xử lý',
       OrderStatus.preparing => 'Đang làm',
       OrderStatus.ready => 'Sẵn sàng',
+      OrderStatus.served => 'Đã phục vụ',
       OrderStatus.completed => 'Hoàn thành',
       OrderStatus.cancelled => 'Đã hủy',
     };

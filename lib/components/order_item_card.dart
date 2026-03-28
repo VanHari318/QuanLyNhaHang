@@ -112,22 +112,25 @@ Color _statusColor(OrderStatus s, ColorScheme cs) => switch (s) {
       OrderStatus.pending => Colors.orange,
       OrderStatus.preparing => Colors.blue,
       OrderStatus.ready => Colors.teal,
+      OrderStatus.served => Colors.purple,
       OrderStatus.completed => Colors.green,
       OrderStatus.cancelled => cs.error,
     };
 
 String _statusLabel(OrderStatus s) => switch (s) {
-      OrderStatus.pending => 'Chờ',
+      OrderStatus.pending => 'Chờ xử lý',
       OrderStatus.preparing => 'Đang làm',
       OrderStatus.ready => 'Sẵn sàng',
+      OrderStatus.served => 'Phục vụ xong',
       OrderStatus.completed => 'Hoàn thành',
       OrderStatus.cancelled => 'Đã hủy',
     };
 
 IconData _statusIcon(OrderStatus s) => switch (s) {
-      OrderStatus.pending => Icons.pending_outlined,
-      OrderStatus.preparing => Icons.soup_kitchen_outlined,
-      OrderStatus.ready => Icons.check_circle_outline_rounded,
-      OrderStatus.completed => Icons.task_alt_rounded,
-      OrderStatus.cancelled => Icons.cancel_outlined,
+      OrderStatus.pending => Icons.schedule_rounded,
+      OrderStatus.preparing => Icons.soup_kitchen_rounded,
+      OrderStatus.ready => Icons.room_service_rounded,
+      OrderStatus.served => Icons.check_circle_outline_rounded,
+      OrderStatus.completed => Icons.check_circle_rounded,
+      OrderStatus.cancelled => Icons.cancel_rounded,
     };

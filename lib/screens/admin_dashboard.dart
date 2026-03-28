@@ -137,18 +137,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             // Admin avatar
                             CircleAvatar(
                               radius: 26,
-                              backgroundColor:
-                                  const Color(0xFFFFC107).withValues(alpha: 0.25),
-                              child: Text(
-                                admin?.name.isNotEmpty == true
-                                    ? admin!.name[0].toUpperCase()
-                                    : 'A',
-                                style: const TextStyle(
-                                  color: Color(0xFFFFC107),
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
+                              backgroundColor: const Color(0xFFFFC107).withValues(alpha: 0.25),
+                              backgroundImage: (admin != null && admin.imageUrl.isNotEmpty)
+                                  ? NetworkImage(admin.imageUrl)
+                                  : null,
+                              child: (admin == null || admin.imageUrl.isEmpty)
+                                  ? Text(
+                                      admin?.name.isNotEmpty == true
+                                          ? admin!.name[0].toUpperCase()
+                                          : 'A',
+                                      style: const TextStyle(
+                                        color: Color(0xFFFFC107),
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ],
                         ),

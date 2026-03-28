@@ -6,6 +6,7 @@ import '../models/table_model.dart';
 import '../models/category_model.dart';
 import '../models/inventory_model.dart';
 import '../models/chatbot_model.dart';
+import '../models/recipe_model.dart';
 import 'dart:math' as math;
 
 /// Lớp service tương tác với Firestore – project: quan-ly-nha-hang-20f37
@@ -136,6 +137,60 @@ class DatabaseService {
     await _orders.doc(order.id).set(order.toMap());
   }
 
+  /// Stream tất cả đơn trong cùng 1 session (theo sessionId)
+  Stream<List<OrderModel>> getOrdersBySession(String sessionId) {
+    return _orders
+        .where('sessionId', isEqualTo: sessionId)
+        .snapshots()
+        .map((s) {
+      final result = <OrderModel>[];
+      for (final doc in s.docs) {
+        try {
+          result.add(OrderModel.fromMap(doc.data()));
+        } catch (_) {}
+      }
+      result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return result;
+    });
+  }
+
+  /// Stream đơn của 1 khách cụ thể tại 1 bàn cụ thể (lọc local, bỏ qua sessionId để chống lỗi reload)
+  Stream<List<OrderModel>> getOrdersByCustomerAndTable(String customerId, String tableId) {
+    return _orders
+        .where('tableId', isEqualTo: tableId)
+        .snapshots()
+        .map((s) {
+      final result = <OrderModel>[];
+      for (final doc in s.docs) {
+        try {
+          final order = OrderModel.fromMap(doc.data());
+          if (order.customerId == customerId) {
+            result.add(order);
+          }
+        } catch (_) {}
+      }
+      result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return result;
+    });
+  }
+
+  /// Stream TẤT CẢ đơn hàng của 1 khách (để làm Lịch sử)
+  Stream<List<OrderModel>> getAllOrdersByCustomer(String customerId) {
+    return _orders
+        .where('customerId', isEqualTo: customerId)
+        .snapshots()
+        .map((s) {
+      final result = <OrderModel>[];
+      for (final doc in s.docs) {
+        try {
+          result.add(OrderModel.fromMap(doc.data()));
+        } catch (_) {}
+      }
+      result.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Mới nhất lên đầu
+      return result;
+    });
+  }
+
   Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
     // Tự động trừ kho nếu đơn hàng chuyển sang hoàn thành (completed)
     if (status == OrderStatus.completed) {
@@ -237,6 +292,25 @@ class DatabaseService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((s) => s.docs.map((d) => InventoryLogModel.fromMap(d.data())).toList());
+  }
+
+  // ─── RECIPE ──────────────────────────────────────────────────────────────────
+
+  /// Lấy công thức nấu của một món ăn (null nếu chưa có)
+  Future<DishRecipeModel?> getRecipe(String dishId) async {
+    final doc = await _db.collection('bulk_ingredients_100').doc(dishId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return DishRecipeModel.fromMap(doc.data()!);
+  }
+
+  /// Lưu công thức nấu (tạo mới hoặc ghi đè)
+  Future<void> saveRecipe(String dishId, DishRecipeModel recipe) async {
+    await _db.collection('bulk_ingredients_100').doc(dishId).set(recipe.toMap());
+  }
+
+  /// Xóa công thức khi xóa món ăn
+  Future<void> deleteRecipe(String dishId) async {
+    await _db.collection('bulk_ingredients_100').doc(dishId).delete();
   }
 
   // ─── CHATBOT ─────────────────────────────────────────────────────────────────

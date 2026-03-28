@@ -5,6 +5,7 @@ import '../models/dish_model.dart';
 import '../models/order_model.dart';
 import '../providers/menu_provider.dart';
 import '../providers/order_provider.dart';
+import '../providers/table_provider.dart';
 
 /// Màn hình đặt món cho waiter – dùng DishModel (API mới)
 class OrderingScreen extends StatefulWidget {
@@ -56,6 +57,8 @@ class _OrderingScreenState extends State<OrderingScreen> {
 
     if (!mounted) return;
     await Provider.of<OrderProvider>(context, listen: false).placeOrder(order);
+    await Provider.of<TableProvider>(context, listen: false)
+        .updateStatus(widget.table.id, TableStatus.occupied);
 
     if (!mounted) return;
     Navigator.pop(context);

@@ -15,42 +15,65 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Quản Lý Nhân Sự')),
-      body: StreamBuilder<List<UserModel>>(
-        stream: _db.getAllStaff(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final staff = snapshot.data!;
-          if (staff.isEmpty) {
-            return Center(
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.people_outline_rounded,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.outlineVariant),
-                const SizedBox(height: 12),
-                const Text('Chưa có nhân viên nào'),
-              ]),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Quản Lý Nhân Sự'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Nhân sự'),
+              Tab(text: 'Hàng chờ'),
+            ],
+          ),
+        ),
+        body: StreamBuilder<List<UserModel>>(
+          stream: _db.getAllStaff(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final staff = snapshot.data!;
+            final activeStaff = staff.where((u) => u.role != UserRole.undefined).toList();
+            final pendingStaff = staff.where((u) => u.role == UserRole.undefined).toList();
+
+            return TabBarView(
+              children: [
+                _buildList(activeStaff, 'Chưa có nhân viên nào'),
+                _buildList(pendingStaff, 'Không có yêu cầu chờ duyệt'),
+              ],
             );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: staff.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 4),
-            itemBuilder: (_, i) => _StaffTile(
-              user: staff[i],
-              onEdit: () => _showRoleDialog(staff[i]),
-              onDelete: () => _confirmDelete(staff[i]),
-            ),
-          );
-        },
+          },
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _showAddDialog,
+          icon: const Icon(Icons.person_add_rounded),
+          label: const Text('Thêm nhân viên'),
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddDialog,
-        icon: const Icon(Icons.person_add_rounded),
-        label: const Text('Thêm nhân viên'),
+    );
+  }
+
+  Widget _buildList(List<UserModel> staffList, String emptyMsg) {
+    if (staffList.isEmpty) {
+      return Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.people_outline_rounded,
+              size: 64,
+              color: Theme.of(context).colorScheme.outlineVariant),
+          const SizedBox(height: 12),
+          Text(emptyMsg),
+        ]),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: staffList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 4),
+      itemBuilder: (_, i) => _StaffTile(
+        user: staffList[i],
+        onEdit: () => _showRoleDialog(staffList[i]),
+        onDelete: () => _confirmDelete(staffList[i]),
       ),
     );
   }
@@ -58,25 +81,43 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   Future<void> _confirmDelete(UserModel user) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Xóa nhân viên'),
         content: Text('Xóa "${user.name}" khỏi hệ thống?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.error),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Xóa'),
           ),
         ],
       ),
     );
-    if (ok == true) await _db.deleteUser(user.id);
+    if (ok == true) {
+      try {
+        await _db.deleteUser(user.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã xóa nhân viên thành công')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi khi xóa: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _showRoleDialog(UserModel user) {
-    UserRole selected = user.role;
+    UserRole selected = user.role == UserRole.undefined ? UserRole.waiter : user.role;
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
@@ -86,7 +127,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             value: selected,
             decoration: const InputDecoration(labelText: 'Quyền'),
             items: UserRole.values
-                .where((r) => r != UserRole.admin && r != UserRole.customer)
+                .where((r) => r != UserRole.admin && r != UserRole.customer && r != UserRole.undefined)
                 .map((r) => DropdownMenuItem(value: r, child: Text(_roleLabel(r))))
                 .toList(),
             onChanged: (v) => setS(() => selected = v!),
@@ -100,6 +141,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   name: user.name,
                   email: user.email,
                   role: selected,
+                  imageUrl: user.imageUrl,
                 ));
                 if (ctx.mounted) Navigator.pop(ctx);
               },
@@ -139,7 +181,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               value: selected,
               decoration: const InputDecoration(labelText: 'Vai trò'),
               items: UserRole.values
-                  .where((r) => r != UserRole.admin && r != UserRole.customer)
+                  .where((r) => r != UserRole.admin && r != UserRole.customer && r != UserRole.undefined)
                   .map((r) => DropdownMenuItem(value: r, child: Text(_roleLabel(r))))
                   .toList(),
               onChanged: (v) => setS(() => selected = v!),
@@ -184,10 +226,13 @@ class _StaffTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: roleColor.withOpacity(0.15),
-          child: Text(
-            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-            style: TextStyle(color: roleColor, fontWeight: FontWeight.w700),
-          ),
+          backgroundImage: user.imageUrl.isNotEmpty ? NetworkImage(user.imageUrl) : null,
+          child: user.imageUrl.isEmpty
+              ? Text(
+                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                  style: TextStyle(color: roleColor, fontWeight: FontWeight.w700),
+                )
+              : null,
         ),
         title: Text(user.name,
             style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -226,6 +271,7 @@ String _roleLabel(UserRole r) {
     UserRole.cashier => 'Thu ngân',
     UserRole.admin => 'Admin',
     UserRole.customer => 'Khách',
+    UserRole.undefined => 'Chờ duyệt',
   };
 }
 

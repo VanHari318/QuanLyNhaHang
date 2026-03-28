@@ -28,7 +28,8 @@ class CloudinaryService {
       final request = http.MultipartRequest('POST', url);
       
       request.fields['upload_preset'] = preset;
-      request.fields['folder'] = folder;
+      // Tránh lỗi khi Upload Preset (Unsigned) không cho phép ghi đè thư mục
+      // request.fields['folder'] = folder;
 
       if (kIsWeb) {
         if (webImage != null) {
@@ -49,6 +50,11 @@ class CloudinaryService {
       final responseData = await response.stream.toBytes();
       final responseString = String.fromCharCodes(responseData);
       final jsonData = jsonDecode(responseString);
+
+      if (response.statusCode != 200) {
+        print('Cloudinary API Error: ${response.statusCode} - $responseString');
+        return '';
+      }
 
       return jsonData['secure_url'] ?? '';
     } catch (e) {

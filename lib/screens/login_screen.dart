@@ -51,6 +51,16 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordCtrl.text.trim();
     if (email.isEmpty || password.isEmpty) return;
 
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Mật khẩu phải có ít nhất 6 ký tự'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     final auth = context.read<AuthProvider>();
     bool ok;
@@ -70,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         ok = await auth.register(
           email, password, _nameCtrl.text.trim(),
-          UserRole.customer, imageUrl: imageUrl,
+          UserRole.undefined, imageUrl: imageUrl,
         );
       }
     } catch (_) {

@@ -20,8 +20,8 @@ class CashierScreen extends StatelessWidget {
     final tableProvider = Provider.of<TableProvider>(context);
     final cs = Theme.of(context).colorScheme;
 
-    final readyOrders = orderProvider.orders
-        .where((o) => o.status == OrderStatus.ready)
+    final servedOrders = orderProvider.orders
+        .where((o) => o.status == OrderStatus.served)
         .toList();
 
     return Scaffold(
@@ -39,7 +39,7 @@ class CashierScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: readyOrders.isEmpty
+      body: servedOrders.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -54,10 +54,10 @@ class CashierScreen extends StatelessWidget {
             )
           : ListView.separated(
               padding: const EdgeInsets.all(12),
-              itemCount: readyOrders.length,
+              itemCount: servedOrders.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final order = readyOrders[index];
+                final order = servedOrders[index];
                 // tableId hoặc "Online"
                 final tableLabel = order.tableId ?? 'Online';
                 return Card(
