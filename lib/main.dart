@@ -16,6 +16,7 @@ import 'screens/waiter_screen.dart';
 import 'screens/kitchen_screen.dart';
 import 'screens/cashier_screen.dart';
 import 'screens/customer_menu_page.dart';
+import 'screens/customer_main_screen.dart';
 import 'utils/logout_helper.dart';
 
 void main() async {
@@ -215,6 +216,8 @@ class AuthWrapper extends StatelessWidget {
         return const KitchenScreen();
       case UserRole.cashier:
         return const CashierScreen();
+      case UserRole.customer:
+        return const CustomerMainScreen();
       default:
         return _AccessDeniedScreen();
     }

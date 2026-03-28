@@ -15,6 +15,8 @@ import 'staff_management_screen.dart';
 import 'inventory_management_screen.dart';
 import 'dashboard_stats_screen.dart';
 import 'chatbot_management_screen.dart';
+import 'restaurant_location_screen.dart';
+import 'customer_management_screen.dart';
 
 /// Admin Dashboard – Vị Lai Quán (未来馆) – Premium MD3 layout
 class AdminDashboard extends StatefulWidget {
@@ -380,6 +382,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   label: 'ChatBot FAQ',
                   color: Colors.green,
                   onTap: () => _push(context, const ChatbotManagementScreen()),
+                ),
+                _ModuleCard(
+                  icon: Icons.map_rounded,
+                  label: 'Vị Trí & Bản Đồ',
+                  color: Colors.red,
+                  onTap: () => _push(context, const RestaurantLocationScreen()),
+                ),
+                _ModuleCard(
+                  icon: Icons.person_search_rounded,
+                  label: 'Khách Hàng',
+                  color: Colors.orange,
+                  onTap: () => _push(context, const CustomerManagementScreen()),
                 ),
               ],
             ),

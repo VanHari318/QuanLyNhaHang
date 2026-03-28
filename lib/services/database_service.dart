@@ -23,6 +23,22 @@ class DatabaseService {
   CollectionReference<Map<String, dynamic>> get _inventory => _db.collection('inventory');
   CollectionReference<Map<String, dynamic>> get _invLogs   => _db.collection('inventory_logs');
   CollectionReference<Map<String, dynamic>> get _chatbot   => _db.collection('chatbot_data');
+  DocumentReference<Map<String, dynamic>>   get _config   => _db.collection('config').doc('restaurant');
+
+  // ─── RESTAURANT CONFIG (Geofencing) ─────────────────────────────────────────
+
+  Stream<Map<String, dynamic>?> getRestaurantConfig() {
+    return _config.snapshots().map((s) => s.exists ? s.data() : null);
+  }
+
+  Future<void> setRestaurantLocation(double lat, double lng, double radiusMeters) async {
+    await _config.set({
+      'lat': lat,
+      'lng': lng,
+      'radiusMeters': radiusMeters,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 
   // ─── TABLES ─────────────────────────────────────────────────────────────────
 
@@ -55,6 +71,13 @@ class DatabaseService {
   Stream<List<UserModel>> getAllStaff() {
     return _users
         .where('role', whereNotIn: ['admin', 'customer'])
+        .snapshots()
+        .map((s) => s.docs.map((d) => UserModel.fromMap(d.data())).toList());
+  }
+
+  Stream<List<UserModel>> getAllCustomers() {
+    return _users
+        .where('role', isEqualTo: 'customer')
         .snapshots()
         .map((s) => s.docs.map((d) => UserModel.fromMap(d.data())).toList());
   }

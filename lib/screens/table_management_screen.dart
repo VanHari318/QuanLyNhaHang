@@ -69,8 +69,8 @@ class TableManagementScreen extends StatelessWidget {
   }
 
   void _showQrDialog(BuildContext context, TableModel table) {
-    // Lấy base URL (localhost hay domain thật)
-    final baseUrl = Uri.base.origin;
+    // Luôn dùng URL deploy Firebase để mã QR hoạt động với bất kỳ ai (dù đang test trên LAN hay dùng thật)
+    const baseUrl = 'https://quan-ly-nha-hang-20f37.web.app';
     final qrUrl = '$baseUrl/?tableId=${table.id}';
 
     showDialog(

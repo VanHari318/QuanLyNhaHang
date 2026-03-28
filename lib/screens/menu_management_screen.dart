@@ -464,7 +464,7 @@ class _DishDialogState extends State<_DishDialog> {
 
   Future<void> _pickImage() async {
     final img =
-        await widget.picker.pickImage(source: ImageSource.gallery);
+        await widget.picker.pickImage(source: ImageSource.camera);
     if (img != null) {
       setState(() {
         if (kIsWeb) {

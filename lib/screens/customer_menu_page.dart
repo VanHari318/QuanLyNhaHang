@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/dish_model.dart';
 import '../models/order_model.dart';
 import '../models/category_model.dart';
@@ -9,6 +10,8 @@ import '../providers/menu_provider.dart';
 import '../providers/table_provider.dart';
 import '../models/table_model.dart';
 import '../services/database_service.dart';
+import '../providers/auth_provider.dart';
+import 'qr_scanner_screen.dart';
 
 /// Trang Menu của Khách – mở khi quét mã QR
 /// URL: /menu?tableId=table_3&sessionId=table_3_0930
@@ -45,6 +48,18 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
   }
 
   Future<void> _initCustomerId() async {
+    // Ưu tiên dùng Auth UID nếu đã đăng nhập khách hàng
+    final auth = context.read<AuthProvider>();
+    if (auth.user != null) {
+      if (mounted) {
+        setState(() {
+          _customerId = auth.user!.id;
+          _isLoadingId = false;
+        });
+      }
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     String? id = prefs.getString('customer_device_id');
     if (id == null || id.isEmpty) {
@@ -70,8 +85,84 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
 
   int get _cartCount => _cart.values.fold(0, (a, b) => a + b);
 
+  bool get _isBrowseMode => widget.tableId.isEmpty;
+
   Future<void> _placeOrder() async {
     if (_cart.isEmpty) return;
+    if (_isBrowseMode) return;
+
+    // ── Kiểm tra vị trí GPS (Geofencing) ────────────────────────────────────
+    final config = await _db.getRestaurantConfig().first;
+    if (config != null) {
+      final restaurantLat = (config['lat'] as num).toDouble();
+      final restaurantLng = (config['lng'] as num).toDouble();
+      final allowedRadius = (config['radiusMeters'] as num?)?.toDouble() ?? 15.0;
+
+      // Hiện loading trong khi kiểm tra GPS
+      setState(() => _isOrdering = true);
+
+      // Kiểm tra/xin quyền
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() => _isOrdering = false);
+          _showGpsDialog(
+            '⚠️ Cần Quyền Vị Trí',
+            'Vui lòng cấp quyền truy cập vị trí để xác nhận bạn đang ở trong quán.',
+            icon: Icons.location_off_rounded,
+            iconColor: Colors.orange,
+          );
+        }
+        return;
+      }
+
+      // Lấy vị trí – nếu lỗi thì CHẶN (không cho đặt im lặng)
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+        final distanceM = Geolocator.distanceBetween(
+          restaurantLat, restaurantLng,
+          pos.latitude, pos.longitude,
+        );
+
+        if (distanceM > allowedRadius) {
+          if (mounted) {
+            setState(() => _isOrdering = false);
+            _showGpsDialog(
+              '❌ Ngoài Phạm Vi Quán',
+              'Bạn đang cách nhà hàng khoảng ${distanceM.round()}m.\n'
+              'Chỉ có thể đặt món khi ở trong phạm vi ${allowedRadius.round()}m của quán.',
+              icon: Icons.location_off_rounded,
+              iconColor: Colors.red,
+            );
+          }
+          return;
+        }
+        // Trong phạm vi → tiếp tục đặt món
+      } catch (e) {
+        // GPS lỗi/timeout → CHẶN an toàn, không cho đặt lén
+        if (mounted) {
+          setState(() => _isOrdering = false);
+          _showGpsDialog(
+            '⚠️ Không Lấy Được Vị Trí',
+            'Không thể xác định vị trí của bạn.\nVui lòng bật GPS và thử lại.',
+            icon: Icons.gps_off_rounded,
+            iconColor: Colors.orange,
+          );
+        }
+        return;
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     setState(() => _isOrdering = true);
 
     final items = _cart.entries
@@ -83,7 +174,7 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
       type: OrderType.dine_in,
       tableId: widget.tableId,
       sessionId: widget.sessionId,
-      customerId: _customerId, // Gắn ID định danh máy
+      customerId: _customerId, // Gắn ID định danh máy hoặc UID
       items: items,
       totalPrice: _totalPrice,
       status: OrderStatus.pending,
@@ -115,6 +206,24 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
     }
   }
 
+  void _showGpsDialog(String title, String message,
+      {IconData icon = Icons.warning_rounded, Color iconColor = Colors.orange}) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        icon: Icon(icon, color: iconColor, size: 44),
+        title: Text(title, textAlign: TextAlign.center),
+        content: Text(message, textAlign: TextAlign.center),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -122,7 +231,7 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         backgroundColor: cs.primary,
         foregroundColor: Colors.white,
         title: Row(
@@ -135,7 +244,7 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
                 const Text('Vị Lai Quán',
                     style:
                         TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                Text(_tableNameFromId(widget.tableId),
+                Text(_isBrowseMode ? 'Chế độ xem' : _tableNameFromId(widget.tableId),
                     style: const TextStyle(fontSize: 12, color: Colors.white70)),
               ],
             ),
@@ -162,6 +271,7 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
           else ...[
             _MenuTab(
               cart: _cart,
+              canOrder: !_isBrowseMode,
               selectedCategory: _selectedCategory,
               onCategoryChanged: (c) => setState(() => _selectedCategory = c),
               onAdd: (d) => setState(() => _cart[d] = (_cart[d] ?? 0) + 1),
@@ -186,71 +296,97 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
           ],
         ],
       ),
-      // Bottom cart bar
-      bottomNavigationBar: _cart.isEmpty
-          ? null
-          : Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-              decoration: BoxDecoration(
-                color: cs.surface,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, -3)),
-                ],
-              ),
-              child: SafeArea(
-                child: Row(
-                  children: [
-                    // Cart summary
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('$_cartCount món đã chọn',
-                              style: TextStyle(
-                                  fontSize: 12, color: cs.onSurfaceVariant)),
-                          Text(
-                            '${_formatPrice(_totalPrice)}đ',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: cs.primary),
-                          ),
-                        ],
-                      ),
+      // Bottom navigation (Cart or Scan prompt)
+      bottomNavigationBar: _isBrowseMode 
+          ? _BrowsePrompt(onScan: () async {
+              final result = await Navigator.push<Map<String, String>>(
+                context,
+                MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+              );
+              if (result != null && context.mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CustomerMenuPage(
+                      tableId: result['tableId']!,
+                      sessionId: result['sessionId']!,
                     ),
-                    // Order button
-                    FilledButton.icon(
-                      onPressed: _isOrdering ? null : _placeOrder,
-                      icon: _isOrdering
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.send_rounded),
-                      label: const Text('Gửi đơn'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(120, 48),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
+                );
+              }
+            })
+          : (_cart.isEmpty ? null : _CartSummary(
+              count: _cartCount,
+              total: _totalPrice,
+              isOrdering: _isOrdering,
+              onOrder: _placeOrder,
+            )),
     );
   }
 
   String _tableNameFromId(String id) {
-    // table_1 → Bàn 1
+    if (id.isEmpty) return 'Chế độ xem';
     final num = id.replaceAll('table_', '');
     return 'Bàn $num';
   }
+}
 
-  String _formatPrice(double p) {
+// ─────────────────────────────────────────────────────────────────────────────
+// CÁC COMPONENT CON (đã tách ra để code gọn hơn)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CartSummary extends StatelessWidget {
+  final int count;
+  final double total;
+  final bool isOrdering;
+  final VoidCallback onOrder;
+
+  const _CartSummary({
+    required this.count,
+    required this.total,
+    required this.isOrdering,
+    required this.onOrder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -3)),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$count món đã chọn', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                  Text('${_fmtPrice(total)}đ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.primary)),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: isOrdering ? null : onOrder,
+              icon: isOrdering 
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.send_rounded),
+              label: const Text('Gửi đơn'),
+              style: FilledButton.styleFrom(minimumSize: const Size(120, 48)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmtPrice(double p) {
     final s = p.toInt().toString();
     final b = StringBuffer();
     for (int i = 0; i < s.length; i++) {
@@ -261,9 +397,49 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
   }
 }
 
-// ── Tab 1: Menu ───────────────────────────────────────────────────────────────
+class _BrowsePrompt extends StatelessWidget {
+  final VoidCallback onScan;
+  const _BrowsePrompt({required this.onScan});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -3)),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Bạn đang xem thực đơn', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Quét mã tại bàn để đặt món', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: onScan,
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              label: const Text('Quét mã'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MenuTab extends StatelessWidget {
   final Map<DishModel, int> cart;
+  final bool canOrder;
   final String selectedCategory;
   final void Function(String) onCategoryChanged;
   final void Function(DishModel) onAdd;
@@ -271,6 +447,7 @@ class _MenuTab extends StatelessWidget {
 
   const _MenuTab({
     required this.cart,
+    required this.canOrder,
     required this.selectedCategory,
     required this.onCategoryChanged,
     required this.onAdd,
@@ -294,7 +471,6 @@ class _MenuTab extends StatelessWidget {
 
     return Column(
       children: [
-        // Category filter
         SizedBox(
           height: 56,
           child: ListView.separated(
@@ -309,12 +485,9 @@ class _MenuTab extends StatelessWidget {
                 onTap: () => onCategoryChanged(cat.id),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? cs.primary
-                        : cs.surfaceContainerHighest,
+                    color: isSelected ? cs.primary : cs.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -322,8 +495,7 @@ class _MenuTab extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color:
-                          isSelected ? Colors.white : cs.onSurfaceVariant,
+                      color: isSelected ? Colors.white : cs.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -331,13 +503,9 @@ class _MenuTab extends StatelessWidget {
             },
           ),
         ),
-
-        // Dish list
         Expanded(
           child: dishes.isEmpty
-              ? Center(
-                  child: Text('Không có món nào',
-                      style: TextStyle(color: cs.onSurfaceVariant)))
+              ? Center(child: Text('Không có món nào', style: TextStyle(color: cs.onSurfaceVariant)))
               : ListView.separated(
                   padding: const EdgeInsets.all(12),
                   itemCount: dishes.length,
@@ -345,8 +513,7 @@ class _MenuTab extends StatelessWidget {
                   itemBuilder: (_, i) {
                     final dish = dishes[i];
                     final qty = cart[dish] ?? 0;
-                    return _DishCard(
-                        dish: dish, qty: qty, onAdd: onAdd, onRemove: onRemove);
+                    return _DishCard(dish: dish, qty: qty, canOrder: canOrder, onAdd: onAdd, onRemove: onRemove);
                   },
                 ),
         ),
@@ -358,97 +525,57 @@ class _MenuTab extends StatelessWidget {
 class _DishCard extends StatelessWidget {
   final DishModel dish;
   final int qty;
+  final bool canOrder;
   final void Function(DishModel) onAdd;
   final void Function(DishModel) onRemove;
 
-  const _DishCard(
-      {required this.dish,
-      required this.qty,
-      required this.onAdd,
-      required this.onRemove});
+  const _DishCard({
+    required this.dish,
+    required this.qty,
+    required this.canOrder,
+    required this.onAdd,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // Image
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: dish.imageUrl.isNotEmpty
-                  ? Image.network(dish.imageUrl,
-                      width: 72, height: 72, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imgPlaceholder(cs))
+                  ? Image.network(dish.imageUrl, width: 72, height: 72, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _imgPlaceholder(cs))
                   : _imgPlaceholder(cs),
             ),
             const SizedBox(width: 12),
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(dish.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 15)),
-                      ),
-                      if (dish.isBestSeller)
-                        const Text('🔥', style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
+                  Row(children: [
+                    Expanded(child: Text(dish.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                    if (dish.isBestSeller) const Text('🔥', style: TextStyle(fontSize: 14)),
+                  ]),
                   if (dish.description.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(dish.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 12, color: cs.onSurfaceVariant)),
-                    ),
+                    Text(dish.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${_fmtPrice(dish.price)}đ',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            color: cs.primary),
-                      ),
-                      // Qty controls
-                      Row(
-                        children: [
+                      Text('${_fmtPrice(dish.price)}đ', style: TextStyle(fontWeight: FontWeight.w800, color: cs.primary)),
+                      if (canOrder)
+                        Row(children: [
                           if (qty > 0) ...[
-                            _QtyBtn(
-                              icon: Icons.remove_rounded,
-                              color: cs.error,
-                              onTap: () => onRemove(dish),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10),
-                              child: Text('$qty',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 16,
-                                      color: cs.primary)),
-                            ),
+                            _QtyBtn(icon: Icons.remove_rounded, color: cs.error, onTap: () => onRemove(dish)),
+                            Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold))),
                           ],
-                          _QtyBtn(
-                            icon: Icons.add_rounded,
-                            color: cs.primary,
-                            onTap: () => onAdd(dish),
-                          ),
-                        ],
-                      ),
+                          _QtyBtn(icon: Icons.add_rounded, color: cs.primary, onTap: () => onAdd(dish)),
+                        ]),
                     ],
                   ),
                 ],
@@ -460,13 +587,7 @@ class _DishCard extends StatelessWidget {
     );
   }
 
-  Widget _imgPlaceholder(ColorScheme cs) => Container(
-        width: 72,
-        height: 72,
-        color: cs.surfaceContainerHighest,
-        child: Icon(Icons.fastfood_rounded, color: cs.outlineVariant, size: 32),
-      );
-
+  Widget _imgPlaceholder(ColorScheme cs) => Container(width: 72, height: 72, color: cs.surfaceContainerHighest, child: Icon(Icons.fastfood_rounded, color: cs.outlineVariant, size: 32));
   String _fmtPrice(double p) {
     final s = p.toInt().toString();
     final b = StringBuffer();
@@ -482,67 +603,39 @@ class _QtyBtn extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-
   const _QtyBtn({required this.icon, required this.color, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
-        ),
+        width: 32, height: 32,
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, size: 18, color: color),
       ),
     );
   }
 }
 
-// ── Tab 2: Order Status ───────────────────────────────────────────────────────
+// ── STATUS TAB ───────────────────────────────────────────────────────────────
 class _OrderStatusTab extends StatelessWidget {
   final String tableId;
   final String customerId;
   final DatabaseService db;
-
   const _OrderStatusTab({required this.tableId, required this.customerId, required this.db});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    if (tableId.isEmpty) return _buildEmpty(cs, 'Bạn chưa quét mã bàn');
 
     return StreamBuilder<List<OrderModel>>(
       stream: db.getOrdersByCustomerAndTable(customerId, tableId),
       builder: (ctx, snap) {
-        if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        final orders = snap.data!.where((o) => o.status != OrderStatus.completed && o.status != OrderStatus.cancelled).toList();
 
-        final orders = snap.data!
-            .where((o) =>
-                o.status != OrderStatus.completed &&
-                o.status != OrderStatus.cancelled)
-            .toList();
-
-        if (orders.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.receipt_long_outlined,
-                    size: 64, color: cs.outlineVariant),
-                const SizedBox(height: 16),
-                Text('Chưa có đơn hàng nào\nHãy chọn món từ tab Menu!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
-              ],
-            ),
-          );
-        }
-
+        if (orders.isEmpty) return _buildEmpty(cs, 'Chưa có đơn hàng nào');
         return ListView.separated(
           padding: const EdgeInsets.all(12),
           itemCount: orders.length,
@@ -552,649 +645,118 @@ class _OrderStatusTab extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildEmpty(ColorScheme cs, String msg) => Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.receipt_long_outlined, size: 64, color: cs.outlineVariant),
+          const SizedBox(height: 16),
+          Text(msg, style: TextStyle(color: cs.onSurfaceVariant)),
+        ]),
+      );
 }
 
 class _OrderBatch extends StatelessWidget {
   final OrderModel order;
   final int batchNo;
-
   const _OrderBatch({required this.order, required this.batchNo});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final (statusColor, statusIcon, statusText) = _statusInfo(order.status, cs);
-
     return Card(
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Icon(statusIcon, color: statusColor, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  statusText,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, color: statusColor),
-                ),
-                const Spacer(),
-                Text('Đợt $batchNo',
-                    style: TextStyle(
-                        fontSize: 12, color: cs.onSurfaceVariant)),
-              ],
-            ),
-          ),
-          // Items
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: order.items
-                  .map((item) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Center(
-                                child: Text('${item.quantity}',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        color: statusColor,
-                                        fontSize: 13)),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(item.dish.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w500)),
-                            ),
-                          ],
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
+      child: Column(children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: const BorderRadius.vertical(top: Radius.circular(16))),
+          child: Row(children: [
+            Icon(statusIcon, color: statusColor, size: 20),
+            const SizedBox(width: 8),
+            Text(statusText, style: TextStyle(fontWeight: FontWeight.bold, color: statusColor)),
+            const Spacer(),
+            Text('Đợt $batchNo', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(children: order.items.map((item) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(children: [
+              Text('${item.quantity}x', style: TextStyle(fontWeight: FontWeight.bold, color: statusColor)),
+              const SizedBox(width: 10),
+              Text(item.dish.name),
+            ]),
+          )).toList()),
+        ),
+      ]),
     );
   }
 
-  (Color, IconData, String) _statusInfo(OrderStatus s, ColorScheme cs) =>
-      switch (s) {
-        OrderStatus.pending => (
-            Colors.orange,
-            Icons.hourglass_empty_rounded,
-            'Chờ xác nhận'
-          ),
-        OrderStatus.preparing => (
-            Colors.blue,
-            Icons.soup_kitchen_rounded,
-            'Bếp đang làm'
-          ),
-        OrderStatus.ready => (
-            Colors.teal,
-            Icons.room_service_rounded,
-            'Đã xong – Chờ phục vụ'
-          ),
-        OrderStatus.served => (
-            Colors.purple,
-            Icons.check_circle_rounded,
-            'Đã được phục vụ'
-          ),
-        _ => (Colors.grey, Icons.info_outline_rounded, s.name),
-      };
+  (Color, IconData, String) _statusInfo(OrderStatus s, ColorScheme cs) => switch (s) {
+    OrderStatus.pending => (Colors.orange, Icons.hourglass_empty_rounded, 'Chờ xác nhận'),
+    OrderStatus.preparing => (Colors.blue, Icons.soup_kitchen_rounded, 'Bếp đang làm'),
+    OrderStatus.ready => (Colors.teal, Icons.room_service_rounded, 'Xong – Chờ phục vụ'),
+    OrderStatus.served => (Colors.purple, Icons.check_circle_rounded, 'Đã phục vụ'),
+    _ => (Colors.grey, Icons.info_outline_rounded, s.name),
+  };
 }
 
-// ── Tab 3: Invoice ────────────────────────────────────────────────────────────
-class _InvoiceTab extends StatelessWidget {
-  final String tableId;
-  final String customerId;
-  final DatabaseService db;
-
-  const _InvoiceTab({required this.tableId, required this.customerId, required this.db});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return StreamBuilder<List<OrderModel>>(
-      stream: db.getOrdersByCustomerAndTable(customerId, tableId),
-      builder: (ctx, snap) {
-        if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final allOrders = snap.data!;
-        if (allOrders.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.receipt_outlined,
-                    size: 64, color: cs.outlineVariant),
-                const SizedBox(height: 16),
-                Text('Chưa có hóa đơn',
-                    style:
-                        TextStyle(color: cs.onSurfaceVariant, fontSize: 15)),
-              ],
-            ),
-          );
-        }
-
-        // Tổng hợp tất cả món đã được phục vụ hoặc hoàn thành TRONG 12 GIỜ QUA (chống dính đơn cũ)
-        final now = DateTime.now();
-        final billingOrders = allOrders
-            .where((o) =>
-                (o.status == OrderStatus.served ||
-                 o.status == OrderStatus.completed) &&
-                now.difference(o.createdAt).inHours < 12)
-            .toList();
-
-        final isPaid = allOrders.any((o) => o.status == OrderStatus.completed && now.difference(o.createdAt).inHours < 12);
-
-        // Gom tất cả items
-        final Map<String, _BillLine> billMap = {};
-        for (final order in billingOrders) {
-          for (final item in order.items) {
-            final key = item.dish.id;
-            if (billMap.containsKey(key)) {
-              billMap[key] = _BillLine(
-                name: item.dish.name,
-                unitPrice: item.dish.price,
-                qty: billMap[key]!.qty + item.quantity,
-              );
-            } else {
-              billMap[key] = _BillLine(
-                name: item.dish.name,
-                unitPrice: item.dish.price,
-                qty: item.quantity,
-              );
-            }
-          }
-        }
-
-        final billLines = billMap.values.toList();
-        final total =
-            billLines.fold(0.0, (s, l) => s + l.unitPrice * l.qty);
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [cs.primary, cs.primaryContainer],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    const Text('🍽️ Vị Lai Quán',
-                        style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white)),
-                    const SizedBox(height: 4),
-                    Text('Hóa đơn – ${_tableName(tableId)}',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Status badge
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isPaid
-                        ? Colors.green.withValues(alpha: 0.12)
-                        : Colors.orange.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: isPaid ? Colors.green : Colors.orange),
-                  ),
-                  child: Text(
-                    isPaid ? '✅ Đã thanh toán' : '⏳ Chưa thanh toán',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: isPaid ? Colors.green : Colors.orange),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Bill lines
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      ...billLines.map((line) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Row(
-                              children: [
-                                Expanded(child: Text(line.name)),
-                                Text(
-                                  '${line.qty} × ${_fmtPrice(line.unitPrice)}đ',
-                                  style: TextStyle(
-                                      color: cs.onSurfaceVariant,
-                                      fontSize: 13),
-                                ),
-                                const SizedBox(width: 12),
-                                SizedBox(
-                                  width: 80,
-                                  child: Text(
-                                    '${_fmtPrice(line.unitPrice * line.qty)}đ',
-                                    textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )),
-                      const Divider(),
-                      Row(
-                        children: [
-                          const Text('TỔNG CỘNG',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16)),
-                          const Spacer(),
-                          Text(
-                            '${_fmtPrice(total)}đ',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 20,
-                                color: cs.primary),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              if (!isPaid && billingOrders.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Text(
-                    'Hóa đơn sẽ hiển thị sau khi phục vụ đã mang món ra.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant, fontSize: 13),
-                  ),
-                ),
-
-              const SizedBox(height: 32),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _tableName(String id) {
-    final num = id.replaceAll('table_', '');
-    return 'Bàn $num';
-  }
-
-  String _fmtPrice(double p) {
-    final s = p.toInt().toString();
-    final b = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
-      b.write(s[i]);
-    }
-    return b.toString();
-  }
-}
-
+// ── HISTORY TAB ──────────────────────────────────────────────────────────────
 class _InvoiceHistoryTab extends StatefulWidget {
   final String tableId;
   final String customerId;
   final DatabaseService db;
-
-  const _InvoiceHistoryTab({
-    required this.tableId,
-    required this.customerId,
-    required this.db,
-  });
+  const _InvoiceHistoryTab({required this.tableId, required this.customerId, required this.db});
 
   @override
   State<_InvoiceHistoryTab> createState() => _InvoiceHistoryTabState();
 }
 
 class _InvoiceHistoryTabState extends State<_InvoiceHistoryTab> {
-  DateTimeRange? _selectedDateRange;
-
-  String _formatDate(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-  }
-
-  String _tableName(String id) {
-    final num = id.replaceAll('table_', '');
-    return 'Bàn $num';
-  }
-
-  String _fmtPrice(double p) {
-    final s = p.toInt().toString();
-    final b = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
-      b.write(s[i]);
-    }
-    return b.toString();
-  }
+  DateTimeRange? _range;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
-    return Column(
-      children: [
-        // Header bộ lọc
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              const Icon(Icons.history_rounded, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _selectedDateRange == null
-                      ? 'Lịch sử ăn uống'
-                      : '${_formatDate(_selectedDateRange!.start)} - ${_formatDate(_selectedDateRange!.end)}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-              if (_selectedDateRange != null)
-                IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () => setState(() => _selectedDateRange = null),
-                ),
-              TextButton.icon(
-                icon: const Icon(Icons.calendar_month_rounded, size: 18),
-                label: const Text('Chọn ngày'),
-                onPressed: () async {
-                  final range = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 1)),
-                    initialDateRange: _selectedDateRange,
-                  );
-                  if (range != null) {
-                    setState(() => _selectedDateRange = range);
-                  }
-                },
-              )
-            ],
-          ),
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: OutlinedButton.icon(
+          onPressed: () async {
+            final pick = await showDateRangePicker(context: context, firstDate: DateTime(2023), lastDate: DateTime.now());
+            if (pick != null) setState(() => _range = pick);
+          },
+          icon: const Icon(Icons.date_range_rounded),
+          label: Text(_range == null ? 'Lọc theo ngày' : '${_fmtDate(_range!.start)} - ${_fmtDate(_range!.end)}'),
         ),
-        const Divider(height: 1),
-
-        // Danh sách
-        Expanded(
-          child: StreamBuilder<List<OrderModel>>(
-            stream: widget.db.getAllOrdersByCustomer(widget.customerId),
-            builder: (ctx, snap) {
-              if (!snap.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final allOrders = snap.data!;
-              if (allOrders.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.history_toggle_off_rounded,
-                          size: 64, color: cs.outlineVariant),
-                      const SizedBox(height: 16),
-                      Text('Chưa có lịch sử ăn uống',
-                          style: TextStyle(
-                              color: cs.onSurfaceVariant, fontSize: 15)),
-                    ],
-                  ),
-                );
-              }
-
-              // 1. Phân loại theo bộ lọc thời gian
-              List<OrderModel> validOrders = allOrders;
-              if (_selectedDateRange != null) {
-                final startDate = _selectedDateRange!.start;
-                final endDate =
-                    _selectedDateRange!.end.add(const Duration(days: 1));
-                validOrders = allOrders
-                    .where((o) =>
-                        o.createdAt.isAfter(startDate) &&
-                        o.createdAt.isBefore(endDate))
-                    .toList();
-              }
-
-              // Lọc chỉ lấy món đã phục vụ/hoàn thành
-              validOrders = validOrders
-                  .where((o) =>
-                      o.status == OrderStatus.served ||
-                      o.status == OrderStatus.completed)
-                  .toList();
-
-              if (validOrders.isEmpty) {
-                return const Center(
-                    child: Text('Không có đơn hàng nào thỏa mãn'));
-              }
-
-              // 2. Gom nhóm theo Ngày -> sau đó theo Bàn
-              final Map<String, Map<String, List<OrderModel>>> grouped = {};
-              for (var o in validOrders) {
-                final dateStr = _formatDate(o.createdAt);
-                final tbId = o.tableId ?? 'online';
-
-                grouped.putIfAbsent(dateStr, () => {});
-                grouped[dateStr]!.putIfAbsent(tbId, () => []).add(o);
-              }
-
-              // Sort chuỗi ngày (mới nhất lên đầu)
-              final sortedDates = grouped.keys.toList()
-                ..sort((a, b) {
-                  final pA = a.split('/');
-                  final pB = b.split('/');
-                  final dA = DateTime(int.parse(pA[2]), int.parse(pA[1]), int.parse(pA[0]));
-                  final dB = DateTime(int.parse(pB[2]), int.parse(pB[1]), int.parse(pB[0]));
-                  return dB.compareTo(dA);
-                });
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: sortedDates.length,
-                itemBuilder: (context, i) {
-                  final date = sortedDates[i];
-                  final tableMap = grouped[date]!;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Header Ngày
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16, bottom: 8),
-                        child: Text(
-                          '📅 Ngày $date',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                              color: cs.primary),
-                        ),
-                      ),
-                      // Các hoá đơn trong ngày
-                      ...tableMap.entries.map((e) =>
-                          _buildSingleInvoiceCard(date, e.key, e.value, cs)),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSingleInvoiceCard(
-      String dateStr, String tbId, List<OrderModel> tOrders, ColorScheme cs) {
-    if (tOrders.isEmpty) return const SizedBox();
-
-    final isPaid = tOrders.any((o) => o.status == OrderStatus.completed);
-    final Map<String, _BillLine> billMap = {};
-    for (final order in tOrders) {
-      for (final item in order.items) {
-        final key = item.dish.id;
-        if (billMap.containsKey(key)) {
-          billMap[key] = _BillLine(
-            name: item.dish.name,
-            unitPrice: item.dish.price,
-            qty: billMap[key]!.qty + item.quantity,
-          );
-        } else {
-          billMap[key] = _BillLine(
-            name: item.dish.name,
-            unitPrice: item.dish.price,
-            qty: item.quantity,
-          );
-        }
-      }
-    }
-
-    final billLines = billMap.values.toList();
-    final total = billLines.fold(0.0, (s, l) => s + l.unitPrice * l.qty);
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header bill
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [cs.primary, cs.primaryContainer],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.receipt_long_rounded, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Hóa đơn – ${_tableName(tbId)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        fontSize: 15),
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isPaid ? Colors.green : Colors.orange,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    isPaid ? 'Đã thu' : 'Chưa thu',
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Items
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                ...billLines.map((line) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Expanded(child: Text(line.name)),
-                          Text(
-                            '${line.qty} × ${_fmtPrice(line.unitPrice)}đ',
-                            style: TextStyle(
-                                color: cs.onSurfaceVariant, fontSize: 13),
-                          ),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 80,
-                            child: Text(
-                              '${_fmtPrice(line.unitPrice * line.qty)}đ',
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
-                const Divider(),
-                Row(
-                  children: [
-                    const Text('TỔNG CỘNG',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 15)),
-                    const Spacer(),
-                    Text(
-                      '${_fmtPrice(total)}đ',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          color: cs.primary),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
-    );
+      Expanded(
+        child: StreamBuilder<List<OrderModel>>(
+          stream: widget.db.getAllOrdersByCustomer(widget.customerId),
+          builder: (ctx, snap) {
+            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+            var list = snap.data!.where((o) => o.status == OrderStatus.completed).toList();
+            if (_range != null) {
+              list = list.where((o) => o.createdAt.isAfter(_range!.start) && o.createdAt.isBefore(_range!.end.add(const Duration(days: 1)))).toList();
+            }
+            if (list.isEmpty) return const Center(child: Text('Chưa có lịch sử giao dịch'));
+            return ListView.separated(
+              padding: const EdgeInsets.all(12),
+              itemCount: list.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) => ListTile(
+                tileColor: cs.surface,
+                title: Text('Đơn ngày ${_fmtDate(list[i].createdAt)}'),
+                subtitle: Text('Tổng: ${_fmtPrice(list[i].totalPrice)}đ'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
   }
-}
 
-class _BillLine {
-  final String name;
-  final double unitPrice;
-  final int qty;
-  const _BillLine(
-      {required this.name, required this.unitPrice, required this.qty});
+  String _fmtDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
+  String _fmtPrice(double p) => p.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 }
