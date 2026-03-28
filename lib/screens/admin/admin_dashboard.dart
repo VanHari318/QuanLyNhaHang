@@ -110,26 +110,40 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         Row(
                           children: [
                             // Logo
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                Text(
-                                  '未来馆',
-                                  style: TextStyle(
-                                    color: const Color(0xFFFFC107),
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 2,
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    width: 42,
+                                    height: 42,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
-                                Text(
-                                  'Vị Lai Quán · Admin',
-                                  style: TextStyle(
-                                    color: cs.onPrimary.withValues(alpha: 0.9),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w400,
-                                    letterSpacing: 0.5,
-                                  ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Vị Lai Quán',
+                                      style: TextStyle(
+                                        color: const Color(0xFFFFC107),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Trang Quản Trị',
+                                      style: TextStyle(
+                                        color: cs.onPrimary.withValues(alpha: 0.9),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

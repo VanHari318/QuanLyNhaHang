@@ -113,11 +113,12 @@ class DatabaseService {
 
   // ─── ORDERS ──────────────────────────────────────────────────────────────────
 
-  Stream<List<OrderModel>> getOrders({OrderType? type}) {
+  Stream<List<OrderModel>> getOrders({OrderType? type, OrderStatus? status}) {
     // Dùng query đơn giản để tránh lỗi Firestore Composite Index
     // Sort được thực hiện client-side sau khi nhận data
     Query<Map<String, dynamic>> q = _orders;
     if (type != null) q = q.where('type', isEqualTo: type.name);
+    if (status != null) q = q.where('status', isEqualTo: status.name);
     return q.snapshots().map((s) {
       final result = <OrderModel>[];
       for (final doc in s.docs) {

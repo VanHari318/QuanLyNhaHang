@@ -107,17 +107,16 @@ class _LoginScreenState extends State<LoginScreen> {
               // Logo / Header
               Center(
                 child: Column(children: [
-                  Container(
-                    width: 80, height: 80,
-                    decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      borderRadius: BorderRadius.circular(24),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 100, height: 100,
+                      fit: BoxFit.cover,
                     ),
-                    child: Icon(Icons.restaurant_rounded,
-                        size: 44, color: cs.onPrimaryContainer),
                   ),
                   const SizedBox(height: 16),
-                  Text('Nhà Hàng Manager',
+                  Text('Vị Lai Quán',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
