@@ -240,7 +240,7 @@ class DatabaseService {
       final qty = item.quantity;
       
       // 1. Lấy công thức nấu 100 suất
-      final recipeDoc = await _db.collection('bulk_ingredients_100').doc(dishId).get();
+      final recipeDoc = await _bulkIngredients.doc(dishId).get();
       if (!recipeDoc.exists) continue;
       
       final recipeData = recipeDoc.data()!;
@@ -322,14 +322,14 @@ class DatabaseService {
   // ─── RECIPE ──────────────────────────────────────────────────────────────────
 
   /// Lấy công thức nấu của một món ăn (null nếu chưa có)
-  Future<DishRecipeModel?> getRecipe(String dishId) async {
-    final doc = await _db.collection('bulk_ingredients_100').doc(dishId).get();
+  Future<DishRecipeModel?> getDishRecipe(String dishId) async {
+    final doc = await _bulkIngredients.doc(dishId).get();
     if (!doc.exists || doc.data() == null) return null;
     return DishRecipeModel.fromMap(doc.data()!);
   }
 
   /// Lưu công thức nấu (tạo mới hoặc ghi đè)
-  Future<void> saveRecipe(String dishId, DishRecipeModel recipe) async {
+  Future<void> saveDishRecipe(String dishId, DishRecipeModel recipe) async {
     final batch = _db.batch();
     
     for (final ing in recipe.ingredients) {
@@ -346,13 +346,13 @@ class DatabaseService {
       }
     }
     
-    batch.set(_db.collection('bulk_ingredients_100').doc(dishId), recipe.toMap());
+    batch.set(_bulkIngredients.doc(dishId), recipe.toMap());
     await batch.commit();
   }
 
   /// Xóa công thức khi xóa món ăn
   Future<void> deleteRecipe(String dishId) async {
-    await _db.collection('bulk_ingredients_100').doc(dishId).delete();
+    await _bulkIngredients.doc(dishId).delete();
   }
 
   // ─── CHATBOT ─────────────────────────────────────────────────────────────────

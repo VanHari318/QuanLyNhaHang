@@ -581,6 +581,9 @@ class _FullOrderCard extends StatelessWidget {
         nextStatus = OrderStatus.ready;
         break;
       case OrderStatus.ready:
+        nextStatus = OrderStatus.served;
+        break;
+      case OrderStatus.served:
         nextStatus = OrderStatus.completed;
         break;
       default:
@@ -593,7 +596,8 @@ class _FullOrderCard extends StatelessWidget {
     switch (currentStatus) {
       case OrderStatus.pending: return 'Bắt đầu làm';
       case OrderStatus.preparing: return 'Đã xong món';
-      case OrderStatus.ready: return 'Giao hoàn tất';
+      case OrderStatus.ready: return 'Đã phục vụ';
+      case OrderStatus.served: return 'Hoàn tất đơn';
       default: return 'Xong';
     }
   }
@@ -761,6 +765,7 @@ Color _statusColor(OrderStatus s, ColorScheme cs) => switch (s) {
       OrderStatus.pending => Colors.orange,
       OrderStatus.preparing => Colors.blue,
       OrderStatus.ready => Colors.teal,
+      OrderStatus.served => Colors.purple,
       OrderStatus.completed => Colors.green,
       OrderStatus.cancelled => cs.error,
     };
@@ -769,6 +774,7 @@ String _statusLabel(OrderStatus s) => switch (s) {
       OrderStatus.pending => 'Chờ xử lý',
       OrderStatus.preparing => 'Đang làm',
       OrderStatus.ready => 'Sẵn sàng',
+      OrderStatus.served => 'Đã phục vụ',
       OrderStatus.completed => 'Hoàn thành',
       OrderStatus.cancelled => 'Đã hủy',
     };

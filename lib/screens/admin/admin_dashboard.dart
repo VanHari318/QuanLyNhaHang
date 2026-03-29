@@ -7,6 +7,8 @@ import '../../models/order_model.dart';
 import '../../utils/logout_helper.dart';
 import '../../components/dashboard_card.dart';
 import '../../components/order_item_card.dart';
+
+// Import các màn hình quản lý chi tiết
 import 'menu_management_screen.dart';
 import 'category_management_screen.dart';
 import 'table_management_screen.dart';
@@ -16,7 +18,7 @@ import 'inventory_management_screen.dart';
 import 'dashboard_stats_screen.dart';
 import 'chatbot_management_screen.dart';
 import 'restaurant_location_screen.dart';
-import 'customer_management_screen.dart';
+import '../customer/customer_management_screen.dart';
 
 /// Admin Dashboard – Vị Lai Quán (未来馆) – Premium MD3 layout
 class AdminDashboard extends StatefulWidget {

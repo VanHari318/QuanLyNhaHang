@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/database_service.dart';
 import '../../providers/inventory_provider.dart';
+import '../../models/recipe_model.dart';
 
 class RecipeEditorDialog extends StatefulWidget {
   final String dishId;
@@ -85,7 +86,13 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
       };
     }).toList();
 
-    await _db.saveDishRecipe(widget.dishId, servings, normalizedIngredients);
+    await _db.saveDishRecipe(
+      widget.dishId,
+      DishRecipeModel(
+        servings: servings,
+        ingredients: normalizedIngredients.map((i) => RecipeIngredient.fromMap(i)).toList(),
+      ),
+    );
 
     if (mounted) {
       setState(() => _isSaving = false);

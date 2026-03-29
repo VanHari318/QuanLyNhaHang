@@ -9,14 +9,15 @@ import 'providers/order_provider.dart';
 import 'providers/table_provider.dart';
 import 'providers/inventory_provider.dart';
 import 'providers/chatbot_provider.dart';
+import 'providers/cart_provider.dart';
 import 'models/user_model.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/waiter/waiter_screen.dart';
 import 'screens/kitchen/kitchen_screen.dart';
 import 'screens/cashier/cashier_screen.dart';
-import 'screens/customer_menu_page.dart';
-import 'screens/customer_main_screen.dart';
+import 'screens/customer/customer_menu_page.dart';
+import 'screens/customer/customer_main_screen.dart';
 import 'utils/logout_helper.dart';
 
 void main() async {
@@ -33,6 +34,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TableProvider()),
         ChangeNotifierProvider(create: (_) => InventoryProvider()),
         ChangeNotifierProvider(create: (_) => ChatbotProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: const MyApp(),
     ),
@@ -68,95 +70,106 @@ class MyApp extends StatelessWidget {
           surfaceTintColor: colorScheme.surfaceTint,
         ),
 
-        // Card – MD3 elevated card
+        // Card – Haidilao Style: High rounded corners
         cardTheme: CardThemeData(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           clipBehavior: Clip.antiAlias,
           color: colorScheme.surface,
-          surfaceTintColor: colorScheme.surfaceTint,
+          surfaceTintColor: Colors.transparent, // Disable surface tint for cleaner red-white look
         ),
 
         // FilledButton (primary action)
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size(0, 54), // Larger buttons
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ),
 
         // OutlinedButton (secondary)
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size(0, 54),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            side: BorderSide(color: colorScheme.primary, width: 1.5),
           ),
         ),
 
         // ElevatedButton
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 1,
+            minimumSize: const Size(0, 54),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            elevation: 2,
+            shadowColor: colorScheme.shadow.withValues(alpha: 0.2),
           ),
         ),
 
-        // InputDecoration – MD3 filled style
+        // InputDecoration – Premium Rounded style
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: colorScheme.surfaceContainerHighest,
+          fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(28),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(28),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(28),
             borderSide: BorderSide(color: colorScheme.primary, width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
         ),
 
         // FAB
         floatingActionButtonTheme: FloatingActionButtonThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: colorScheme.primaryContainer,
-          foregroundColor: colorScheme.onPrimaryContainer,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 4,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
         ),
 
         // ListTile
         listTileTheme: ListTileThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           selectedTileColor: colorScheme.secondaryContainer,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         ),
 
         // Chip
         chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           side: BorderSide.none,
-          selectedColor: colorScheme.primaryContainer,
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          selectedColor: colorScheme.primary,
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
 
-        // Dialog – MD3 rounded 28px
+        // Dialog – Haidilao Style: extra rounded
         dialogTheme: DialogThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          elevation: 12,
         ),
 
         // SnackBar
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: Colors.black87,
         ),
 
         // Divider
-        dividerTheme: const DividerThemeData(space: 1, thickness: 1),
+        dividerTheme: DividerThemeData(
+          space: 24, 
+          thickness: 1, 
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       home: const _RouterEntry(),
     );

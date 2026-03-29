@@ -445,7 +445,7 @@ class _DishDialogState extends State<_DishDialog> {
 
   Future<void> _loadRecipe(String dishId) async {
     setState(() => _loadingRecipe = true);
-    final recipe = await _db.getRecipe(dishId);
+    final recipe = await _db.getDishRecipe(dishId);
     if (mounted && recipe != null) {
       setState(() {
         _ingredients.addAll(recipe.ingredients.map(
@@ -534,7 +534,7 @@ class _DishDialogState extends State<_DishDialog> {
             ))
         .toList();
 
-    await _db.saveRecipe(
+    await _db.saveDishRecipe(
         dishId, DishRecipeModel(ingredients: recipeIngredients));
 
     if (mounted) Navigator.pop(context);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/dish_model.dart';
 import '../../models/category_model.dart';
 import '../../services/database_service.dart';
+import '../../models/recipe_model.dart';
 import 'recipe_editor_dialog.dart';
 
 class DishDetailDialog extends StatefulWidget {
@@ -15,7 +16,7 @@ class DishDetailDialog extends StatefulWidget {
 class _DishDetailDialogState extends State<DishDetailDialog> {
   final DatabaseService _db = DatabaseService();
   bool _isLoading = true;
-  Map<String, dynamic>? _recipe;
+  DishRecipeModel? _recipe;
 
   @override
   void initState() {
@@ -48,8 +49,8 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final dish = widget.dish;
-    final servings = _recipe?['servings'] as int? ?? 100;
-    final ingredients = (_recipe?['ingredients'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final servings = _recipe?.servings ?? 1;
+    final ingredients = _recipe?.ingredients ?? [];
 
     return AlertDialog(
       title: Row(
@@ -145,7 +146,7 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                           dishId: dish.id,
                           dishName: dish.name,
                           initialServings: servings,
-                          initialIngredients: ingredients,
+                          initialIngredients: ingredients.map((i) => i.toMap()).toList(),
                         ),
                       );
                       _fetchRecipe(); // reload recipe after editing
@@ -187,12 +188,12 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                                 separatorBuilder: (_, __) => Divider(height: 1, color: cs.outlineVariant),
                                 itemBuilder: (context, index) {
                                   final ing = ingredients[index];
-                                  final qty = ((ing['total_quantity'] as num) / servings).toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
+                                  final qty = (ing.quantity / servings).toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
                                   return ListTile(
                                     dense: true,
-                                    title: Text(ing['name'] ?? ''),
+                                    title: Text(ing.name),
                                     trailing: Text(
-                                      '$qty ${ing['unit']}',
+                                      '$qty ${ing.unit}',
                                       style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   );
