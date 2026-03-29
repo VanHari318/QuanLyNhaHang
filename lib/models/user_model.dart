@@ -13,6 +13,7 @@ class UserModel {
   final String email;
   final UserRole role;
   final String imageUrl;
+  final String? phoneNumber;
 
   UserModel({
     required this.id,
@@ -20,6 +21,7 @@ class UserModel {
     required this.email,
     required this.role,
     this.imageUrl = '',
+    this.phoneNumber,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class UserModel {
       'email': email,
       'role': role.toString().split('.').last,
       'imageUrl': imageUrl,
+      'phoneNumber': phoneNumber,
     };
   }
 
@@ -42,6 +45,7 @@ class UserModel {
         orElse: () => UserRole.undefined,
       ),
       imageUrl: map['imageUrl'] ?? '',
+      phoneNumber: map['phoneNumber'],
     );
   }
 }

@@ -43,6 +43,7 @@ class OrderModel {
   final OrderLocation? location;  // GPS – chỉ có khi online
   final DateTime createdAt;
   final String? customerNote;
+  final String? paymentMethod;
 
   OrderModel({
     required this.id,
@@ -55,6 +56,7 @@ class OrderModel {
     this.customerId,
     this.location,
     this.customerNote,
+    this.paymentMethod,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -69,6 +71,7 @@ class OrderModel {
     'status': status.name,
     'location': location?.toMap(),
     'customerNote': customerNote,
+    'paymentMethod': paymentMethod,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -111,6 +114,7 @@ class OrderModel {
           ? OrderLocation.fromMap(map['location'])
           : null,
       customerNote: map['customerNote'],
+      paymentMethod: map['paymentMethod'],
       createdAt: parsedDate,
     );
   }

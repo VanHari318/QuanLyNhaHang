@@ -66,13 +66,13 @@ class HomeTab extends StatelessWidget {
               child: Icon(Icons.smart_toy_rounded, color: cs.primary, size: 28),
             ),
             const SizedBox(width: 16),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Trợ lý Vị Lai', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text('Trợ lý Vị Lai', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                   Text('Gợi ý thực đơn, tư vấn món ăn & giải đáp thắc mắc ngay lập tức.', 
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                 ],
               ),
             ),

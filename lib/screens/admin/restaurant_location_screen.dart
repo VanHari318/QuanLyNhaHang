@@ -152,9 +152,9 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                         children: [
                           // Lớp tile bản đồ OpenStreetMap
                           TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.quanlynhahang.app',
+                            urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                            subdomains: const ['a', 'b', 'c', 'd'],
+                            userAgentPackageName: 'com.mrdoanh.vilaiquan.app',
                           ),
 
                           // Vòng tròn geofence

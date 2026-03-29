@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/menu_provider.dart';
@@ -58,7 +59,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,
-        fontFamily: 'Roboto',
+        textTheme: GoogleFonts.montserratTextTheme(),
 
         // AppBar – MD3 uses surface as default background
         appBarTheme: AppBarTheme(

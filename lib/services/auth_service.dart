@@ -47,6 +47,16 @@ class AuthService {
     }
   }
 
+  Future<bool> updatePassword(String newPassword) async {
+    try {
+      await _auth.currentUser?.updatePassword(newPassword);
+      return true;
+    } catch (e) {
+      print('Auth Error: $e');
+      throw e; // Để provider xử lý lời nhắn cụ thể
+    }
+  }
+
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();

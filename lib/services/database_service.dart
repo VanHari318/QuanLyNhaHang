@@ -63,6 +63,10 @@ class DatabaseService {
     await _users.doc(user.id).set(user.toMap());
   }
 
+  Future<void> updateUser(UserModel user) async {
+    await _users.doc(user.id).update(user.toMap());
+  }
+
   Future<UserModel?> getUser(String uid) async {
     final doc = await _users.doc(uid).get();
     if (doc.exists) return UserModel.fromMap(doc.data()!);

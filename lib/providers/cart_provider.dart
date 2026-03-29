@@ -21,11 +21,11 @@ class CartProvider with ChangeNotifier {
 
   double get totalPrice => _items.entries.fold(0, (sum, entry) => sum + (entry.key.price * entry.value));
 
-  void addItem(DishModel dish) {
+  void addItem(DishModel dish, {int quantity = 1}) {
     if (_items.containsKey(dish)) {
-      _items[dish] = _items[dish]! + 1;
+      _items[dish] = _items[dish]! + quantity;
     } else {
-      _items[dish] = 1;
+      _items[dish] = quantity;
     }
     notifyListeners();
   }

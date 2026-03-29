@@ -17,7 +17,6 @@ void showActiveTableDialog(BuildContext context, TableModel table, OrderModel ac
 
       final isReady = activeOrder.status == OrderStatus.ready;
       final isPreparing = activeOrder.status == OrderStatus.preparing;
-      final isPending = activeOrder.status == OrderStatus.pending;
       final isServed = activeOrder.status == OrderStatus.served;
 
       String statusText = 'Chờ xử lý';

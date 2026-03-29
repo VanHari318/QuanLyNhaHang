@@ -49,6 +49,27 @@ class AuthProvider with ChangeNotifier {
     return result != null;
   }
 
+  Future<void> updateProfile({String? name, String? phoneNumber}) async {
+    if (_user == null) return;
+    
+    final updatedUser = UserModel(
+      id: _user!.id,
+      name: name ?? _user!.name,
+      email: _user!.email,
+      role: _user!.role,
+      imageUrl: _user!.imageUrl,
+      phoneNumber: phoneNumber ?? _user!.phoneNumber,
+    );
+    
+    await _dbService.updateUser(updatedUser);
+    _user = updatedUser;
+    notifyListeners();
+  }
+
+  Future<void> changePassword(String newPassword) async {
+    await _authService.updatePassword(newPassword);
+  }
+
   Future<void> logout() async {
     await _authService.signOut();
   }

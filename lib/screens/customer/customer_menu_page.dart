@@ -264,11 +264,12 @@ class _CartSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -3)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -5)),
         ],
       ),
       child: SafeArea(
@@ -319,7 +320,7 @@ class _BrowsePrompt extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.8),
         boxShadow: [
           BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -3)),
         ],
@@ -332,8 +333,8 @@ class _BrowsePrompt extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Bạn đang xem thực đơn', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Quét mã tại bàn để đặt món', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                  const Text('Bạn đang xem thực đơn', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                  Text('Quét mã tại bàn để đặt món', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -392,9 +393,18 @@ class _MenuTab extends StatelessWidget {
               return FilterChip(
                 selected: isSelected,
                 label: Text(cat.name),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : cs.onSurfaceVariant.withValues(alpha: 0.8),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 13,
+                ),
+                selectedColor: cs.primary,
+                backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                checkmarkColor: Colors.white,
                 onSelected: (_) => onCategoryChanged(cat.id),
                 showCheckmark: false,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide.none),
               );
             },
           ),
@@ -485,13 +495,13 @@ class _DishCard extends StatelessWidget {
                   ]),
                   if (dish.description.isNotEmpty)
                     Text(dish.description, maxLines: 1, overflow: TextOverflow.ellipsis, 
-                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                      style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${_fmtPrice(dish.price)}đ', 
-                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: cs.primary)),
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: cs.primary)),
                       
                       if (canOrder)
                         AnimatedSwitcher(
