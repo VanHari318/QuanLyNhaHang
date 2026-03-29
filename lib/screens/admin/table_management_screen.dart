@@ -42,12 +42,13 @@ class TableManagementScreen extends StatelessWidget {
                     crossAxisCount: 4,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 0.72,
+                    childAspectRatio: 0.65,
                   ),
                   itemCount: tables.length,
                   itemBuilder: (ctx, i) => _TableCard(
                     table: tables[i],
                     onTap: () => _showStatusDialog(ctx, db, tables[i]),
+                    onShowQr: () => _showQrDialog(ctx, tables[i]),
                   ),
                 );
               },
@@ -64,6 +65,76 @@ class TableManagementScreen extends StatelessWidget {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (_) => _TableStatusSheet(db: db, table: table),
+    );
+  }
+
+  void _showQrDialog(BuildContext context, TableModel table) {
+    // Luôn dùng URL deploy Firebase để mã QR hoạt động với bất kỳ ai (dù đang test trên LAN hay dùng thật)
+    const baseUrl = 'https://quan-ly-nha-hang-20f37.web.app';
+    final qrUrl = '$baseUrl/?tableId=${table.id}';
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Mã QR – ${table.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Image.network(
+                'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${Uri.encodeComponent(qrUrl)}',
+                width: 220,
+                height: 220,
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : const SizedBox(
+                        width: 220,
+                        height: 220,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                errorBuilder: (_, __, ___) => SizedBox(
+                  width: 220,
+                  height: 220,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.qr_code_rounded, size: 60, color: Colors.grey),
+                      const SizedBox(height: 8),
+                      Text('Không tải được QR\n(cần kết nối Internet)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Khách quét mã để gọi món',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            SelectableText(
+              qrUrl,
+              style: const TextStyle(fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng')),
+        ],
+      ),
     );
   }
 }
@@ -102,51 +173,87 @@ class _LegendBar extends StatelessWidget {
 class _TableCard extends StatelessWidget {
   final TableModel table;
   final VoidCallback onTap;
+  final VoidCallback onShowQr;
 
-  const _TableCard({required this.table, required this.onTap});
+  const _TableCard({required this.table, required this.onTap, required this.onShowQr});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final color = _statusColor(table.status, cs);
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color, width: 1.5),
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.table_bar_rounded, color: color, size: 28),
-            const SizedBox(height: 6),
-            Text(table.name,
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13, color: color)),
-            const SizedBox(height: 2),
-            Text('${table.capacity} chỗ',
-                style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6),
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          // Main area – tap to change status
+          Expanded(
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.table_bar_rounded, color: color, size: 32),
+                    const SizedBox(height: 6),
+                    Text(table.name,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13, color: color)),
+                    const SizedBox(height: 2),
+                    Text('${table.capacity} chỗ',
+                        style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(_statusLabel(table.status),
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: color,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
               ),
-              child: Text(_statusLabel(table.status),
-                  style: TextStyle(
-                      fontSize: 10,
-                      color: color,
-                      fontWeight: FontWeight.w600)),
             ),
-          ],
-        ),
+          ),
+
+          // QR button – separate tap area
+          InkWell(
+            onTap: onShowQr,
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(11)),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withOpacity(0.6),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(11)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.qr_code_rounded, size: 14, color: cs.onPrimaryContainer),
+                  const SizedBox(width: 4),
+                  Text('Xem QR',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onPrimaryContainer,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

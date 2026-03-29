@@ -15,6 +15,8 @@ import 'screens/admin/admin_dashboard.dart';
 import 'screens/waiter/waiter_screen.dart';
 import 'screens/kitchen/kitchen_screen.dart';
 import 'screens/cashier/cashier_screen.dart';
+import 'screens/customer_menu_page.dart';
+import 'screens/customer_main_screen.dart';
 import 'utils/logout_helper.dart';
 
 void main() async {
@@ -156,8 +158,41 @@ class MyApp extends StatelessWidget {
         // Divider
         dividerTheme: const DividerThemeData(space: 1, thickness: 1),
       ),
-      home: const AuthWrapper(),
+      home: const _RouterEntry(),
     );
+  }
+}
+
+/// Entry point: kiểm tra URL query để quyết định mở trang nào
+class _RouterEntry extends StatelessWidget {
+  const _RouterEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    // Đọc URL params (Flutter Web)
+    final uri = Uri.base;
+    final tableId = uri.queryParameters['tableId'];
+    final sessionIdParam = uri.queryParameters['sessionId'];
+
+    if (tableId != null && tableId.isNotEmpty) {
+      // Khách quét QR → mở trang menu không cần đăng nhập
+      final sessionId = (sessionIdParam != null && sessionIdParam.isNotEmpty)
+          ? sessionIdParam
+          : _buildSessionId(tableId);
+      return CustomerMenuPage(tableId: tableId, sessionId: sessionId);
+    }
+
+    // Nhân viên → auth flow bình thường
+    return const AuthWrapper();
+  }
+
+  String _buildSessionId(String tableId) {
+    final now = DateTime.now();
+    final d = now.day.toString().padLeft(2, '0');
+    final mo = now.month.toString().padLeft(2, '0');
+    final h = now.hour.toString().padLeft(2, '0');
+    final mi = now.minute.toString().padLeft(2, '0');
+    return '${tableId}_${now.year}$mo${d}_$h$mi';
   }
 }
 
@@ -181,6 +216,8 @@ class AuthWrapper extends StatelessWidget {
         return const KitchenScreen();
       case UserRole.cashier:
         return const CashierScreen();
+      case UserRole.customer:
+        return const CustomerMainScreen();
       default:
         return _AccessDeniedScreen();
     }

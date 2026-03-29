@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   bool _isLogin = true;
+  bool _isCustomer = false;
   bool _obscurePassword = true;
   bool _isLoading = false;
   File? _imageFile;
@@ -34,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _pickImage() async {
-    final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final img = await ImagePicker().pickImage(source: ImageSource.camera);
     if (img != null) {
       setState(() {
         if (kIsWeb) {
@@ -50,6 +51,16 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
     if (email.isEmpty || password.isEmpty) return;
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Mật khẩu phải có ít nhất 6 ký tự'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     final auth = context.read<AuthProvider>();
@@ -69,8 +80,11 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
         ok = await auth.register(
-          email, password, _nameCtrl.text.trim(),
-          UserRole.customer, imageUrl: imageUrl,
+          email,
+          password,
+          _nameCtrl.text.trim(),
+          _isCustomer ? UserRole.customer : UserRole.undefined,
+          imageUrl: imageUrl,
         );
       }
     } catch (_) {
@@ -121,7 +135,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   Text(
-                    _isLogin ? 'Đăng nhập để tiếp tục' : 'Tạo tài khoản mới',
+                    _isLogin
+                        ? 'Đăng nhập để tiếp tục'
+                        : (_isCustomer ? 'Đăng ký Khách hàng' : 'Đăng ký Nhân viên'),
                     style: TextStyle(color: cs.onSurfaceVariant),
                   ),
                 ]),
@@ -219,9 +235,28 @@ class _LoginScreenState extends State<LoginScreen> {
               // Toggle
               Center(
                 child: TextButton(
-                  onPressed: () => setState(() => _isLogin = !_isLogin),
+                  onPressed: () => setState(() {
+                    _isLogin = false;
+                    _isCustomer = true;
+                  }),
+                  child: const Text('Bạn là khách hàng mới? Đăng ký ngay'),
+                ),
+              ),
+
+              // Toggle
+              Center(
+                child: TextButton(
+                  onPressed: () => setState(() {
+                    if (_isLogin) {
+                      _isLogin = false;
+                      _isCustomer = false;
+                    } else {
+                      _isLogin = true;
+                      _isCustomer = false;
+                    }
+                  }),
                   child: Text(_isLogin
-                      ? 'Chưa có tài khoản? Đăng ký ngay'
+                      ? 'Chưa có tài khoản? Đăng ký nhân viên'
                       : 'Đã có tài khoản? Đăng nhập'),
                 ),
               ),

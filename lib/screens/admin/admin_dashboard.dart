@@ -15,6 +15,8 @@ import 'staff_management_screen.dart';
 import 'inventory_management_screen.dart';
 import 'dashboard_stats_screen.dart';
 import 'chatbot_management_screen.dart';
+import 'restaurant_location_screen.dart';
+import 'customer_management_screen.dart';
 
 /// Admin Dashboard – Vị Lai Quán (未来馆) – Premium MD3 layout
 class AdminDashboard extends StatefulWidget {
@@ -151,18 +153,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             // Admin avatar
                             CircleAvatar(
                               radius: 26,
-                              backgroundColor:
-                                  const Color(0xFFFFC107).withValues(alpha: 0.25),
-                              child: Text(
-                                admin?.name.isNotEmpty == true
-                                    ? admin!.name[0].toUpperCase()
-                                    : 'A',
-                                style: const TextStyle(
-                                  color: Color(0xFFFFC107),
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
+                              backgroundColor: const Color(0xFFFFC107).withValues(alpha: 0.25),
+                              backgroundImage: (admin != null && admin.imageUrl.isNotEmpty)
+                                  ? NetworkImage(admin.imageUrl)
+                                  : null,
+                              child: (admin == null || admin.imageUrl.isEmpty)
+                                  ? Text(
+                                      admin?.name.isNotEmpty == true
+                                          ? admin!.name[0].toUpperCase()
+                                          : 'A',
+                                      style: const TextStyle(
+                                        color: Color(0xFFFFC107),
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ],
                         ),
@@ -390,6 +396,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   label: 'ChatBot FAQ',
                   color: Colors.green,
                   onTap: () => _push(context, const ChatbotManagementScreen()),
+                ),
+                _ModuleCard(
+                  icon: Icons.map_rounded,
+                  label: 'Vị Trí & Bản Đồ',
+                  color: Colors.red,
+                  onTap: () => _push(context, const RestaurantLocationScreen()),
+                ),
+                _ModuleCard(
+                  icon: Icons.person_search_rounded,
+                  label: 'Khách Hàng',
+                  color: Colors.orange,
+                  onTap: () => _push(context, const CustomerManagementScreen()),
                 ),
               ],
             ),

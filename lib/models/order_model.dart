@@ -1,7 +1,7 @@
 // Model đơn hàng – Firestore collection: 'orders'
 import 'dish_model.dart';
 
-enum OrderStatus { pending, preparing, ready, completed, cancelled }
+enum OrderStatus { pending, preparing, ready, served, completed, cancelled }
 enum OrderType { dine_in, online }
 
 /// Vị trí GPS của khách (cho online order)
@@ -35,6 +35,8 @@ class OrderModel {
   final String id;
   final OrderType type;           // dine_in | online
   final String? tableId;          // nullable – chỉ có khi dine_in
+  final String? sessionId;        // nhóm đơn cùng 1 lần ngồi: "{tableId}_{date}_{time}"
+  final String? customerId;       // UUID của máy điện thoại quét QR
   final List<OrderItem> items;
   final double totalPrice;
   final OrderStatus status;
@@ -49,6 +51,8 @@ class OrderModel {
     required this.totalPrice,
     required this.status,
     this.tableId,
+    this.sessionId,
+    this.customerId,
     this.location,
     this.customerNote,
     DateTime? createdAt,
@@ -58,6 +62,8 @@ class OrderModel {
     'id': id,
     'type': type.name,
     'tableId': tableId,
+    'sessionId': sessionId,
+    'customerId': customerId,
     'items': items.map((x) => x.toMap()).toList(),
     'totalPrice': totalPrice,
     'status': status.name,
@@ -93,6 +99,8 @@ class OrderModel {
         orElse: () => OrderType.dine_in,
       ),
       tableId: map['tableId'],
+      sessionId: map['sessionId'],
+      customerId: map['customerId'],
       items: parsedItems,
       totalPrice: double.tryParse(map['totalPrice']?.toString() ?? '0') ?? 0.0,
       status: OrderStatus.values.firstWhere(

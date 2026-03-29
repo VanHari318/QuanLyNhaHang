@@ -4,6 +4,7 @@ enum UserRole {
   chef,
   cashier,
   customer,
+  undefined,
 }
 
 class UserModel {
@@ -38,7 +39,7 @@ class UserModel {
       email: map['email'] ?? '',
       role: UserRole.values.firstWhere(
         (e) => e.toString().split('.').last == map['role'],
-        orElse: () => UserRole.customer,
+        orElse: () => UserRole.undefined,
       ),
       imageUrl: map['imageUrl'] ?? '',
     );

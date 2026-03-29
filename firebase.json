@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"quan-ly-nha-hang-20f37","appId":"1:266624432519:android:f31b06df96910cf667bb22","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"quan-ly-nha-hang-20f37","configurations":{"android":"1:266624432519:android:f31b06df96910cf667bb22","ios":"1:266624432519:ios:f991f4c7147e6e4d67bb22","macos":"1:266624432519:ios:f991f4c7147e6e4d67bb22","web":"1:266624432519:web:5c26826f58210b3f67bb22","windows":"1:266624432519:web:b119b6f0293092f667bb22"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "quan-ly-nha-hang-20f37",
+          "appId": "1:266624432519:android:f31b06df96910cf667bb22",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "quan-ly-nha-hang-20f37",
+          "configurations": {
+            "android": "1:266624432519:android:f31b06df96910cf667bb22",
+            "ios": "1:266624432519:ios:f991f4c7147e6e4d67bb22",
+            "macos": "1:266624432519:ios:f991f4c7147e6e4d67bb22",
+            "web": "1:266624432519:web:5c26826f58210b3f67bb22",
+            "windows": "1:266624432519:web:b119b6f0293092f667bb22"
+          }
+        }
+      }
+    }
+  }
+}
