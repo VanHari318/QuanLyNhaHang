@@ -66,8 +66,15 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> changePassword(String newPassword) async {
-    await _authService.updatePassword(newPassword);
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    if (_user == null) return;
+    try {
+      await _authService.reauthenticate(_user!.email, oldPassword);
+      await _authService.updatePassword(newPassword);
+    } catch (e) {
+      print('Change Password Error: $e');
+      throw e;
+    }
   }
 
   Future<void> logout() async {

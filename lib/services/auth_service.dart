@@ -47,13 +47,31 @@ class AuthService {
     }
   }
 
+  Future<bool> reauthenticate(String email, String password) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+      
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+      
+      await user.reauthenticateWithCredential(credential);
+      return true;
+    } catch (e) {
+      print('Auth Error (reauth): $e');
+      throw e;
+    }
+  }
+
   Future<bool> updatePassword(String newPassword) async {
     try {
       await _auth.currentUser?.updatePassword(newPassword);
       return true;
     } catch (e) {
-      print('Auth Error: $e');
-      throw e; // Để provider xử lý lời nhắn cụ thể
+      print('Auth Error (password): $e');
+      throw e;
     }
   }
 

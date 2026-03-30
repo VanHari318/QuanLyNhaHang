@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -42,9 +43,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked = await picker.pickImage(source: source);
     if (picked != null) {
       setState(() {
         _webPickedImage = picked;
@@ -53,6 +54,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       });
     }
+  }
+
+  void _showImageSourceActionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_rounded, color: Colors.blue),
+                  title: const Text('Chọn từ Thư viện'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_rounded, color: Colors.orange),
+                  title: const Text('Chụp ảnh mới'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _saveChanges() async {
@@ -93,13 +130,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _currentImageUrl = finalImageUrl;
         });
       }
+    } on FirebaseAuthException catch (e) {
+      String errorMsg = 'Đã có lỗi xảy ra';
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        errorMsg = 'Mật khẩu cũ không chính xác';
+      } else if (e.code == 'requires-recent-login') {
+        errorMsg = 'Vì lý do bảo mật, bạn cần Đăng xuất và Đăng nhập lại để thực hiện đổi mật khẩu.';
+      } else if (e.message != null) {
+        errorMsg = e.message!;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Lỗi: $e')),
-        );
-        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
+    } finally {
+      setState(() => _isUploading = false);
     }
   }
 
@@ -200,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           shape: const CircleBorder(),
                           elevation: 4,
                           child: InkWell(
-                            onTap: _pickImage,
+                            onTap: () => _showImageSourceActionSheet(context),
                             customBorder: const CircleBorder(),
                             child: const Padding(
                               padding: EdgeInsets.all(10),
@@ -247,6 +296,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.badge_outlined,
                 isEditing: false, // Role is not editable
               ),
+
+              if (!_isEditing) ...[
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showChangePasswordDialog(context),
+                    icon: const Icon(Icons.lock_outline_rounded, size: 20),
+                    label: const Text('Đổi mật khẩu'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: cs.secondary,
+                      side: BorderSide(color: cs.secondary.withOpacity(0.5)),
+                    ),
+                  ),
+                ),
+              ],
 
               if (_isEditing) ...[
                 const SizedBox(height: 40),
@@ -326,5 +391,153 @@ class _ProfileScreenState extends State<ProfileScreen> {
       UserRole.customer => 'Khách hàng',
       _ => 'Chưa xác định',
     };
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final formKey = GlobalKey<FormState>();
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        bool obscureOld = true;
+        bool obscureNew = true;
+        bool obscureConfirm = true;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Row(
+                children: [
+                   Icon(Icons.lock_reset_rounded, color: Colors.orange, size: 28),
+                   SizedBox(width: 12),
+                   Text('Đổi mật khẩu', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: SizedBox(
+                width: 450, // Làm dialog to ra
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: oldPasswordController,
+                          obscureText: obscureOld,
+                          decoration: InputDecoration(
+                            labelText: 'Mật khẩu cũ',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureOld ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => obscureOld = !obscureOld),
+                            ),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập mật khẩu cũ' : null,
+                        ),
+                        const SizedBox(height: 20),
+                        TextFormField(
+                          controller: newPasswordController,
+                          obscureText: obscureNew,
+                          decoration: InputDecoration(
+                            labelText: 'Mật khẩu mới',
+                            prefixIcon: const Icon(Icons.vpn_key_outlined),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => obscureNew = !obscureNew),
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Vui lòng nhập mật khẩu mới';
+                            if (v.length < 6) return 'Tối thiểu 6 ký tự';
+                            if (v == oldPasswordController.text) {
+                              return 'Mật khẩu mới không được giống mật khẩu cũ';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        TextFormField(
+                          controller: confirmPasswordController,
+                          obscureText: obscureConfirm,
+                          decoration: InputDecoration(
+                            labelText: 'Nhập lại mật khẩu mới',
+                            prefixIcon: const Icon(Icons.check_circle_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => obscureConfirm = !obscureConfirm),
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v != newPasswordController.text) return 'Mật khẩu xác nhận không khớp';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(context),
+                  child: const Text('Hủy'),
+                ),
+                FilledButton(
+                  onPressed: isLoading ? null : () async {
+                    if (formKey.currentState!.validate()) {
+                      setState(() => isLoading = true);
+                      try {
+                        await authProvider.changePassword(
+                          oldPasswordController.text.trim(),
+                          newPasswordController.text.trim(),
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('✅ Đổi mật khẩu thành công')),
+                          );
+                        }
+                      } on FirebaseAuthException catch (e) {
+                         setState(() => isLoading = false);
+                         String errorMsg = 'Đã có lỗi xảy ra';
+                         if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+                           errorMsg = 'Mật khẩu cũ không chính xác';
+                         } else if (e.message != null) {
+                           errorMsg = e.message!;
+                         }
+                         if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             SnackBar(content: Text('❌ $errorMsg')),
+                           );
+                         }
+                      } catch (e) {
+                         setState(() => isLoading = false);
+                         if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             SnackBar(content: Text('❌ Lỗi: $e')),
+                           );
+                         }
+                      }
+                    }
+                  },
+                  child: isLoading 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Lưu'),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
   }
 }
