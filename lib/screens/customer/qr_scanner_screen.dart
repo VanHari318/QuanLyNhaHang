@@ -55,6 +55,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         children: [
           MobileScanner(
             controller: _controller,
+            fit: BoxFit.cover,
             onDetect: (capture) {
               if (_isScanned) return;
               final List<Barcode> barcodes = capture.barcodes;
@@ -65,6 +66,50 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                   break;
                 }
               }
+            },
+            placeholderBuilder: (context) => const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Đang khởi động Camera...', style: TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+            errorBuilder: (context, error) {
+              String msg = 'Lỗi không xác định';
+              if (error.errorCode == MobileScannerErrorCode.permissionDenied) {
+                msg = 'Bạn chưa cấp quyền Camera cho ứng dụng.';
+              } else if (error.errorCode == MobileScannerErrorCode.unsupported) {
+                msg = 'Thiết bị/Trình duyệt không hỗ trợ Camera.';
+              }
+              
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.videocam_off_rounded, color: Colors.redAccent, size: 60),
+                      const SizedBox(height: 20),
+                      Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Nếu dùng trình duyệt, hãy đảm bảo bạn dùng HTTPS hoặc localhost.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: () => _controller.start(),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             },
           ),
           // Overlay giao diện quét

@@ -184,6 +184,34 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
           ],
         ),
+        actions: [
+          if (!_isBrowseMode)
+            IconButton(
+              icon: const Icon(Icons.exit_to_app_rounded, color: Colors.red),
+              tooltip: 'Rời bàn',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Rời bàn?'),
+                    content: const Text('Giỏ hàng hiện tại của bạn sẽ bị xóa. Bạn có chắc muốn rời bàn này để về chế độ ngắm menu không?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+                      FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                        onPressed: () {
+                          context.read<CartProvider>().clear();
+                          context.read<CartProvider>().setTableConfig('', '');
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Rời bàn'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: cs.primary,
@@ -191,7 +219,8 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
           indicatorColor: cs.primary,
           indicatorWeight: 4,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          indicatorPadding: const EdgeInsets.symmetric(horizontal: 24),
+          indicatorPadding: EdgeInsets.zero,
+          dividerColor: Colors.transparent,
           tabs: const [
             Tab(text: 'Menu'),
             Tab(text: 'Đơn hàng'),
@@ -225,7 +254,11 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
       ),
       bottomNavigationBar: _isBrowseMode 
           ? _BrowsePrompt(onScan: () async {
-              // (keeping scan logic)
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+              );
+              // Khỏi cần pushReplacement. CartProvider được cập nhật trong QRScannerScreen => CustomerMainScreen sẽ render lại.
           })
           : (cart.items.isEmpty ? null : _CartSummary(
               count: cart.totalCount,
