@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/chatbot_provider.dart';
 import '../../models/chatbot_model.dart';
+import '../../theme/admin_theme.dart';
 
-/// Màn hình quản lý FAQ ChatBot – MD3
+/// Màn hình quản lý FAQ ChatBot – Haidilao Premium Dark
 class ChatbotManagementScreen extends StatelessWidget {
   const ChatbotManagementScreen({super.key});
 
@@ -19,19 +20,34 @@ class _ChatbotBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ChatbotProvider>();
-    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: AdminColors.bgPrimary,
       appBar: AppBar(
         title: const Text('ChatBot FAQ'),
+        backgroundColor: AdminColors.bgPrimary,
+        scrolledUnderElevation: 0,
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Chip(
-              avatar: Icon(Icons.smart_toy_rounded, size: 16, color: cs.primary),
-              label: Text('${provider.entries.length} câu hỏi',
-                  style: TextStyle(color: cs.primary)),
-              backgroundColor: cs.primaryContainer,
+            padding: const EdgeInsets.only(right: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AdminColors.teal.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AdminColors.teal.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.smart_toy_rounded, size: 16, color: AdminColors.teal),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${provider.entries.length} câu hỏi',
+                    style: const TextStyle(color: AdminColors.teal, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -41,30 +57,73 @@ class _ChatbotBody extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline_rounded,
-                      size: 64, color: cs.outlineVariant),
-                  const SizedBox(height: 12),
-                  Text('Chưa có câu hỏi nào',
-                      style: TextStyle(color: cs.onSurfaceVariant)),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AdminColors.bgElevated,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AdminColors.borderDefault),
+                    ),
+                    child: const Icon(Icons.chat_bubble_outline_rounded,
+                        size: 64, color: AdminColors.textMuted),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('Chưa có câu hỏi nào',
+                      style: TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
             )
           : ListView.separated(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: provider.entries.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (_, i) => _FaqCard(
                 entry: provider.entries[i],
                 onEdit: () =>
                     _showDialog(context, entry: provider.entries[i]),
-                onDelete: () =>
-                    provider.deleteEntry(provider.entries[i].id),
+                onDelete: () => _confirmDelete(
+                    context, provider.entries[i], provider),
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AdminColors.crimson,
+        foregroundColor: AdminColors.textPrimary,
         onPressed: () => _showDialog(context),
         icon: const Icon(Icons.add_comment_rounded),
-        label: const Text('Thêm câu hỏi'),
+        label: const Text('Thêm câu hỏi', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, ChatBotModel entry, ChatbotProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AdminColors.bgCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: AdminColors.borderDefault),
+        ),
+        title: Text('Xóa dữ liệu', style: AdminText.h1.copyWith(color: AdminColors.error)),
+        content: Text('Chắc chắn xóa câu hỏi FAQ này khỏi ChatBot?', style: const TextStyle(color: AdminColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AdminColors.error,
+              foregroundColor: AdminColors.textPrimary,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              provider.deleteEntry(entry.id);
+            },
+            child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -76,32 +135,37 @@ class _ChatbotBody extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(entry == null ? 'Thêm FAQ' : 'Sửa FAQ'),
+        backgroundColor: AdminColors.bgCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: AdminColors.borderDefault),
+        ),
+        title: Text(entry == null ? 'Thêm FAQ mới' : 'Sửa câu hỏi FAQ', style: AdminText.h1),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
             controller: qCtrl,
             maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Câu hỏi *',
-              prefixIcon: Icon(Icons.help_outline_rounded),
-            ),
+            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            decoration: _inputDeco('Nhập câu hỏi FAQ *', Icons.help_outline_rounded),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: aCtrl,
             maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Câu trả lời *',
-              prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
-              alignLabelWithHint: true,
-            ),
+            style: const TextStyle(color: AdminColors.textPrimary),
+            decoration: _inputDeco('Nhập câu trả lời *', Icons.chat_bubble_outline_rounded).copyWith(alignLabelWithHint: true),
           ),
         ]),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy')),
+              child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AdminColors.crimson,
+              foregroundColor: AdminColors.textPrimary,
+            ),
             onPressed: () async {
               if (qCtrl.text.isEmpty || aCtrl.text.isEmpty) return;
               final model = ChatBotModel(
@@ -118,13 +182,26 @@ class _ChatbotBody extends StatelessWidget {
               }
               if (context.mounted) Navigator.pop(context);
             },
-            child: Text(entry == null ? 'Thêm' : 'Lưu'),
+            child: Text(entry == null ? 'Thêm mới' : 'Lưu cập nhật', style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 }
+
+  InputDecoration _inputDeco(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AdminColors.textSecondary),
+      prefixIcon: Icon(icon, color: AdminColors.textSecondary),
+      filled: true,
+      fillColor: AdminColors.bgElevated,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AdminColors.crimson)),
+    );
+  }
 
 // ── FAQ card ──────────────────────────────────────────────────────────────────
 class _FaqCard extends StatefulWidget {
@@ -147,64 +224,83 @@ class _FaqCardState extends State<_FaqCard> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: AdminColors.bgCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _expanded ? AdminColors.teal.withValues(alpha: 0.5) : AdminColors.borderDefault),
+      ),
       child: Column(
         children: [
-          ListTile(
-            leading: Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: cs.primaryContainer,
-                borderRadius: BorderRadius.circular(8),
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: AdminColors.teal.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.help_outline_rounded, color: AdminColors.teal, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(widget.entry.question,
+                        style: AdminText.h3,
+                        maxLines: _expanded ? null : 2,
+                        overflow: _expanded ? null : TextOverflow.ellipsis),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_rounded, color: AdminColors.teal, size: 20),
+                        onPressed: widget.onEdit,
+                        style: IconButton.styleFrom(backgroundColor: AdminColors.bgElevated),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, color: AdminColors.error, size: 20),
+                        onPressed: widget.onDelete,
+                        style: IconButton.styleFrom(backgroundColor: AdminColors.error.withValues(alpha: 0.1)),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                          _expanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 24,
+                          color: AdminColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              child:
-                  Icon(Icons.help_outline_rounded, color: cs.onPrimaryContainer, size: 18),
-            ),
-            title: Text(widget.entry.question,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                maxLines: _expanded ? null : 2,
-                overflow: _expanded ? null : TextOverflow.ellipsis),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                    icon: Icon(Icons.edit_rounded, color: cs.primary, size: 20),
-                    onPressed: widget.onEdit),
-                IconButton(
-                    icon: Icon(Icons.delete_outline_rounded,
-                        color: cs.error, size: 20),
-                    onPressed: widget.onDelete),
-                IconButton(
-                  icon: Icon(
-                      _expanded
-                          ? Icons.expand_less_rounded
-                          : Icons.expand_more_rounded,
-                      size: 20),
-                  onPressed: () => setState(() => _expanded = !_expanded),
-                ),
-              ],
             ),
           ),
           if (_expanded)
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(10),
+                color: AdminColors.bgPrimary,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AdminColors.borderDefault),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.chat_bubble_outline_rounded,
-                      color: cs.secondary, size: 16),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.chat_bubble_outline_rounded,
+                      color: AdminColors.gold, size: 18),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(widget.entry.answer,
-                        style: TextStyle(color: cs.onSurfaceVariant)),
+                        style: const TextStyle(color: AdminColors.textSecondary, height: 1.4)),
                   ),
                 ],
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/database_service.dart';
-import 'package:intl/intl.dart';
+import '../../theme/admin_theme.dart';
 
 class CustomerManagementScreen extends StatefulWidget {
   const CustomerManagementScreen({super.key});
@@ -17,17 +17,18 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: AdminColors.bgPrimary,
       appBar: AppBar(
         title: const Text('Quản Lý Khách Hàng'),
+        backgroundColor: AdminColors.bgPrimary,
+        scrolledUnderElevation: 0,
       ),
       body: StreamBuilder<List<UserModel>>(
         stream: _db.getAllCustomers(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AdminColors.crimson));
           }
           var customers = snapshot.data!;
 
@@ -46,12 +47,14 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
                 padding: const EdgeInsets.all(16),
                 child: TextField(
                   controller: _searchCtrl,
+                  style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
                     hintText: 'Tìm theo tên hoặc email...',
-                    prefixIcon: const Icon(Icons.search_rounded),
+                    hintStyle: const TextStyle(color: AdminColors.textMuted),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AdminColors.textSecondary),
                     suffixIcon: _searchQuery.isNotEmpty 
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded),
+                          icon: const Icon(Icons.clear_rounded, color: AdminColors.textSecondary),
                           onPressed: () {
                             _searchCtrl.clear();
                             setState(() => _searchQuery = "");
@@ -59,64 +62,86 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
                         )
                       : null,
                     filled: true,
-                    fillColor: cs.surfaceContainerHighest.withOpacity(0.5),
+                    fillColor: AdminColors.bgElevated,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
+                      borderSide: const BorderSide(color: AdminColors.borderDefault),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AdminColors.borderDefault),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AdminColors.crimson),
+                    ),
                   ),
                   onChanged: (v) => setState(() => _searchQuery = v.trim()),
                 ),
               ),
               Expanded(
                 child: customers.isEmpty
-                    ? _emptyState(cs)
+                    ? _emptyState()
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         itemCount: customers.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final user = customers[index];
-                          return Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AdminColors.bgCard,
                               borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
+                              border: Border.all(color: AdminColors.borderDefault),
                             ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: cs.primaryContainer,
-                                backgroundImage: user.imageUrl.isNotEmpty
-                                    ? NetworkImage(user.imageUrl)
-                                    : null,
-                                child: user.imageUrl.isEmpty
-                                    ? Text(
-                                        user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: cs.onPrimaryContainer))
-                                    : null,
-                              ),
-                              title: Text(user.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(user.email,
-                                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.admin_panel_settings_rounded, color: cs.primary),
-                                    onPressed: () => _showRoleDialog(user),
-                                    tooltip: 'Cấp quyền nhân sự',
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: AdminColors.teal.withValues(alpha: 0.15),
+                                  backgroundImage: user.imageUrl.isNotEmpty
+                                      ? NetworkImage(user.imageUrl)
+                                      : null,
+                                  child: user.imageUrl.isEmpty
+                                      ? Text(
+                                          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                          style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w800,
+                                              color: AdminColors.teal))
+                                      : null,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(user.name, style: AdminText.h3),
+                                      const SizedBox(height: 2),
+                                      Text(user.email, style: const TextStyle(color: AdminColors.textSecondary, fontSize: 13)),
+                                    ],
                                   ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete_outline_rounded, color: cs.error),
-                                    onPressed: () => _confirmDelete(user),
-                                    tooltip: 'Xóa',
-                                  ),
-                                ],
-                              ),
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.admin_panel_settings_rounded, size: 20, color: AdminColors.gold),
+                                      onPressed: () => _showRoleDialog(user),
+                                      tooltip: 'Cấp quyền nhân sự',
+                                      style: IconButton.styleFrom(backgroundColor: AdminColors.bgElevated),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AdminColors.error),
+                                      onPressed: () => _confirmDelete(user),
+                                      tooltip: 'Xóa',
+                                      style: IconButton.styleFrom(backgroundColor: AdminColors.error.withValues(alpha: 0.1)),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           );
                         },
@@ -129,16 +154,25 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
     );
   }
 
-  Widget _emptyState(ColorScheme cs) {
+  Widget _emptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_search_rounded, size: 64, color: cs.outlineVariant),
-          const SizedBox(height: 16),
+          Container(
+             padding: const EdgeInsets.all(24),
+             decoration: BoxDecoration(
+               color: AdminColors.bgElevated,
+               shape: BoxShape.circle,
+               border: Border.all(color: AdminColors.borderDefault),
+             ),
+             child: const Icon(Icons.person_search_rounded, size: 64, color: AdminColors.textMuted),
+          ),
+          const SizedBox(height: 24),
           Text(_searchQuery.isEmpty 
             ? 'Chưa có khách hàng nào đăng ký'
-            : 'Không tìm thấy khách hàng nào phù hợp'),
+            : 'Không tìm thấy khách hàng nào phù hợp',
+            style: const TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -150,15 +184,32 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: Text('Cấp quyền: ${user.name}'),
+          backgroundColor: AdminColors.bgCard,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: const BorderSide(color: AdminColors.borderDefault),
+          ),
+          title: Text('Cấp quyền: ${user.name}', style: AdminText.h1),
           content: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Chọn chức vụ nhân sự cho người dùng này:'),
+              const Text('Chọn chức vụ nhân sự cho người dùng này:', style: TextStyle(color: AdminColors.textSecondary)),
               const SizedBox(height: 16),
               DropdownButtonFormField<UserRole>(
                 value: selected,
-                decoration: const InputDecoration(labelText: 'Chức vụ'),
+                dropdownColor: AdminColors.bgCard,
+                style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: 'Chức vụ',
+                  labelStyle: const TextStyle(color: AdminColors.textSecondary),
+                  filled: true,
+                  fillColor: AdminColors.bgElevated,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AdminColors.crimson)),
+                ),
                 items: UserRole.values
                     .where((r) => r != UserRole.admin && r != UserRole.customer && r != UserRole.undefined)
                     .map((r) => DropdownMenuItem(
@@ -170,8 +221,12 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AdminColors.gold,
+                foregroundColor: Colors.black,
+              ),
               onPressed: () async {
                 await _db.saveUser(UserModel(
                   id: user.id,
@@ -183,11 +238,14 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Đã cấp quyền ${selected.name} cho ${user.name}')),
+                    SnackBar(
+                      content: Text('Đã cấp quyền ${selected.name} cho ${user.name}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                      backgroundColor: AdminColors.gold,
+                    ),
                   );
                 }
               },
-              child: const Text('Cấp quyền'),
+              child: const Text('Xác nhận Cấp quyền', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -199,17 +257,25 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xóa khách hàng'),
-        content: Text('Bạn có chắc muốn xóa tài khoản "${user.name}"?'),
+        backgroundColor: AdminColors.bgCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: AdminColors.borderDefault),
+        ),
+        title: Text('Xóa khách hàng', style: AdminText.h1.copyWith(color: AdminColors.error)),
+        content: Text('Chắc chắn xóa tài khoản "${user.name}" khỏi hệ thống?', style: const TextStyle(color: AdminColors.textSecondary)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy')),
+              child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error),
+                backgroundColor: AdminColors.error,
+                foregroundColor: AdminColors.textPrimary,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa'),
+            child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -220,15 +286,18 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
         await _db.deleteUser(user.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã xóa khách hàng thành công')),
+            const SnackBar(
+               content: Text('Đã xóa khách hàng thành công', style: TextStyle(color: AdminColors.textPrimary)),
+               backgroundColor: AdminColors.success,
+            ),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('Lỗi: $e'),
-                backgroundColor: Theme.of(context).colorScheme.error),
+                content: Text('Lỗi: $e', style: const TextStyle(color: AdminColors.textPrimary)),
+                backgroundColor: AdminColors.error),
           );
         }
       }

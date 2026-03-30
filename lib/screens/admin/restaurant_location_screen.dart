@@ -3,8 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../services/database_service.dart';
+import '../../theme/admin_theme.dart';
 
-/// Màn hình Admin: thiết lập vị trí và bán kính nhà hàng (Geofencing)
+/// Màn hình Admin: thiết lập vị trí và bán kính nhà hàng (Geofencing) – Haidilao Premium Dark
 class RestaurantLocationScreen extends StatefulWidget {
   const RestaurantLocationScreen({super.key});
 
@@ -61,7 +62,10 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
       if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('⚠️ Cần cấp quyền vị trí để sử dụng tính năng này')),
+            const SnackBar(
+              content: Text('⚠️ Cần cấp quyền vị trí để sử dụng tính năng này', style: TextStyle(color: Colors.white)),
+              backgroundColor: AdminColors.warning,
+            ),
           );
         }
         return;
@@ -76,7 +80,10 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi lấy vị trí: $e')),
+          SnackBar(
+            content: Text('Lỗi lấy vị trí: $e', style: const TextStyle(color: AdminColors.textPrimary)),
+            backgroundColor: AdminColors.error,
+          ),
         );
       }
     } finally {
@@ -95,15 +102,18 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Đã lưu vị trí nhà hàng!'),
-            backgroundColor: Colors.green,
+            content: Text('✅ Đã lưu vị trí nhà hàng!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            backgroundColor: AdminColors.success,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi lưu: $e')),
+          SnackBar(
+            content: Text('Lỗi lưu: $e', style: const TextStyle(color: AdminColors.textPrimary)),
+            backgroundColor: AdminColors.error,
+          ),
         );
       }
     } finally {
@@ -113,15 +123,14 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: AdminColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: cs.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AdminColors.bgPrimary,
+        scrolledUnderElevation: 0,
         title: const Row(
           children: [
-            Icon(Icons.map_rounded, size: 22),
+            Icon(Icons.map_rounded, size: 22, color: AdminColors.teal),
             SizedBox(width: 10),
             Text('Vị Trí Nhà Hàng',
                 style: TextStyle(fontWeight: FontWeight.w700)),
@@ -129,7 +138,7 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
         ),
       ),
       body: !_isLoaded
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AdminColors.crimson))
           : Column(
               children: [
                 // ── Bản đồ (60% màn hình) ────────────────────────────────
@@ -150,9 +159,9 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                           },
                         ),
                         children: [
-                          // Lớp tile bản đồ OpenStreetMap
+                          // Bản đồ Dark - Haidilao Style
                           TileLayer(
-                            urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                            urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                             subdomains: const ['a', 'b', 'c', 'd'],
                             userAgentPackageName: 'com.mrdoanh.vilaiquan.app',
                           ),
@@ -164,8 +173,8 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                                 point: _pinLocation,
                                 radius: _radius,
                                 useRadiusInMeter: true,
-                                color: cs.primary.withValues(alpha: 0.18),
-                                borderColor: cs.primary.withValues(alpha: 0.7),
+                                color: AdminColors.teal.withValues(alpha: 0.18),
+                                borderColor: AdminColors.teal.withValues(alpha: 0.7),
                                 borderStrokeWidth: 2,
                               ),
                             ],
@@ -185,14 +194,17 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 6, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: cs.primary,
+                                        color: AdminColors.teal,
                                         borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(color: AdminColors.teal.withValues(alpha: 0.4), blurRadius: 4, spreadRadius: 1)
+                                        ],
                                       ),
                                       child: const Text('🍽️',
                                           style: TextStyle(fontSize: 10)),
                                     ),
-                                    Icon(Icons.location_pin,
-                                        color: cs.primary, size: 36),
+                                    const Icon(Icons.location_pin,
+                                        color: AdminColors.teal, size: 36),
                                   ],
                                 ),
                               ),
@@ -202,8 +214,9 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                           // Attribution
                           const RichAttributionWidget(
                             attributions: [
-                              TextSourceAttribution('OpenStreetMap contributors'),
+                              TextSourceAttribution('OpenStreetMap contributors\nTiles © CartoDB Dark Matter', textStyle: TextStyle(color: AdminColors.textMuted, fontSize: 10)),
                             ],
+                            popupBackgroundColor: AdminColors.bgElevated,
                           ),
                         ],
                       ),
@@ -214,15 +227,16 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                         right: 12,
                         child: FloatingActionButton.small(
                           heroTag: 'gps_btn',
-                          backgroundColor: cs.surface,
-                          foregroundColor: cs.primary,
+                          backgroundColor: AdminColors.bgCard,
+                          foregroundColor: AdminColors.gold,
                           tooltip: 'Lấy vị trí hiện tại',
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AdminColors.borderDefault)),
                           onPressed: _isLocating ? null : _getCurrentLocation,
                           child: _isLocating
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.gold),
                                 )
                               : const Icon(Icons.my_location_rounded),
                         ),
@@ -236,14 +250,15 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                         child: Center(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
+                                horizontal: 16, vertical: 10),
                             decoration: BoxDecoration(
-                              color: Colors.black54,
+                              color: AdminColors.bgPrimary.withValues(alpha: 0.8),
                               borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AdminColors.borderDefault),
                             ),
                             child: const Text(
-                              '👆 Chạm vào bản đồ để di chuyển ghim',
-                              style: TextStyle(color: Colors.white, fontSize: 12),
+                              '👆 Chạm vào bản đồ để di chuyển ghim (Nhà Hàng)',
+                              style: TextStyle(color: AdminColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -261,130 +276,177 @@ class _RestaurantLocationScreenState extends State<RestaurantLocationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Hiển thị tọa độ
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                Icon(Icons.pin_drop_rounded,
-                                    color: cs.primary, size: 22),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Lat: ${_pinLocation.latitude.toStringAsFixed(6)}',
-                                        style: const TextStyle(
-                                            fontFamily: 'monospace',
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                      Text(
-                                        'Lng: ${_pinLocation.longitude.toStringAsFixed(6)}',
-                                        style: const TextStyle(
-                                            fontFamily: 'monospace',
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
-                                  ),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AdminColors.bgCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AdminColors.borderDefault),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44, height: 44,
+                                decoration: BoxDecoration(
+                                  color: AdminColors.teal.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              ],
-                            ),
+                                child: const Icon(Icons.pin_drop_rounded,
+                                    color: AdminColors.teal, size: 24),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Vĩ độ (Lat): ${_pinLocation.latitude.toStringAsFixed(6)}',
+                                      style: const TextStyle(
+                                          fontFamily: 'monospace',
+                                          color: AdminColors.textPrimary,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                    Text(
+                                      'Kinh độ (Lng): ${_pinLocation.longitude.toStringAsFixed(6)}',
+                                      style: const TextStyle(
+                                          fontFamily: 'monospace',
+                                          color: AdminColors.textPrimary,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 12),
 
                         // Slider bán kính (10 - 30m)
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.radar_rounded,
-                                        color: cs.primary, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Bán kính cho phép đặt món: ',
-                                      style: TextStyle(
-                                          color: cs.onSurfaceVariant,
-                                          fontSize: 13),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: AdminColors.bgCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AdminColors.borderDefault),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.radar_rounded,
+                                      color: AdminColors.teal, size: 20),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Bán kính cho phép đặt món: ',
+                                    style: TextStyle(
+                                        color: AdminColors.textSecondary,
+                                        fontSize: 13),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AdminColors.teal.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    Text(
+                                    child: Text(
                                       '${_radius.round()}m',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 16,
-                                          color: cs.primary),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: AdminColors.teal),
                                     ),
-                                  ],
-                                ),
-                                Slider(
-                                  value: _radius,
-                                  min: 10.0,
-                                  max: 30.0,
-                                  divisions: 20,
-                                  label: '${_radius.round()}m',
-                                  onChanged: (v) => setState(() => _radius = v),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('10m', style: TextStyle(color: cs.outlineVariant, fontSize: 11)),
-                                    Text('30m', style: TextStyle(color: cs.outlineVariant, fontSize: 11)),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Slider(
+                                value: _radius,
+                                min: 10.0,
+                                max: 30.0,
+                                divisions: 20,
+                                activeColor: AdminColors.teal,
+                                inactiveColor: AdminColors.bgElevated,
+                                label: '${_radius.round()}m',
+                                onChanged: (v) => setState(() => _radius = v),
+                              ),
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('10m', style: TextStyle(color: AdminColors.textMuted, fontSize: 11)),
+                                  Text('30m', style: TextStyle(color: AdminColors.textMuted, fontSize: 11)),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
 
                         // Nút hành động
                         Row(
                           children: [
                             Expanded(
+                              flex: 1,
                               child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: AdminColors.borderDefault),
+                                  foregroundColor: AdminColors.textPrimary,
+                                  backgroundColor: AdminColors.bgElevated,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
                                 icon: _isLocating
                                     ? const SizedBox(
                                         width: 16,
                                         height: 16,
                                         child:
-                                            CircularProgressIndicator(strokeWidth: 2))
-                                    : const Icon(Icons.my_location_rounded),
-                                label: const Text('GPS Hiện Tại'),
+                                            CircularProgressIndicator(strokeWidth: 2, color: AdminColors.textPrimary))
+                                    : const Icon(Icons.my_location_rounded, size: 20, color: AdminColors.gold),
+                                label: const Text('GPS Gốc'),
                                 onPressed:
                                     _isLocating ? null : _getCurrentLocation,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              flex: 2,
+                              flex: 3,
                               child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AdminColors.crimson,
+                                  foregroundColor: AdminColors.textPrimary,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
                                 icon: _isSaving
                                     ? const SizedBox(
                                         width: 16,
                                         height: 16,
                                         child: CircularProgressIndicator(
                                             color: Colors.white, strokeWidth: 2))
-                                    : const Icon(Icons.save_rounded),
-                                label: const Text('Lưu Vị Trí'),
+                                    : const Icon(Icons.save_rounded, size: 20),
+                                label: const Text('Lưu Vị Trí & Khóa Tọa Độ', style: TextStyle(fontWeight: FontWeight.bold)),
                                 onPressed: _isSaving ? null : _saveLocation,
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                         // Ghi chú
-                        Text(
-                          '💡 Mẹo: Mở Google Maps → nhấn giữ vào địa điểm → chép tọa độ đỏ bên dưới, sau đó bấm vào bản đồ cho ghim dịch về vị trí đó.',
-                          style: TextStyle(
-                              color: cs.onSurfaceVariant, fontSize: 11),
-                          textAlign: TextAlign.center,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AdminColors.warning.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AdminColors.warning.withValues(alpha: 0.3)),
+                          ),
+                          child: const Text(
+                            '💡 Mẹo: Mở Google Maps → nhấn giữ vào địa điểm → chép tọa độ đỏ bên dưới, sau đó thao tác thu phóng bản đồ tại đây để chỉnh vị trí chốt.',
+                            style: TextStyle(
+                                color: AdminColors.textSecondary, fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
