@@ -10,6 +10,7 @@ import '../../components/dashboard_card.dart';
 import '../../components/order_item_card.dart';
 import '../../theme/admin_theme.dart';
 import '../../services/data_seed_service.dart';
+import '../../providers/admin_theme_provider.dart';
 
 // Management screens
 import 'menu_management_screen.dart';
@@ -44,15 +45,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final lowCount = inv.items.where((i) => inv.isLow(i)).length;
 
     return Scaffold(
-      backgroundColor: AdminColors.bgPrimary,
+      backgroundColor: AdminColors.bgPrimary(context),
       body: SafeArea(
         child: Column(
           children: [
             _Header(
               admin: admin,
               lowStockCount: lowCount,
-              onSeedData: () => _generateMockData(context),
-              onUpdateAddresses: () => _updateMockAddresses(context),
               onLogout: () => LogoutHelper.showLogoutDialog(context),
             ),
             Expanded(
@@ -61,7 +60,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _KpiSection(db: _db, onTapOrder: _pushOrdersToday),
+                    _KpiSection(
+                      db: _db, 
+                      onTapOrder: _pushOrdersToday,
+                      onTapRevenue: () => _push(const DashboardStatsScreen()),
+                    ),
                     const SizedBox(height: 4),
                     _OrderFeedSection(db: _db, onViewAll: _pushAllOrders),
                     const SizedBox(height: 4),
@@ -84,78 +87,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   void _pushAllOrders() => _push(const OrderManagementScreen());
 
-  // ── Data actions ───────────────────────────────────────────────────────────
-  Future<void> _generateMockData(BuildContext context) async {
-    final seed = DataSeedService();
-    final notifier = ValueNotifier<String>('Đang khởi tạo...');
-    _showProgressDialog(context, '⏳ Đang tạo dữ liệu mẫu...', notifier);
-    await seed.seedMockOrders(
-      onProgress: (p) => notifier.value = p,
-      onComplete: (msg) {
-        if (mounted) {
-          Navigator.pop(context);
-          _snackbar(msg, AdminColors.success);
-        }
-      },
-      onError: (e) {
-        if (mounted) {
-          Navigator.pop(context);
-          _snackbar(e, AdminColors.error);
-        }
-      },
-    );
-  }
-
-  Future<void> _updateMockAddresses(BuildContext context) async {
-    final seed = DataSeedService();
-    final notifier = ValueNotifier<String>('Đang quét đơn hàng...');
-    _showProgressDialog(context, '📍 Cập nhật địa chỉ Mock...', notifier);
-    await seed.updateMockOnlineAddresses(
-      onProgress: (p) => notifier.value = p,
-      onComplete: (msg) {
-        if (mounted) {
-          Navigator.pop(context);
-          _snackbar(msg, AdminColors.teal);
-        }
-      },
-      onError: (e) {
-        if (mounted) {
-          Navigator.pop(context);
-          _snackbar(e, AdminColors.error);
-        }
-      },
-    );
-  }
-
-  void _showProgressDialog(
-      BuildContext ctx, String title, ValueNotifier<String> notifier) {
-    showDialog(
-      context: ctx,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: AdminColors.bgElevated,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: AdminText.h3),
-        content: ValueListenableBuilder<String>(
-          valueListenable: notifier,
-          builder: (_, msg, __) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: AdminColors.crimson),
-              const SizedBox(height: 16),
-              Text(msg,
-                  textAlign: TextAlign.center, style: AdminText.body),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _snackbar(String msg, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: AdminText.bodyMedium),
+      content: Text(msg, style: AdminText.bodyMedium(context)),
       backgroundColor: color.withValues(alpha: 0.15),
       duration: const Duration(seconds: 4),
     ));
@@ -168,15 +102,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
 class _Header extends StatelessWidget {
   final dynamic admin;
   final int lowStockCount;
-  final VoidCallback onSeedData;
-  final VoidCallback onUpdateAddresses;
   final VoidCallback onLogout;
 
   const _Header({
     required this.admin,
     required this.lowStockCount,
-    required this.onSeedData,
-    required this.onUpdateAddresses,
     required this.onLogout,
   });
 
@@ -185,24 +115,24 @@ class _Header extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
       decoration: BoxDecoration(
-        color: AdminColors.bgPrimary,
-        border: const Border(
-          bottom: BorderSide(color: AdminColors.borderMuted, width: 1),
+        color: AdminColors.bgPrimary(context),
+        border: Border(
+          bottom: BorderSide(color: AdminColors.borderMuted(context), width: 1),
         ),
       ),
       child: Row(
         children: [
           // ── Brand ──────────────────────────────────────────────────────────
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(18),
             child: Image.asset(
               'assets/images/logo.png',
               width: 36, height: 36, fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(
-                  color: AdminColors.crimsonSubtle,
-                  borderRadius: BorderRadius.circular(10),
+                  color: AdminColors.crimsonSubtle(context),
+                  borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Icon(Icons.restaurant_rounded,
                     color: AdminColors.crimson, size: 20),
@@ -218,13 +148,13 @@ class _Header extends StatelessWidget {
                 Text('VỊ LAI QUÁN', style: AdminText.brandName),
                 Text(
                   admin?.name != null ? 'Xin chào, ${admin.name}' : 'Trang Quản Trị',
-                  style: AdminText.caption,
+                  style: AdminText.caption(context),
                 ),
               ],
             ),
           ),
           // ── Action icons ───────────────────────────────────────────────────
-          _HeaderAction(
+           _HeaderAction(
             icon: Icons.notifications_outlined,
             badge: lowStockCount > 0 ? '$lowStockCount' : null,
             onTap: () => Navigator.push(
@@ -232,13 +162,12 @@ class _Header extends StatelessWidget {
               _fadeRoute(const InventoryManagementScreen()),
             ),
           ),
-          _HeaderAction(
-            icon: Icons.data_exploration_rounded,
-            onTap: onSeedData,
-          ),
-          _HeaderAction(
-            icon: Icons.location_on_outlined,
-            onTap: onUpdateAddresses,
+          // ── Theme Toggle ───────────────────────────────────────────────────
+          Consumer<AdminThemeProvider>(
+            builder: (context, themeProvider, _) => _HeaderAction(
+              icon: themeProvider.isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
+              onTap: () => themeProvider.toggleTheme(),
+            ),
           ),
           _HeaderAction(
             icon: Icons.power_settings_new_rounded,
@@ -248,7 +177,7 @@ class _Header extends StatelessWidget {
           // ── Admin avatar ───────────────────────────────────────────────────
           CircleAvatar(
             radius: 17,
-            backgroundColor: AdminColors.crimsonSubtle,
+            backgroundColor: AdminColors.crimsonSubtle(context),
             backgroundImage: (admin?.imageUrl?.isNotEmpty == true)
                 ? NetworkImage(admin.imageUrl)
                 : null,
@@ -286,7 +215,7 @@ class _HeaderAction extends StatelessWidget {
         IconButton(
           icon: Icon(icon, size: 22),
           onPressed: onTap,
-          color: AdminColors.textSecondary,
+          color: AdminColors.textSecondary(context),
           splashRadius: 20,
           padding: const EdgeInsets.all(6),
           constraints: const BoxConstraints(),
@@ -300,7 +229,7 @@ class _HeaderAction extends StatelessWidget {
                 color: AdminColors.warning,
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: AdminColors.bgPrimary, width: 1.5),
+                    color: AdminColors.bgPrimary(context), width: 1.5),
               ),
               child: Center(
                 child: Text(badge!,
@@ -322,8 +251,13 @@ class _HeaderAction extends StatelessWidget {
 class _KpiSection extends StatelessWidget {
   final DatabaseService db;
   final VoidCallback onTapOrder;
+  final VoidCallback onTapRevenue;
 
-  const _KpiSection({required this.db, required this.onTapOrder});
+  const _KpiSection({
+    required this.db, 
+    required this.onTapOrder,
+    required this.onTapRevenue,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +318,7 @@ class _KpiSection extends StatelessWidget {
                     title: 'Doanh thu hôm nay',
                     value: '${_fmt(revenue)}đ',
                     color: AdminColors.crimson,
-                    onTap: onTapOrder,
+                    onTap: onTapRevenue,
                   ),
                   DashboardCard(
                     icon: Icons.receipt_long_rounded,
@@ -455,7 +389,7 @@ class _OrderFeedSection extends StatelessWidget {
               GestureDetector(
                 onTap: onViewAll,
                 child: Text('Xem tất cả →',
-                    style: AdminText.caption.copyWith(
+                    style: AdminText.caption(context).copyWith(
                         color: AdminColors.crimson,
                         fontWeight: FontWeight.w700)),
               ),
@@ -481,11 +415,11 @@ class _OrderFeedSection extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.inbox_outlined,
-                          color: AdminColors.textMuted, size: 22),
+                      Icon(Icons.inbox_outlined,
+                          color: AdminColors.textMuted(context), size: 22),
                       const SizedBox(width: 8),
                       Text('Chưa có đơn hàng nào',
-                          style: AdminText.caption),
+                          style: AdminText.caption(context)),
                     ],
                   ),
                 );
@@ -591,9 +525,9 @@ class _ModuleTileState extends State<_ModuleTile> {
         duration: const Duration(milliseconds: 100),
         child: Container(
           decoration: BoxDecoration(
-            color: AdminColors.bgCard,
+            color: AdminColors.bgCard(context),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AdminColors.borderDefault, width: 1),
+            border: Border.all(color: AdminColors.borderDefault(context), width: 1),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -622,7 +556,7 @@ class _ModuleTileState extends State<_ModuleTile> {
                   style: GoogleFonts.inter(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w600,
-                    color: AdminColors.textSecondary,
+                    color: AdminColors.textSecondary(context),
                     height: 1.3,
                   ),
                 ),
@@ -653,7 +587,7 @@ class _SectionLabel extends StatelessWidget {
               borderRadius: BorderRadius.circular(99),
             )),
         const SizedBox(width: 8),
-        Text(label, style: AdminText.sectionLabel),
+        Text(label, style: AdminText.sectionLabel(context)),
       ],
     );
   }

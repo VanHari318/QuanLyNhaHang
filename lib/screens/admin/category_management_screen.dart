@@ -19,17 +19,17 @@ class _CategoryManagementScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AdminColors.bgPrimary,
+      backgroundColor: AdminColors.bgPrimary(context),
       appBar: AppBar(
         title: const Text('Quản Lý Danh Mục'),
-        backgroundColor: AdminColors.bgPrimary,
+        backgroundColor: AdminColors.bgPrimary(context),
         scrolledUnderElevation: 0,
       ),
       body: StreamBuilder<List<CategoryModel>>(
         stream: _db.getCategories(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: AdminColors.crimson));
+            return Center(child: CircularProgressIndicator(color: AdminColors.crimson));
           }
           final cats = snapshot.data!;
           if (cats.isEmpty) {
@@ -49,7 +49,7 @@ class _CategoryManagementScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AdminColors.crimson,
-        foregroundColor: AdminColors.textPrimary,
+        foregroundColor: Colors.white,
         onPressed: () => _showDialog(null),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Thêm danh mục', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -65,19 +65,19 @@ class _CategoryManagementScreenState
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AdminColors.bgElevated,
+              color: AdminColors.bgElevated(context),
               shape: BoxShape.circle,
-              border: Border.all(color: AdminColors.borderDefault),
+              border: Border.all(color: AdminColors.borderDefault(context)),
             ),
-            child: const Icon(Icons.category_rounded, size: 64, color: AdminColors.textMuted),
+            child: Icon(Icons.category_rounded, size: 64, color: AdminColors.textMuted(context)),
           ),
           const SizedBox(height: 24),
-          const Text('Chưa có danh mục nào', style: TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text('Chưa có danh mục nào', style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: AdminColors.teal,
-              foregroundColor: AdminColors.textPrimary,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
             icon: const Icon(Icons.auto_awesome_rounded),
@@ -97,20 +97,20 @@ class _CategoryManagementScreenState
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
+        backgroundColor: AdminColors.bgCard(context),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AdminColors.borderDefault),
+          side: BorderSide(color: AdminColors.borderDefault(context)),
         ),
-        title: Text('Xóa danh mục', style: AdminText.h1),
-        content: Text('Xóa vĩnh viễn danh mục "${cat.name}"?', style: const TextStyle(color: AdminColors.textSecondary)),
+        title: Text('Xóa danh mục', style: AdminText.h1(context)),
+        content: Text('Xóa vĩnh viễn danh mục "${cat.name}"?', style: TextStyle(color: AdminColors.textSecondary(context))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context)))),
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: AdminColors.error,
-                foregroundColor: AdminColors.textPrimary),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
@@ -127,33 +127,33 @@ class _CategoryManagementScreenState
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
+        backgroundColor: AdminColors.bgCard(context),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AdminColors.borderDefault),
+          side: BorderSide(color: AdminColors.borderDefault(context)),
         ),
-        title: Text(cat == null ? 'Thêm danh mục' : 'Sửa danh mục', style: AdminText.h1),
+        title: Text(cat == null ? 'Thêm danh mục' : 'Sửa danh mục', style: AdminText.h1(context)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
             controller: idCtrl,
             enabled: cat == null,
-            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
             decoration: _inputDeco('Mã ID (vd: appetizer)', Icons.label_outline),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: nameCtrl,
-            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
             decoration: _inputDeco('Tên hiển thị', Icons.title),
           ),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context)))),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: AdminColors.crimson,
-              foregroundColor: AdminColors.textPrimary,
+              foregroundColor: Colors.white,
             ),
             onPressed: () async {
               if (idCtrl.text.isEmpty || nameCtrl.text.isEmpty) return;
@@ -171,14 +171,14 @@ class _CategoryManagementScreenState
   InputDecoration _inputDeco(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AdminColors.textSecondary),
-      prefixIcon: Icon(icon, color: AdminColors.textSecondary),
+      labelStyle: TextStyle(color: AdminColors.textSecondary(context)),
+      prefixIcon: Icon(icon, color: AdminColors.textSecondary(context)),
       filled: true,
-      fillColor: AdminColors.bgElevated,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      fillColor: AdminColors.bgElevated(context),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.crimson)),
-      disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderMuted)),
+      disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AdminColors.borderMuted(context))),
     );
   }
 }
@@ -202,9 +202,9 @@ class _CategoryTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AdminColors.bgCard,
+          color: AdminColors.bgCard(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AdminColors.borderDefault),
+          border: Border.all(color: AdminColors.borderDefault(context)),
         ),
         child: Row(
           children: [
@@ -221,9 +221,9 @@ class _CategoryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(category.name, style: AdminText.h3),
+                   Text(category.name, style: AdminText.h3(context)),
                    const SizedBox(height: 2),
-                   Text('ID: ${category.id}', style: const TextStyle(color: AdminColors.textSecondary, fontSize: 13)),
+                   Text('ID: ${category.id}', style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 13)),
                 ],
               ),
             ),
@@ -233,7 +233,7 @@ class _CategoryTile extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.edit_rounded, color: AdminColors.teal, size: 20),
                   onPressed: onEdit,
-                  style: IconButton.styleFrom(backgroundColor: AdminColors.bgElevated),
+                  style: IconButton.styleFrom(backgroundColor: AdminColors.bgElevated(context)),
                 ),
                 const SizedBox(width: 6),
                 IconButton(

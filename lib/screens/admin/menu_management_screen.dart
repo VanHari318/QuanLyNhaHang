@@ -43,27 +43,27 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
     ];
 
     return Scaffold(
-      backgroundColor: AdminColors.bgPrimary,
+      backgroundColor: AdminColors.bgPrimary(context),
       appBar: AppBar(
         title: _isSearching
             ? TextField(
                 autofocus: true,
-                style: const TextStyle(color: AdminColors.textPrimary),
+                style: TextStyle(color: AdminColors.textPrimary(context)),
                 decoration: InputDecoration(
                   hintText: 'Tìm món ăn...',
-                  hintStyle: const TextStyle(color: AdminColors.textMuted),
+                  hintStyle: TextStyle(color: AdminColors.textMuted(context)),
                   border: InputBorder.none,
                 ),
                 onChanged: menuProvider.setSearchQuery,
               )
             : const Text('Quản Lý Món Ăn'),
-        backgroundColor: AdminColors.bgPrimary,
+        backgroundColor: AdminColors.bgPrimary(context),
         scrolledUnderElevation: 0,
         actions: [
           IconButton(
             icon: Icon(
               _isSearching ? Icons.close_rounded : Icons.search_rounded,
-              color: AdminColors.textSecondary,
+              color: AdminColors.textSecondary(context),
             ),
             tooltip: 'Tìm kiếm',
             onPressed: () {
@@ -78,7 +78,7 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
                   : (menuProvider.isSortAsc!
                       ? Icons.arrow_upward_rounded
                       : Icons.arrow_downward_rounded),
-              color: AdminColors.textSecondary,
+              color: AdminColors.textSecondary(context),
             ),
             tooltip: 'Sắp xếp giá',
             onPressed: menuProvider.toggleSortByPrice,
@@ -114,7 +114,7 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AdminColors.crimson,
-        foregroundColor: AdminColors.textPrimary,
+        foregroundColor: Colors.white,
         onPressed: () => _showDishDialog(context),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Thêm món', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -130,15 +130,15 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AdminColors.bgElevated,
+              color: AdminColors.bgElevated(context),
               shape: BoxShape.circle,
-              border: Border.all(color: AdminColors.borderDefault),
+              border: Border.all(color: AdminColors.borderDefault(context)),
             ),
-            child: const Icon(Icons.restaurant_menu_rounded, size: 64, color: AdminColors.textMuted),
+            child: Icon(Icons.restaurant_menu_rounded, size: 64, color: AdminColors.textMuted(context)),
           ),
           const SizedBox(height: 24),
-          const Text('Chưa có món ăn nào',
-              style: TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text('Chưa có món ăn nào',
+              style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -148,23 +148,23 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
+        backgroundColor: AdminColors.bgCard(context),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AdminColors.borderDefault),
+          side: BorderSide(color: AdminColors.borderDefault(context)),
         ),
-        title: Text('Xóa món ăn', style: AdminText.h1),
+        title: Text('Xóa món ăn', style: AdminText.h1(context)),
         content: Text('Bạn muốn xóa vĩnh viễn món "${dish.name}"?', 
-            style: const TextStyle(color: AdminColors.textSecondary)),
+            style: TextStyle(color: AdminColors.textSecondary(context))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
+              child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context)))),
           FilledButton(
               style: FilledButton.styleFrom(
                   backgroundColor: AdminColors.error,
-                  foregroundColor: AdminColors.textPrimary),
+                  foregroundColor: Colors.white),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold))),
         ],
@@ -211,7 +211,7 @@ class _CategoryFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AdminColors.bgPrimary,
+      color: AdminColors.bgPrimary(context),
       height: 64,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -230,10 +230,10 @@ class _CategoryFilterBar extends StatelessWidget {
               curve: Curves.fastOutSlowIn,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AdminColors.crimson : AdminColors.bgElevated,
+                color: isSelected ? AdminColors.crimson : AdminColors.bgElevated(context),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isSelected ? AdminColors.crimsonBright : AdminColors.borderDefault,
+                  color: isSelected ? AdminColors.crimsonBright : AdminColors.borderDefault(context),
                   width: 1,
                 ),
                 boxShadow: isSelected 
@@ -243,14 +243,14 @@ class _CategoryFilterBar extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 18, color: isSelected ? AdminColors.textPrimary : AdminColors.textSecondary),
+                   Icon(icon, size: 18, color: isSelected ? Colors.white : AdminColors.textSecondary(context)),
                   const SizedBox(width: 8),
                   Text(
                     cat.name,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: isSelected ? AdminColors.textPrimary : AdminColors.textSecondary,
+                      color: isSelected ? Colors.white : AdminColors.textSecondary(context),
                     ),
                   ),
                 ],
@@ -291,9 +291,9 @@ class _DishTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AdminColors.bgCard,
+          color: AdminColors.bgCard(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AdminColors.borderDefault),
+          border: Border.all(color: AdminColors.borderDefault(context)),
         ),
         child: Row(
           children: [
@@ -302,9 +302,9 @@ class _DishTile extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AdminColors.bgElevated,
+                color: AdminColors.bgElevated(context),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AdminColors.borderDefault),
+                border: Border.all(color: AdminColors.borderDefault(context)),
               ),
               clipBehavior: Clip.antiAlias,
               child: ColorFiltered(
@@ -313,8 +313,8 @@ class _DishTile extends StatelessWidget {
                     : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
                 child: dish.imageUrl.isNotEmpty
                     ? Image.network(dish.imageUrl, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder())
-                    : _placeholder(),
+                        errorBuilder: (_, __, ___) => _placeholder(context))
+                    : _placeholder(context),
               ),
             ),
             const SizedBox(width: 16),
@@ -329,8 +329,8 @@ class _DishTile extends StatelessWidget {
                         child: Text(dish.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AdminText.h2.copyWith(
-                              color: isOutOfStock ? AdminColors.error : AdminColors.textPrimary,
+                            style: AdminText.h2(context).copyWith(
+                              color: isOutOfStock ? AdminColors.error : AdminColors.textPrimary(context),
                             )),
                       ),
                       if (dish.isBestSeller)
@@ -368,12 +368,14 @@ class _DishTile extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     '${_formatPrice(dish.price)}đ',
-                    style: AdminText.h3.copyWith(color: AdminColors.gold),
+                    style: AdminText.h3(context).copyWith(
+                      color: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimson,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     CategoryModel.labelOf(dish.category),
-                    style: AdminText.caption,
+                    style: AdminText.caption(context),
                   ),
                 ],
               ),
@@ -390,7 +392,7 @@ class _DishTile extends StatelessWidget {
                       onPressed: onEdit,
                       tooltip: 'Sửa',
                       style: IconButton.styleFrom(
-                        backgroundColor: AdminColors.bgElevated,
+                        backgroundColor: AdminColors.bgElevated(context),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -409,15 +411,15 @@ class _DishTile extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Top Seller', style: TextStyle(color: AdminColors.textSecondary, fontSize: 11)),
+                    Text('Top Seller', style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 11)),
                     const SizedBox(width: 4),
                     Switch(
                       value: dish.isBestSeller,
                       onChanged: onToggleBestSeller,
                       activeColor: AdminColors.gold,
                       activeTrackColor: AdminColors.gold.withValues(alpha: 0.3),
-                      inactiveThumbColor: AdminColors.textMuted,
-                      inactiveTrackColor: AdminColors.bgElevated,
+                      inactiveThumbColor: AdminColors.textMuted(context),
+                      inactiveTrackColor: AdminColors.bgElevated(context),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ],
@@ -430,8 +432,8 @@ class _DishTile extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() {
-    return const Center(child: Icon(Icons.fastfood_rounded, color: AdminColors.textMuted, size: 28));
+  Widget _placeholder(BuildContext context) {
+    return Center(child: Icon(Icons.fastfood_rounded, color: AdminColors.textMuted(context), size: 28));
   }
 
   String _formatPrice(double price) {
@@ -607,13 +609,13 @@ class _DishDialogState extends State<_DishDialog> {
     final dialogWidth = (screenWidth > 600) ? 500.0 : (screenWidth - 48);
 
     return AlertDialog(
-      backgroundColor: AdminColors.bgCard,
+      backgroundColor: AdminColors.bgCard(context),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: AdminColors.borderDefault),
+        side: BorderSide(color: AdminColors.borderDefault(context)),
       ),
-      title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới', style: AdminText.h1),
+      title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới', style: AdminText.h1(context)),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: dialogWidth,
@@ -627,9 +629,9 @@ class _DishDialogState extends State<_DishDialog> {
                 child: Container(
                   height: 140,
                   decoration: BoxDecoration(
-                    color: AdminColors.bgElevated,
+                    color: AdminColors.bgElevated(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AdminColors.borderDefault),
+                    border: Border.all(color: AdminColors.borderDefault(context)),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: _buildImagePreview(),
@@ -638,28 +640,31 @@ class _DishDialogState extends State<_DishDialog> {
               const SizedBox(height: 20),
               TextField(
                 controller: _nameCtrl,
-                style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
                 decoration: _inputDeco('Tên món *', Icons.restaurant),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _descCtrl,
                 maxLines: 2,
-                style: const TextStyle(color: AdminColors.textPrimary),
+                style: TextStyle(color: AdminColors.textPrimary(context)),
                 decoration: _inputDeco('Mô tả', Icons.description_outlined),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _priceCtrl,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: AdminColors.gold, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimson,
+                  fontWeight: FontWeight.bold,
+                ),
                 decoration: _inputDeco('Giá (VNĐ) *', Icons.attach_money),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _selectedCat,
-                dropdownColor: AdminColors.bgCard,
-                style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+                dropdownColor: AdminColors.bgCard(context),
+                style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
                 decoration: _inputDeco('Danh mục', Icons.category_outlined),
                 items: CategoryModel.defaults
                     .map((c) =>
@@ -670,22 +675,22 @@ class _DishDialogState extends State<_DishDialog> {
               const SizedBox(height: 16),
               Container(
                 decoration: BoxDecoration(
-                  color: AdminColors.bgElevated,
+                  color: AdminColors.bgElevated(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AdminColors.borderDefault),
+                  border: Border.all(color: AdminColors.borderDefault(context)),
                 ),
                 child: SwitchListTile.adaptive(
-                  title: const Text('Best Seller ⭐', style: TextStyle(color: AdminColors.gold, fontWeight: FontWeight.bold)),
+                  title: Text('Best Seller ⭐', style: TextStyle(color: AdminColors.gold, fontWeight: FontWeight.bold)),
                   value: _isBestSeller,
                   onChanged: (v) => setState(() => _isBestSeller = v),
                   activeColor: AdminColors.gold,
                   activeTrackColor: AdminColors.gold.withValues(alpha: 0.3),
-                  inactiveThumbColor: AdminColors.textMuted,
-                  inactiveTrackColor: AdminColors.bgPrimary,
+                  inactiveThumbColor: AdminColors.textMuted(context),
+                  inactiveTrackColor: AdminColors.bgPrimary(context),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
-              const Divider(height: 32, color: AdminColors.borderMuted),
+              Divider(height: 32, color: AdminColors.borderMuted(context)),
               Row(
                 children: [
                   const Icon(Icons.science_outlined, size: 18, color: AdminColors.teal),
@@ -706,22 +711,22 @@ class _DishDialogState extends State<_DishDialog> {
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Thiết lập nguyên liệu cần dùng để làm 1 suất món này. Kho sẽ tự trừ khi thanh toán.',
-                style: TextStyle(fontSize: 12, color: AdminColors.textSecondary),
+                style: TextStyle(fontSize: 12, color: AdminColors.textSecondary(context)),
               ),
               const SizedBox(height: 12),
               if (inventory.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AdminColors.bgElevated,
+                    color: AdminColors.bgElevated(context),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AdminColors.borderDefault),
+                    border: Border.all(color: AdminColors.borderDefault(context)),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Chưa có nguyên liệu nào trong kho. Vào mục Kho để thêm trước.',
-                    style: TextStyle(color: AdminColors.textSecondary, fontSize: 13),
+                    style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 13),
                   ),
                 )
               else ...[
@@ -733,20 +738,20 @@ class _DishDialogState extends State<_DishDialog> {
                           flex: 3,
                           child: Text('Nguyên liệu',
                               style: TextStyle(
-                                  color: AdminColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold))),
+                                  fontSize: 12, fontWeight: FontWeight.bold))),
                       const SizedBox(width: 6),
                       const SizedBox(
                           width: 70,
                           child: Text('Định lượng',
                               style: TextStyle(
-                                  color: AdminColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                                  fontSize: 12, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center)),
                       const SizedBox(width: 4),
                       const SizedBox(
                           width: 32,
                           child: Text('ĐV',
                               style: TextStyle(
-                                  color: AdminColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                                  fontSize: 12, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center)),
                       const SizedBox(width: 30),
                     ],
@@ -788,7 +793,7 @@ class _DishDialogState extends State<_DishDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
+            child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context)))),
         _uploading
             ? const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
@@ -799,7 +804,7 @@ class _DishDialogState extends State<_DishDialog> {
             : FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: AdminColors.crimson,
-                  foregroundColor: AdminColors.textPrimary,
+                  foregroundColor: Colors.white,
                 ),
                 onPressed: _save,
                 child: Text(isEdit ? 'Lưu cập nhật' : 'Thêm món', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -811,12 +816,12 @@ class _DishDialogState extends State<_DishDialog> {
   InputDecoration _inputDeco(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AdminColors.textSecondary),
-      prefixIcon: Icon(icon, color: AdminColors.textSecondary),
+      labelStyle: TextStyle(color: AdminColors.textSecondary(context)),
+      prefixIcon: Icon(icon, color: AdminColors.textSecondary(context)),
       filled: true,
-      fillColor: AdminColors.bgElevated,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      fillColor: AdminColors.bgElevated(context),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.crimson)),
     );
   }
@@ -832,13 +837,13 @@ class _DishDialogState extends State<_DishDialog> {
       return Image.network(widget.existingDish!.imageUrl,
           fit: BoxFit.cover, width: double.infinity);
     }
-    return const Column(
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.add_photo_alternate_rounded,
-            size: 36, color: AdminColors.textMuted),
-        SizedBox(height: 6),
-        Text('Tải ảnh lên', style: TextStyle(color: AdminColors.textMuted, fontWeight: FontWeight.bold)),
+            size: 36, color: AdminColors.textMuted(context)),
+        const SizedBox(height: 6),
+        Text('Tải ảnh lên', style: TextStyle(color: AdminColors.textMuted(context), fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -877,15 +882,15 @@ class _IngredientRow extends StatelessWidget {
               value: currentItem,
               isDense: true,
               isExpanded: true,
-              dropdownColor: AdminColors.bgCard,
-              style: const TextStyle(color: AdminColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+              dropdownColor: AdminColors.bgCard(context),
+              style: TextStyle(color: AdminColors.textPrimary(context), fontSize: 13, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.teal)),
                 filled: true,
-                fillColor: AdminColors.bgElevated,
+                fillColor: AdminColors.bgElevated(context),
               ),
               items: inventory.map((inv) => DropdownMenuItem(
                 value: inv,
@@ -903,17 +908,17 @@ class _IngredientRow extends StatelessWidget {
             child: TextField(
               controller: entry.quantityCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AdminColors.textPrimary),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AdminColors.textPrimary(context)),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.teal)),
                 hintText: '0',
-                hintStyle: const TextStyle(color: AdminColors.textMuted),
-                fillColor: AdminColors.bgElevated,
+                hintStyle: TextStyle(color: AdminColors.textMuted(context)),
+                fillColor: AdminColors.bgElevated(context),
                 filled: true,
               ),
             ),
@@ -923,7 +928,7 @@ class _IngredientRow extends StatelessWidget {
           SizedBox(
             width: 32,
             child: Text(entry.unit,
-              style: const TextStyle(fontSize: 12, color: AdminColors.textSecondary, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 12, color: AdminColors.textSecondary(context), fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ),

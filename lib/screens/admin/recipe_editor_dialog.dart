@@ -101,43 +101,46 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
     final inventoryItems = context.read<InventoryProvider>().items;
 
     return AlertDialog(
-      backgroundColor: AdminColors.bgCard,
+      backgroundColor: AdminColors.bgCard(context),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: AdminColors.borderDefault),
+        side: BorderSide(color: AdminColors.borderDefault(context)),
       ),
-      title: Text('Sửa công thức: ${widget.dishName}', style: AdminText.h1),
+      title: Text('Sửa công thức: ${widget.dishName}', style: AdminText.h1(context)),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      content: SizedBox(
-        width: 600,
-        height: MediaQuery.of(context).size.height * 0.7,
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-               padding: const EdgeInsets.all(12),
-               decoration: BoxDecoration(
-                 color: AdminColors.info.withValues(alpha: 0.1),
-                 borderRadius: BorderRadius.circular(12),
-                 border: Border.all(color: AdminColors.info.withValues(alpha: 0.3)),
-               ),
-               child: const Row(
-                 children: [
-                   Icon(Icons.info_outline_rounded, size: 20, color: AdminColors.info),
-                   SizedBox(width: 12),
-                   Expanded(
-                     child: Text(
-                       'Gõ và chọn tên nguyên liệu từ kho. Nếu là nguyên liệu mới hoàn toàn, hệ thống sẽ tự động thêm vào kho (khi lưu, số lượng kho = 0).',
-                       style: TextStyle(fontSize: 13, color: AdminColors.textSecondary, height: 1.3),
-                     ),
-                   ),
-                 ],
-               ),
-            ),
+             Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AdminColors.info.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AdminColors.info.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, size: 20, color: AdminColors.info),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Gõ và chọn tên nguyên liệu từ kho. Nếu là nguyên liệu mới hoàn toàn, hệ thống sẽ tự động thêm vào kho (khi lưu, số lượng kho = 0).',
+                        style: TextStyle(fontSize: 13, color: AdminColors.textSecondary(context), height: 1.3),
+                      ),
+                    ),
+                  ],
+                ),
+             ),
             const SizedBox(height: 16),
             Expanded(
               child: _ingredients.isEmpty
-                  ? const Center(child: Text('Chưa có nguyên liệu nào.', style: TextStyle(color: AdminColors.textMuted)))
+                  ? Center(child: Text('Chưa có nguyên liệu nào.', style: TextStyle(color: AdminColors.textMuted(context))))
                   : ListView.separated(
                       itemCount: _ingredients.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -149,7 +152,7 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
             const SizedBox(height: 12),
             TextButton.icon(
               style: TextButton.styleFrom(
-                backgroundColor: AdminColors.bgElevated,
+                backgroundColor: AdminColors.bgElevated(context),
                 foregroundColor: AdminColors.teal,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
@@ -165,15 +168,15 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary)),
+          child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context))),
         ),
         FilledButton.icon(
           style: FilledButton.styleFrom(
             backgroundColor: AdminColors.crimson,
-            foregroundColor: AdminColors.textPrimary,
+            foregroundColor: Colors.white,
           ),
           icon: _isSaving 
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.textPrimary))
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : const Icon(Icons.save_rounded, size: 18),
           label: Text(_isSaving ? 'Đang lưu...' : 'Lưu công thức', style: const TextStyle(fontWeight: FontWeight.bold)),
           onPressed: _isSaving ? null : _save,
@@ -193,9 +196,9 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AdminColors.bgElevated,
+        color: AdminColors.bgElevated(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AdminColors.borderDefault),
+        border: Border.all(color: AdminColors.borderDefault(context)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -225,16 +228,16 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
               return TextField(
                 controller: controller,
                 focusNode: focusNode,
-                style: const TextStyle(color: AdminColors.textPrimary),
+                style: TextStyle(color: AdminColors.textPrimary(context)),
                 decoration: InputDecoration(
                   labelText: 'Tên nguyên liệu',
-                  labelStyle: const TextStyle(color: AdminColors.textSecondary),
+                  labelStyle: TextStyle(color: AdminColors.textSecondary(context)),
                   isDense: true,
                   hintText: 'Nhập hoặc chọn...',
-                  hintStyle: const TextStyle(color: AdminColors.textMuted),
+                  hintStyle: TextStyle(color: AdminColors.textMuted(context)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
-                  enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: AdminColors.borderMuted(context)), borderRadius: BorderRadius.circular(10)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AdminColors.borderMuted(context)), borderRadius: BorderRadius.circular(10)),
                   focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.crimson), borderRadius: BorderRadius.circular(10)),
                 ),
                 onChanged: (val) {
@@ -251,14 +254,14 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
             key: ValueKey('qty-${index}-$qtyStr'),
             initialValue: qtyStr,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
             decoration: InputDecoration(
               labelText: 'Định lượng',
-              labelStyle: const TextStyle(color: AdminColors.textSecondary),
+              labelStyle: TextStyle(color: AdminColors.textSecondary(context)),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(borderSide: BorderSide(color: AdminColors.borderMuted(context)), borderRadius: BorderRadius.circular(10)),
+              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AdminColors.borderMuted(context)), borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.crimson), borderRadius: BorderRadius.circular(10)),
             ),
             onChanged: (val) {
@@ -272,14 +275,14 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
           child: TextFormField(
             key: ValueKey('unit-${index}-${ing['unit']}'),
             initialValue: ing['unit']?.toString() ?? '',
-            style: const TextStyle(color: AdminColors.textPrimary),
+            style: TextStyle(color: AdminColors.textPrimary(context)),
             decoration: InputDecoration(
               labelText: 'Đơn vị',
-              labelStyle: const TextStyle(color: AdminColors.textSecondary),
+              labelStyle: TextStyle(color: AdminColors.textSecondary(context)),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(borderSide: BorderSide(color: AdminColors.borderMuted(context)), borderRadius: BorderRadius.circular(10)),
+              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AdminColors.borderMuted(context)), borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.crimson), borderRadius: BorderRadius.circular(10)),
             ),
             onChanged: (val) {

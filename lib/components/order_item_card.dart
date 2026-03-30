@@ -22,9 +22,9 @@ class OrderItemCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AdminColors.bgCard,
+          color: AdminColors.bgCard(context),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AdminColors.borderDefault, width: 1),
+          border: Border.all(color: AdminColors.borderDefault(context), width: 1),
         ),
         clipBehavior: Clip.antiAlias,
         child: IntrinsicHeight(
@@ -54,7 +54,7 @@ class OrderItemCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isOnline
                               ? AdminColors.info.withValues(alpha: 0.14)
-                              : AdminColors.crimsonSubtle,
+                              : AdminColors.crimsonSubtle(context),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -81,13 +81,13 @@ class OrderItemCard extends StatelessWidget {
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: AdminColors.textPrimary,
+                                color: AdminColors.textPrimary(context),
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               _formatTime(order.createdAt),
-                              style: AdminText.caption,
+                              style: AdminText.caption(context),
                             ),
                           ],
                         ),
@@ -102,7 +102,7 @@ class OrderItemCard extends StatelessWidget {
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AdminColors.gold,
+                              color: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimson,
                             ),
                           ),
                           const SizedBox(height: 5),

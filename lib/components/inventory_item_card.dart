@@ -25,10 +25,10 @@ class InventoryItemCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AdminColors.bgCard,
+        color: AdminColors.bgCard(context),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isLow ? AdminColors.error.withValues(alpha: 0.5) : AdminColors.borderDefault,
+          color: isLow ? AdminColors.error.withValues(alpha: 0.5) : AdminColors.borderDefault(context),
           width: isLow ? 1.5 : 1,
         ),
         boxShadow: isLow 
@@ -63,7 +63,7 @@ class InventoryItemCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         item.name,
-                        style: AdminText.h2,
+                        style: AdminText.h2(context),
                       ),
                     ),
                     if (isLow) const _LowStockBadge(),
@@ -73,12 +73,12 @@ class InventoryItemCard extends StatelessWidget {
                 RichText(
                   text: TextSpan(
                     text: 'Số lượng: ',
-                    style: const TextStyle(color: AdminColors.textSecondary, fontSize: 13),
+                    style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 13),
                     children: [
                       TextSpan(
                         text: '${_formatQty(item.quantity)} ${item.unit}',
                         style: TextStyle(
-                          color: isLow ? AdminColors.error : AdminColors.gold,
+                          color: isLow ? AdminColors.error : (Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.teal),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),

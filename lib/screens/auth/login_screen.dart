@@ -20,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   bool _isLogin = true;
-  bool _isCustomer = false;
+  bool _isCustomer = true;
   bool _obscurePassword = true;
   bool _isLoading = false;
   File? _imageFile;
@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
           email,
           password,
           _nameCtrl.text.trim(),
-          _isCustomer ? UserRole.customer : UserRole.undefined,
+          UserRole.customer,
           imageUrl: imageUrl,
         );
       }
@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: Column(children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(50),
                     child: Image.asset(
                       'assets/images/logo.png',
                       width: 100, height: 100,
@@ -137,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     _isLogin
                         ? 'Đăng nhập để tiếp tục'
-                        : (_isCustomer ? 'Đăng ký Khách hàng' : 'Đăng ký Nhân viên'),
+                        : 'Đăng ký tài khoản khách hàng',
                     style: TextStyle(color: cs.onSurfaceVariant),
                   ),
                 ]),
@@ -236,27 +236,10 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: TextButton(
                   onPressed: () => setState(() {
-                    _isLogin = false;
-                    _isCustomer = true;
-                  }),
-                  child: const Text('Bạn là khách hàng mới? Đăng ký ngay'),
-                ),
-              ),
-
-              // Toggle
-              Center(
-                child: TextButton(
-                  onPressed: () => setState(() {
-                    if (_isLogin) {
-                      _isLogin = false;
-                      _isCustomer = false;
-                    } else {
-                      _isLogin = true;
-                      _isCustomer = false;
-                    }
+                    _isLogin = !_isLogin;
                   }),
                   child: Text(_isLogin
-                      ? 'Chưa có tài khoản? Đăng ký nhân viên'
+                      ? 'Chưa có tài khoản? Đăng ký ngay'
                       : 'Đã có tài khoản? Đăng nhập'),
                 ),
               ),

@@ -167,6 +167,11 @@ class DatabaseService {
 
   Future<void> placeOrder(OrderModel order) async {
     await _orders.doc(order.id).set(order.toMap());
+    
+    // Tự động chuyển bàn sang "Đang phục vụ" nếu là dine_in
+    if (order.type == OrderType.dine_in && order.tableId != null) {
+      await updateTableStatus(order.tableId!, TableStatus.occupied);
+    }
   }
 
   /// Stream tất cả đơn trong cùng 1 session (theo sessionId)
@@ -224,18 +229,40 @@ class DatabaseService {
   }
 
   Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
-    // Tự động trừ kho nếu đơn hàng chuyển sang hoàn thành (completed)
+    final orderDoc = await _orders.doc(orderId).get();
+    if (!orderDoc.exists) return;
+    
+    final order = OrderModel.fromMap(orderDoc.data()!);
+
+    // 1. Tự động trừ kho nếu đơn hàng chuyển sang chuyển sang hoàn thành (completed)
     if (status == OrderStatus.completed) {
-      final orderDoc = await _orders.doc(orderId).get();
-      if (orderDoc.exists) {
-        final order = OrderModel.fromMap(orderDoc.data()!);
-        // Kiểm tra tránh trừ 2 lần (nếu status cũ đã là completed rồi thì bỏ qua)
-        if (order.status != OrderStatus.completed) {
-          await _deductInventoryForOrder(order);
-        }
+      // Kiểm tra tránh trừ 2 lần (nếu status cũ đã là completed rồi thì bỏ qua)
+      if (order.status != OrderStatus.completed) {
+        await _deductInventoryForOrder(order);
       }
     }
+
+    // 2. Cập nhật status đơn hàng chính
     await _orders.doc(orderId).update({'status': status.name});
+
+    // 3. Tự động trả bàn về "Trống" nếu hoàn thành/hủy và không còn đơn nào khác đang chạy
+    if ((status == OrderStatus.completed || status == OrderStatus.cancelled) && 
+        order.type == OrderType.dine_in && 
+        order.tableId != null) {
+      
+      // Tìm các đơn hàng khác của bàn này mà chưa hoàn thành/hủy
+      final otherActiveOrders = await _orders
+          .where('tableId', isEqualTo: order.tableId)
+          .where('status', whereNotIn: [OrderStatus.completed.name, OrderStatus.cancelled.name])
+          .get();
+      
+      // Nếu không còn đơn nào khác đang hoạt động (trừ chính đơn vừa update nếu Firestore chưa kịp sync)
+      final remainingCount = otherActiveOrders.docs.where((doc) => doc.id != orderId).length;
+      
+      if (remainingCount == 0) {
+        await updateTableStatus(order.tableId!, TableStatus.available);
+      }
+    }
   }
 
   Future<void> _deductInventoryForOrder(OrderModel order) async {

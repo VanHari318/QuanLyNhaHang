@@ -11,10 +11,10 @@ class TableManagementScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final db = DatabaseService();
     return Scaffold(
-      backgroundColor: AdminColors.bgPrimary,
+      backgroundColor: AdminColors.bgPrimary(context),
       appBar: AppBar(
         title: const Text('Quản Lý Bàn'),
-        backgroundColor: AdminColors.bgPrimary,
+        backgroundColor: AdminColors.bgPrimary(context),
         scrolledUnderElevation: 0,
       ),
       body: Column(
@@ -25,7 +25,7 @@ class TableManagementScreen extends StatelessWidget {
               stream: db.getTables(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator(color: AdminColors.crimson));
+                  return Center(child: CircularProgressIndicator(color: AdminColors.crimson));
                 }
                 final tables = snapshot.data!;
                 if (tables.isEmpty) {
@@ -36,27 +36,28 @@ class TableManagementScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: AdminColors.bgElevated,
+                            color: AdminColors.bgElevated(context),
                             shape: BoxShape.circle,
-                            border: Border.all(color: AdminColors.borderDefault),
+                            border: Border.all(color: AdminColors.borderDefault(context)),
                           ),
-                          child: const Icon(Icons.table_bar_rounded, size: 64, color: AdminColors.textMuted),
+                          child: Icon(Icons.table_bar_rounded, size: 64, color: AdminColors.textMuted(context)),
                         ),
                         const SizedBox(height: 24),
-                        const Text('Chưa có bàn nào', style: TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('Chưa có bàn nào', style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 12),
-                        const Text('Dùng Seed Data ở trang Cấu hình để khởi tạo.', style: TextStyle(color: AdminColors.textMuted, fontSize: 13)),
+                        Text('Dùng Seed Data ở trang Cấu hình để khởi tạo.', style: TextStyle(color: AdminColors.textMuted(context), fontSize: 13)),
                       ],
                     ),
                   );
                 }
+                int crossAxisCount = MediaQuery.of(context).size.width > 900 ? 6 : (MediaQuery.of(context).size.width > 600 ? 4 : 3);
                 return GridView.builder(
                   padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: 0.75, // Ajusted for layout
+                    childAspectRatio: 0.8,
                   ),
                   itemCount: tables.length,
                   itemBuilder: (ctx, i) => _TableCard(
@@ -76,7 +77,7 @@ class TableManagementScreen extends StatelessWidget {
   void _showStatusDialog(BuildContext context, DatabaseService db, TableModel table) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AdminColors.bgCard,
+      backgroundColor: AdminColors.bgCard(context),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (_) => _TableStatusSheet(db: db, table: table),
@@ -91,76 +92,79 @@ class TableManagementScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
+        backgroundColor: AdminColors.bgCard(context),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AdminColors.borderDefault),
+          side: BorderSide(color: AdminColors.borderDefault(context)),
         ),
-        title: Text('Mã QR – ${table.name}', style: AdminText.h1),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AdminColors.borderDefault),
-              ),
-              child: Image.network(
-                'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${Uri.encodeComponent(qrUrl)}',
-                width: 220,
-                height: 220,
-                loadingBuilder: (_, child, progress) => progress == null
-                    ? child
-                    : const SizedBox(
-                        width: 220,
-                        height: 220,
-                        child: Center(child: CircularProgressIndicator(color: AdminColors.crimson)),
-                      ),
-                errorBuilder: (_, __, ___) => SizedBox(
+        title: Text('Mã QR – ${table.name}', style: AdminText.h1(context)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AdminColors.borderDefault(context)),
+                ),
+                child: Image.network(
+                  'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${Uri.encodeComponent(qrUrl)}',
                   width: 220,
                   height: 220,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.qr_code_rounded, size: 60, color: Colors.grey.shade400),
-                      const SizedBox(height: 8),
-                      Text('Không tải được QR\n(cần kết nối Internet)',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.bold)),
-                    ],
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : const SizedBox(
+                          width: 220,
+                          height: 220,
+                          child: Center(child: CircularProgressIndicator(color: AdminColors.crimson)),
+                        ),
+                  errorBuilder: (_, __, ___) => SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.qr_code_rounded, size: 60, color: Colors.grey.shade400),
+                        const SizedBox(height: 8),
+                        Text('Không tải được QR\n(cần kết nối Internet)',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Đưa mã QR này cho khách để gọi món nhe!',
-              style: TextStyle(color: AdminColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AdminColors.bgElevated,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AdminColors.borderDefault),
-              ),
-              child: SelectableText(
-                qrUrl,
-                style: const TextStyle(fontSize: 11, color: AdminColors.textSecondary),
+              const SizedBox(height: 20),
+              Text(
+                'Đưa mã QR này cho khách để gọi món nhe!',
                 textAlign: TextAlign.center,
+                style: TextStyle(color: AdminColors.textPrimary(context), fontSize: 14, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AdminColors.bgElevated(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AdminColors.borderDefault(context)),
+                ),
+                child: SelectableText(
+                  qrUrl,
+                  style: TextStyle(fontSize: 11, color: AdminColors.textSecondary(context)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AdminColors.bgElevated,
-                foregroundColor: AdminColors.textPrimary,
+                backgroundColor: AdminColors.bgElevated(context),
+                foregroundColor: AdminColors.textPrimary(context),
               ),
               onPressed: () => Navigator.pop(context),
               child: const Text('Đóng bảng', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -180,9 +184,9 @@ class _LegendBar extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: AdminColors.bgCard,
+        color: AdminColors.bgCard(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AdminColors.borderDefault),
+        border: Border.all(color: AdminColors.borderDefault(context)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -203,7 +207,7 @@ class _LegendBar extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(_statusLabel(s),
-                  style: const TextStyle(color: AdminColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: TextStyle(color: AdminColors.textSecondary(context), fontWeight: FontWeight.bold, fontSize: 13)),
             ],
           );
         }).toList(),
@@ -226,7 +230,7 @@ class _TableCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AdminColors.bgCard,
+        color: AdminColors.bgCard(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
         boxShadow: table.status == TableStatus.occupied 
@@ -246,35 +250,38 @@ class _TableCard extends StatelessWidget {
               Expanded(
                 child: InkWell(
                   onTap: onTap,
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.table_bar_rounded, color: color, size: 36),
-                        const SizedBox(height: 8),
-                        Text(table.name,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15, color: color)),
-                        const SizedBox(height: 2),
-                        Text('${table.capacity} chỗ',
-                            style: const TextStyle(fontSize: 11, color: AdminColors.textSecondary)),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: color.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(_statusLabel(table.status).toUpperCase(),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.table_bar_rounded, color: color, size: 28),
+                          const SizedBox(height: 4),
+                          Text(table.name,
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 9,
-                                  color: color,
-                                  fontWeight: FontWeight.w800)),
-                        ),
-                      ],
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14, color: color)),
+                          const SizedBox(height: 2),
+                          Text('${table.capacity} chỗ',
+                              style: TextStyle(fontSize: 10, color: AdminColors.textSecondary(context))),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: color.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(_statusLabel(table.status).toUpperCase(),
+                                style: TextStyle(
+                                    fontSize: 8,
+                                    color: color,
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -286,19 +293,19 @@ class _TableCard extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: const BoxDecoration(
-                    color: AdminColors.bgElevated,
-                    border: Border(top: BorderSide(color: AdminColors.borderDefault)),
+                  decoration: BoxDecoration(
+                    color: AdminColors.bgElevated(context),
+                    border: Border(top: BorderSide(color: AdminColors.borderDefault(context))),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.qr_code_rounded, size: 14, color: AdminColors.textSecondary),
-                      SizedBox(width: 6),
+                      Icon(Icons.qr_code_rounded, size: 14, color: AdminColors.textSecondary(context)),
+                      const SizedBox(width: 6),
                       Text('XEM QR',
                           style: TextStyle(
                               fontSize: 11,
-                              color: AdminColors.textSecondary,
+                              color: AdminColors.textSecondary(context),
                               fontWeight: FontWeight.w800)),
                     ],
                   ),
@@ -321,8 +328,8 @@ class _TableStatusSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,28 +340,28 @@ class _TableStatusSheet extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(table.name, style: AdminText.h1),
+                  Text(table.name, style: AdminText.h1(context)),
                   const SizedBox(height: 4),
                   Text('Sức chứa: ${table.capacity} người',
-                      style: const TextStyle(color: AdminColors.textSecondary)),
+                      style: TextStyle(color: AdminColors.textSecondary(context))),
                 ],
               ),
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AdminColors.bgElevated,
+                  color: AdminColors.bgElevated(context),
                   shape: BoxShape.circle,
-                  border: Border.all(color: AdminColors.borderDefault),
+                  border: Border.all(color: AdminColors.borderDefault(context)),
                 ),
-                child: const Icon(Icons.table_restaurant_rounded, color: AdminColors.teal),
+                child: Icon(Icons.table_restaurant_rounded, color: AdminColors.teal),
               ),
             ],
           ),
           
           const SizedBox(height: 24),
-          const Text('Cập nhật trạng thái mới:',
-              style: TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold)),
+          Text('Cập nhật trạng thái mới:',
+              style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           ...TableStatus.values.map((s) {
             final color = _statusColor(s);
@@ -362,9 +369,9 @@ class _TableStatusSheet extends StatelessWidget {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: isSelected ? color.withValues(alpha: 0.1) : AdminColors.bgPrimary,
+                color: isSelected ? color.withValues(alpha: 0.1) : AdminColors.bgPrimary(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? color.withValues(alpha: 0.5) : AdminColors.borderDefault),
+                border: Border.all(color: isSelected ? color.withValues(alpha: 0.5) : AdminColors.borderDefault(context)),
               ),
               child: ListTile(
                 leading: Container(
@@ -376,7 +383,7 @@ class _TableStatusSheet extends StatelessWidget {
                   child: Icon(Icons.circle, color: color, size: 14),
                 ),
                 title: Text(_statusLabel(s),
-                    style: TextStyle(fontWeight: FontWeight.w700, color: isSelected ? color : AdminColors.textPrimary)),
+                    style: TextStyle(fontWeight: FontWeight.w700, color: isSelected ? color : AdminColors.textPrimary(context))),
                 trailing: isSelected ? Icon(Icons.check_circle_rounded, color: color) : null,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),

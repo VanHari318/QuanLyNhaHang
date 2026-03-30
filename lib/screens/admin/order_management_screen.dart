@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -113,10 +114,10 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AdminColors.bgPrimary,
+      backgroundColor: AdminColors.bgPrimary(context),
       appBar: AppBar(
         title: const Text('Quản Lý Đơn Hàng'),
-        backgroundColor: AdminColors.bgPrimary,
+        backgroundColor: AdminColors.bgPrimary(context),
         scrolledUnderElevation: 0,
         actions: [
           IconButton(
@@ -132,12 +133,12 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
-              style: AdminText.bodyMedium,
+              style: AdminText.bodyMedium(context),
               decoration: InputDecoration(
                 hintText: 'Tìm theo mã đơn hoặc bàn số...',
                 prefixIcon: const Icon(Icons.search_rounded),
                 filled: true,
-                fillColor: AdminColors.bgElevated,
+                fillColor: AdminColors.bgElevated(context),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -158,17 +159,15 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      _buildFilterChip(null, 'Tất cả'),
+                      _buildFilterChip(context, null, 'Tất cả'),
                       const SizedBox(width: 8),
-                      _buildFilterChip(OrderStatus.pending, 'Chờ xử lý', AdminColors.warning),
+                      _buildFilterChip(context, OrderStatus.preparing, 'Đang làm', AdminColors.info),
                       const SizedBox(width: 8),
-                      _buildFilterChip(OrderStatus.preparing, 'Đang làm', AdminColors.info),
+                      _buildFilterChip(context, OrderStatus.ready, 'Sẵn sàng', AdminColors.teal),
                       const SizedBox(width: 8),
-                      _buildFilterChip(OrderStatus.ready, 'Sẵn sàng', AdminColors.teal),
+                      _buildFilterChip(context, OrderStatus.completed, 'Hoàn thành', AdminColors.success),
                       const SizedBox(width: 8),
-                      _buildFilterChip(OrderStatus.completed, 'Hoàn thành', AdminColors.success),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(OrderStatus.cancelled, 'Đã hủy', AdminColors.error),
+                      _buildFilterChip(context, OrderStatus.cancelled, 'Đã hủy', AdminColors.error),
                     ],
                   ),
                 ),
@@ -181,17 +180,17 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                     avatar: Icon(
                       _selectedDate == null ? Icons.calendar_today_rounded : Icons.event_available_rounded,
                       size: 18,
-                      color: _selectedDate == null ? AdminColors.textSecondary : Colors.white,
+                      color: _selectedDate == null ? AdminColors.textSecondary(context) : Colors.white,
                     ),
                     label: Text(_selectedDate == null ? 'Ngày' : '${_selectedDate!.day}/${_selectedDate!.month}'),
                     onPressed: () => _selectDate(context),
-                    backgroundColor: _selectedDate == null ? AdminColors.bgElevated : AdminColors.crimson,
+                    backgroundColor: _selectedDate == null ? AdminColors.bgElevated(context) : AdminColors.crimson,
                     labelStyle: TextStyle(
-                      color: _selectedDate == null ? AdminColors.textSecondary : Colors.white,
+                      color: _selectedDate == null ? AdminColors.textSecondary(context) : Colors.white,
                       fontWeight: _selectedDate == null ? FontWeight.w500 : FontWeight.w700,
                     ),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    side: BorderSide(color: _selectedDate == null ? AdminColors.borderDefault : AdminColors.crimson),
+                    side: BorderSide(color: _selectedDate == null ? AdminColors.borderDefault(context) : AdminColors.crimson),
                   ),
                 ),
               ),
@@ -220,9 +219,9 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                       children: [
                         const Icon(Icons.error_outline_rounded, size: 48, color: AdminColors.error),
                         const SizedBox(height: 16),
-                        const Text('Lỗi nạp đơn hàng từ Firebase', style: TextStyle(color: AdminColors.textPrimary)),
+                        Text('Lỗi nạp đơn hàng từ Firebase', style: TextStyle(color: AdminColors.textPrimary(context))),
                         const SizedBox(height: 8),
-                        Text(snapshot.error.toString(), style: const TextStyle(fontSize: 12, color: AdminColors.textMuted), textAlign: TextAlign.center),
+                        Text(snapshot.error.toString(), style: TextStyle(fontSize: 12, color: AdminColors.textMuted(context)), textAlign: TextAlign.center),
                       ],
                     ),
                   );
@@ -255,13 +254,13 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.inbox_rounded, size: 64, color: AdminColors.borderMuted),
+                        Icon(Icons.inbox_rounded, size: 64, color: AdminColors.borderMuted(context)),
                         const SizedBox(height: 12),
                         Text(
                           _selectedStatus == null && _selectedDate == null 
                             ? 'Không có đơn hàng nào' 
                             : 'Không tìm thấy đơn hàng phù hợp',
-                          style: const TextStyle(color: AdminColors.textSecondary, fontSize: 16),
+                          style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 16),
                         ),
                       ],
                     ),
@@ -285,7 +284,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     );
   }
 
-  Widget _buildFilterChip(OrderStatus? status, String label, [Color? activeColor]) {
+  Widget _buildFilterChip(BuildContext context, OrderStatus? status, String label, [Color? activeColor]) {
     final isSelected = _selectedStatus == status;
     final color = activeColor ?? AdminColors.crimson;
     
@@ -299,14 +298,14 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       },
       showCheckmark: false,
       selectedColor: color.withValues(alpha: 0.15),
-      backgroundColor: AdminColors.bgElevated,
+      backgroundColor: AdminColors.bgElevated(context),
       labelStyle: TextStyle(
-        color: isSelected ? color : AdminColors.textSecondary,
+        color: isSelected ? color : AdminColors.textSecondary(context),
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: isSelected ? color.withValues(alpha: 0.3) : AdminColors.borderDefault),
+        side: BorderSide(color: isSelected ? color.withValues(alpha: 0.3) : AdminColors.borderDefault(context)),
       ),
     );
   }
@@ -352,9 +351,9 @@ class _FullOrderCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AdminColors.bgCard,
+        color: AdminColors.bgCard(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AdminColors.borderDefault),
+        border: Border.all(color: AdminColors.borderDefault(context)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -365,13 +364,13 @@ class _FullOrderCard extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  statusColor.withValues(alpha: 0.15),
-                  statusColor.withValues(alpha: 0.02),
+                  statusColor.withValues(alpha: 0.1),
+                  statusColor.withValues(alpha: 0.0),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: const Border(bottom: BorderSide(color: AdminColors.borderDefault)),
+              border: Border(bottom: BorderSide(color: AdminColors.borderDefault(context))),
             ),
             child: Row(
               children: [
@@ -395,25 +394,25 @@ class _FullOrderCard extends StatelessWidget {
                     children: [
                       Text(
                         isOnline ? 'Online (#Mã: ${order.id})' : '${order.tableId ?? "?"}',
-                        style: AdminText.h3.copyWith(fontSize: 15),
+                        style: AdminText.h3(context).copyWith(fontSize: 15),
                       ),
                       const SizedBox(height: 2),
                       Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Icon(Icons.access_time_rounded, size: 12, color: AdminColors.textSecondary),
+                          Icon(Icons.access_time_rounded, size: 12, color: AdminColors.textSecondary(context)),
                           const SizedBox(width: 4),
                           Text(
                             _formatTime(order.createdAt),
-                            style: AdminText.caption,
+                            style: AdminText.caption(context),
                           ),
                           if (!isOnline) ...[
                             const SizedBox(width: 8),
-                            const Text('•', style: TextStyle(color: AdminColors.textMuted)),
+                            Text('•', style: TextStyle(color: AdminColors.textMuted(context))),
                             const SizedBox(width: 8),
                             Text(
                               'Đơn: ${order.id.length > 5 ? order.id.substring(order.id.length - 5) : order.id}',
-                              style: AdminText.caption,
+                              style: AdminText.caption(context),
                             ),
                           ],
                         ]
@@ -462,14 +461,14 @@ class _FullOrderCard extends StatelessWidget {
                        Container(
                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                          decoration: BoxDecoration(
-                           color: AdminColors.bgElevated,
+                           color: AdminColors.bgElevated(context),
                            borderRadius: BorderRadius.circular(8),
-                           border: Border.all(color: AdminColors.borderMuted),
+                           border: Border.all(color: AdminColors.borderMuted(context)),
                          ),
                          child: Text(
                            '${item.quantity}x',
-                           style: const TextStyle(
-                             color: AdminColors.textPrimary,
+                           style: TextStyle(
+                             color: AdminColors.textPrimary(context),
                              fontWeight: FontWeight.w800,
                              fontSize: 13,
                            ),
@@ -482,10 +481,10 @@ class _FullOrderCard extends StatelessWidget {
                            children: [
                              Text(
                                item.dish.name,
-                               style: const TextStyle(
+                               style: TextStyle(
                                  fontSize: 14,
                                  fontWeight: FontWeight.w600,
-                                 color: AdminColors.textPrimary,
+                                 color: AdminColors.textPrimary(context),
                                ),
                              ),
                              if (item.note != null && item.note!.isNotEmpty)
@@ -493,7 +492,11 @@ class _FullOrderCard extends StatelessWidget {
                                  padding: const EdgeInsets.only(top: 4),
                                  child: Text(
                                    'Chú thích: ${item.note}',
-                                   style: const TextStyle(fontSize: 12, color: AdminColors.gold, fontStyle: FontStyle.italic),
+                                   style: TextStyle(
+                                     fontSize: 12, 
+                                     color: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimson, 
+                                     fontStyle: FontStyle.italic
+                                   ),
                                  ),
                                ),
                            ],
@@ -501,10 +504,10 @@ class _FullOrderCard extends StatelessWidget {
                        ),
                        Text(
                          '${_formatPrice(item.dish.price * item.quantity)}đ',
-                         style: const TextStyle(
+                         style: TextStyle(
                            fontWeight: FontWeight.w700,
                            fontSize: 14,
-                           color: AdminColors.textPrimary,
+                           color: AdminColors.textPrimary(context),
                          ),
                        ),
                      ],
@@ -546,11 +549,11 @@ class _FullOrderCard extends StatelessWidget {
                           future: _fetchRealAddress(order.location!),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Text('Đang tải địa chỉ từ bản đồ...', style: TextStyle(fontSize: 13, color: AdminColors.textSecondary, fontStyle: FontStyle.italic));
+                              return Text('Đang tải địa chỉ từ bản đồ...', style: TextStyle(fontSize: 13, color: AdminColors.textSecondary(context), fontStyle: FontStyle.italic));
                             }
                             return Text(
                               snapshot.data ?? order.location!.address,
-                              style: const TextStyle(fontSize: 13, color: AdminColors.textPrimary, height: 1.3),
+                              style: TextStyle(fontSize: 13, color: AdminColors.textPrimary(context), height: 1.3),
                             );
                           }
                         ),
@@ -572,16 +575,16 @@ class _FullOrderCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Tổng cộng',
-                      style: TextStyle(fontSize: 12, color: AdminColors.textSecondary),
+                      style: TextStyle(fontSize: 12, color: AdminColors.textSecondary(context)),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${_formatPrice(order.totalPrice)}đ',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
-                        color: AdminColors.gold,
+                        color: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimson,
                         fontSize: 20,
                       ),
                     ),
@@ -602,8 +605,8 @@ class _FullOrderCard extends StatelessWidget {
                           icon: const Icon(Icons.map_rounded),
                           tooltip: 'Xem bản đồ',
                           style: IconButton.styleFrom(
-                            backgroundColor: AdminColors.bgElevated,
-                            foregroundColor: AdminColors.textPrimary,
+                            backgroundColor: AdminColors.bgElevated(context),
+                            foregroundColor: AdminColors.textPrimary(context),
                           ),
                           onPressed: () => _showMapSheet(context, order),
                         ),
@@ -658,13 +661,13 @@ class _FullOrderCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
-        title: const Text('Xác nhận hủy đơn', style: TextStyle(color: AdminColors.textPrimary)),
-        content: const Text('Bạn có chắc chắn muốn hủy đơn hàng này không?', style: TextStyle(color: AdminColors.textSecondary)),
+        backgroundColor: AdminColors.bgCard(context),
+        title: Text('Xác nhận hủy đơn', style: TextStyle(color: AdminColors.textPrimary(context))),
+        content: Text('Bạn có chắc chắn muốn hủy đơn hàng này không?', style: TextStyle(color: AdminColors.textSecondary(context))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Không', style: TextStyle(color: AdminColors.textSecondary)),
+            child: Text('Không', style: TextStyle(color: AdminColors.textSecondary(context))),
           ),
           FilledButton(
             onPressed: () {
@@ -724,28 +727,28 @@ class _FullOrderCard extends StatelessWidget {
       builder: (ctx) {
         return Container(
           height: MediaQuery.of(ctx).size.height * 0.75,
-          decoration: const BoxDecoration(
-            color: AdminColors.bgPrimary,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: AdminColors.bgPrimary(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
               // Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                decoration: const BoxDecoration(
-                  color: AdminColors.bgCard,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  border: Border(bottom: BorderSide(color: AdminColors.borderDefault)),
+                decoration: BoxDecoration(
+                  color: AdminColors.bgCard(context),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  border: Border(bottom: BorderSide(color: AdminColors.borderDefault(context))),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.map_rounded, color: AdminColors.info),
                     const SizedBox(width: 8),
-                    const Text('Bản đồ giao hàng', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AdminColors.textPrimary)),
+                    Text('Bản đồ giao hàng', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AdminColors.textPrimary(context))),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AdminColors.textSecondary),
+                      icon: Icon(Icons.close_rounded, color: AdminColors.textSecondary(context)),
                       onPressed: () => Navigator.pop(ctx),
                     )
                   ],
@@ -754,7 +757,7 @@ class _FullOrderCard extends StatelessWidget {
               
               // Address Info
               Container(
-                color: AdminColors.bgCard,
+                color: AdminColors.bgCard(context),
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,14 +769,14 @@ class _FullOrderCard extends StatelessWidget {
                         future: _fetchRealAddress(loc),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Text(
+                            return Text(
                               'Đang tải địa chỉ từ bản đồ...',
-                              style: TextStyle(fontSize: 14, color: AdminColors.textSecondary, fontStyle: FontStyle.italic),
+                              style: TextStyle(fontSize: 14, color: AdminColors.textSecondary(context), fontStyle: FontStyle.italic),
                             );
                           }
                           return Text(
                             snapshot.data ?? (loc.address.isNotEmpty ? loc.address : 'Tọa độ: $lat, $lng'),
-                            style: const TextStyle(fontSize: 14, color: AdminColors.textPrimary, fontWeight: FontWeight.w500),
+                            style: TextStyle(fontSize: 14, color: AdminColors.textPrimary(context), fontWeight: FontWeight.w500),
                           );
                         }
                       ),
@@ -784,20 +787,33 @@ class _FullOrderCard extends StatelessWidget {
 
               // Interactive Map
               Expanded(
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: point,
-                    initialZoom: 16.0,
-                  ),
-                  children: [
-                    TileLayer(
-                      // Sẵn sàng dùng dark theme tiles (CartoDB Dark Matter) để match với dark theme UI!
-                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                      subdomains: const ['a', 'b', 'c', 'd'],
-                      userAgentPackageName: 'com.mrdoanh.vilaiquan.app',
+                child: Listener(
+                  onPointerSignal: (pointerSignal) {
+                    if (pointerSignal is PointerScrollEvent) {
+                      // Order Management screen map might not have a dedicated controller exposed to state.
+                      // Usually we need a MapController to dynamically zoom here.
+                      // Let's check or simply leave it alone because the user is referring to the location screen map!
+                    }
+                  },
+                  child: FlutterMap(
+                    options: MapOptions(
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.all,
+                        scrollWheelVelocity: 0.015,
+                      ),
+                      initialCenter: point,
+                      initialZoom: 16.0,
                     ),
-                    MarkerLayer(
-                      markers: [
+                    children: [
+                      TileLayer(
+                        urlTemplate: Theme.of(context).brightness == Brightness.dark 
+                            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                            : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                        subdomains: const ['a', 'b', 'c', 'd'],
+                        userAgentPackageName: 'com.mrdoanh.vilaiquan.app',
+                      ),
+                      MarkerLayer(
+                        markers: [
                         Marker(
                           point: point,
                           width: 80,
@@ -809,11 +825,12 @@ class _FullOrderCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
+              ), // Đóng Listener
+            ), // Đóng Expanded
               
-              // Footer Link
+            // Footer Link
               Container(
-                color: AdminColors.bgCard,
+                color: AdminColors.bgCard(context),
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
@@ -823,14 +840,14 @@ class _FullOrderCard extends StatelessWidget {
                         label: const Text('Copy Link OSM', style: TextStyle(fontWeight: FontWeight.w600)),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 50),
-                          backgroundColor: AdminColors.bgElevated,
-                          foregroundColor: AdminColors.textPrimary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AdminColors.borderDefault)),
+                          backgroundColor: AdminColors.bgElevated(context),
+                          foregroundColor: AdminColors.textPrimary(context),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AdminColors.borderDefault(context))),
                         ),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: osmUrl));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Đã copy link bản đồ!', style: TextStyle(color: AdminColors.textPrimary))),
+                            SnackBar(content: Text('Đã copy link bản đồ!', style: TextStyle(color: AdminColors.textPrimary(context)))),
                           );
                         },
                       ),

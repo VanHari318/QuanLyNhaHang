@@ -23,6 +23,7 @@ import 'screens/customer/customer_menu_page.dart';
 import 'screens/customer/customer_main_screen.dart';
 import 'utils/logout_helper.dart';
 import 'theme/admin_theme.dart';
+import 'providers/admin_theme_provider.dart';
 
 
 void main() async {
@@ -41,6 +42,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => InventoryProvider()),
         ChangeNotifierProvider(create: (_) => ChatbotProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => AdminThemeProvider()),
       ],
       child: const MyApp(),
     ),
@@ -52,131 +54,115 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Material Design 3 – full theme configuration
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFFD32F2F), // Đỏ – Vị Lai Quán primary
+    final auth = context.watch<AuthProvider>();
+    final adminTheme = context.watch<AdminThemeProvider>();
+
+    // ── DEFAULT THEME (Vị Lai Quán Red) ──────────────────────────────────────
+    final defaultColorScheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFFD32F2F),
       brightness: Brightness.light,
     );
+    final defaultTheme = ThemeData(
+      useMaterial3: true,
+      colorScheme: defaultColorScheme,
+      textTheme: GoogleFonts.interTextTheme(),
+      appBarTheme: AppBarTheme(
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 3,
+        backgroundColor: defaultColorScheme.surface,
+        foregroundColor: defaultColorScheme.onSurface,
+        surfaceTintColor: defaultColorScheme.surfaceTint,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 2,
+        shadowColor: defaultColorScheme.shadow.withOpacity(0.1),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        color: defaultColorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          side: BorderSide(color: defaultColorScheme.primary, width: 1.5),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(0, 54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 2,
+          shadowColor: defaultColorScheme.shadow.withOpacity(0.2),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: defaultColorScheme.surfaceContainerHighest.withOpacity(0.5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide(color: defaultColorScheme.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 4,
+        backgroundColor: defaultColorScheme.primary,
+        foregroundColor: defaultColorScheme.onPrimary,
+      ),
+      listTileTheme: ListTileThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        selectedTileColor: defaultColorScheme.secondaryContainer,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        side: BorderSide.none,
+        selectedColor: defaultColorScheme.primary,
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        elevation: 12,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.black87,
+      ),
+      dividerTheme: DividerThemeData(
+        space: 24,
+        thickness: 1,
+        color: defaultColorScheme.outlineVariant.withOpacity(0.3),
+      ),
+    );
+
+    final bool isAdmin = auth.user?.role == UserRole.admin;
 
     return MaterialApp(
       title: 'Vị Lai Quán – Quản Lý',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: colorScheme,
-        textTheme: GoogleFonts.interTextTheme(),
-
-        // AppBar – MD3 uses surface as default background
-        appBarTheme: AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 3,
-          backgroundColor: colorScheme.surface,
-          foregroundColor: colorScheme.onSurface,
-          surfaceTintColor: colorScheme.surfaceTint,
-        ),
-
-        // Card – Haidilao Style: High rounded corners
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shadowColor: colorScheme.shadow.withOpacity(0.1),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          clipBehavior: Clip.antiAlias,
-          color: colorScheme.surface,
-          surfaceTintColor: Colors.transparent, // Disable surface tint for cleaner red-white look
-        ),
-
-        // FilledButton (primary action)
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 54), // Larger buttons
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
-
-        // OutlinedButton (secondary)
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 54),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            side: BorderSide(color: colorScheme.primary, width: 1.5),
-          ),
-        ),
-
-        // ElevatedButton
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(0, 54),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            elevation: 2,
-            shadowColor: colorScheme.shadow.withOpacity(0.2),
-          ),
-        ),
-
-        // InputDecoration – Premium Rounded style
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.5),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide(color: colorScheme.primary, width: 2),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-        ),
-
-        // FAB
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 4,
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-        ),
-
-        // ListTile
-        listTileTheme: ListTileThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          selectedTileColor: colorScheme.secondaryContainer,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        ),
-
-        // Chip
-        chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          side: BorderSide.none,
-          selectedColor: colorScheme.primary,
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-
-        // Dialog – Haidilao Style: extra rounded
-        dialogTheme: DialogThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-          elevation: 12,
-        ),
-
-        // SnackBar
-        snackBarTheme: SnackBarThemeData(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: Colors.black87,
-        ),
-
-        // Divider
-        dividerTheme: DividerThemeData(
-          space: 24, 
-          thickness: 1, 
-          color: colorScheme.outlineVariant.withOpacity(0.3),
-        ),
-      ),
+      theme: isAdmin ? AdminTheme.lightTheme : defaultTheme,
+      darkTheme: isAdmin ? AdminTheme.darkTheme : null,
+      themeMode: isAdmin ? adminTheme.themeMode : ThemeMode.light,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -238,10 +224,7 @@ class AuthWrapper extends StatelessWidget {
 
     switch (authProvider.user!.role) {
       case UserRole.admin:
-        return Theme(
-          data: AdminTheme.darkTheme,
-          child: const AdminDashboard(),
-        );
+        return const AdminDashboard();
       case UserRole.waiter:
         return const WaiterScreen();
       case UserRole.chef:

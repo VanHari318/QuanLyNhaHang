@@ -53,18 +53,18 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
     final ingredients = _recipe?.ingredients ?? [];
 
     return AlertDialog(
-      backgroundColor: AdminColors.bgCard,
+      backgroundColor: AdminColors.bgCard(context),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: AdminColors.borderDefault),
+        side: BorderSide(color: AdminColors.borderDefault(context)),
       ),
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Chi tiết món ăn', style: AdminText.h1),
+          Text('Chi tiết món ăn', style: AdminText.h1(context)),
           IconButton(
-            icon: const Icon(Icons.close_rounded, color: AdminColors.textSecondary),
+            icon: Icon(Icons.close_rounded, color: AdminColors.textSecondary(context)),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -85,9 +85,9 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: AdminColors.bgElevated,
+                      color: AdminColors.bgElevated(context),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AdminColors.borderDefault),
+                      border: Border.all(color: AdminColors.borderDefault(context)),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: dish.imageUrl.isNotEmpty
@@ -105,20 +105,22 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                       children: [
                         Text(
                           dish.name,
-                          style: AdminText.h2,
+                          style: AdminText.h2(context),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           '${_formatPrice(dish.price)} VNĐ',
-                          style: AdminText.h3.copyWith(color: AdminColors.gold),
+                          style: AdminText.h3(context).copyWith(
+                            color: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimsonDeep,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AdminColors.crimson.withValues(alpha: 0.15),
+                            color: AdminColors.crimson.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AdminColors.crimson.withValues(alpha: 0.3)),
+                            border: Border.all(color: AdminColors.crimson.withValues(alpha: 0.2)),
                           ),
                           child: Text(
                             CategoryModel.labelOf(dish.category),
@@ -132,25 +134,25 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
               ),
               if (dish.description.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text('Mô tả:', style: TextStyle(fontWeight: FontWeight.bold, color: AdminColors.textPrimary)),
+                Text('Mô tả:', style: TextStyle(fontWeight: FontWeight.bold, color: AdminColors.textPrimary(context))),
                 const SizedBox(height: 6),
-                Text(dish.description, style: const TextStyle(color: AdminColors.textSecondary, height: 1.4)),
+                Text(dish.description, style: TextStyle(color: AdminColors.textSecondary(context), height: 1.4)),
               ],
               
               const SizedBox(height: 24),
-              const Divider(color: AdminColors.borderMuted),
+              Divider(color: AdminColors.borderMuted(context)),
               const SizedBox(height: 16),
               
               // Ingredients section
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Expanded(
-                    child: Text('Công thức (1 suất)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AdminColors.textPrimary)),
+                  Expanded(
+                    child: Text('Công thức (1 suất)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AdminColors.textPrimary(context))),
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      foregroundColor: AdminColors.gold,
+                      foregroundColor: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimson,
                     ),
                     icon: const Icon(Icons.edit_rounded, size: 18),
                     label: const Text('Sửa'),
@@ -178,34 +180,34 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AdminColors.bgElevated,
+                            color: AdminColors.bgElevated(context),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AdminColors.borderDefault),
+                            border: Border.all(color: AdminColors.borderDefault(context)),
                           ),
                           child: const Text(
                             'Chưa có công thức nào được tạo.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: AdminColors.textMuted),
+                            style: TextStyle(color: AdminColors.textMuted(context)),
                           ),
                         )
                       : Container(
                           margin: const EdgeInsets.only(top: 8),
                           decoration: BoxDecoration(
-                            border: Border.all(color: AdminColors.borderMuted),
+                            border: Border.all(color: AdminColors.borderMuted(context)),
                             borderRadius: BorderRadius.circular(12),
-                            color: AdminColors.bgPrimary,
+                            color: AdminColors.bgPrimary(context),
                           ),
                           child: ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: ingredients.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1, color: AdminColors.borderMuted),
+                            separatorBuilder: (_, __) => Divider(height: 1, color: AdminColors.borderMuted(context)),
                             itemBuilder: (context, index) {
                               final ing = ingredients[index];
                               final qty = (ing.quantity / servings).toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
                               return ListTile(
                                 dense: true,
-                                title: Text(ing.name, style: const TextStyle(color: AdminColors.textPrimary)),
+                                title: Text(ing.name, style: TextStyle(color: AdminColors.textPrimary(context))),
                                 trailing: Text(
                                   '$qty ${ing.unit}',
                                   style: const TextStyle(fontWeight: FontWeight.bold, color: AdminColors.teal),
@@ -222,8 +224,8 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
   }
 
   Widget _placeholder() {
-    return const Center(
-      child: Icon(Icons.fastfood_rounded, color: AdminColors.textMuted, size: 40),
+    return Center(
+      child: Icon(Icons.fastfood_rounded, color: AdminColors.textMuted(context), size: 40),
     );
   }
 }

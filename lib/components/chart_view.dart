@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/admin_theme.dart';
 
 /// Simple bar chart widget – no external packages needed.
 /// [data] is a list of (label, value) pairs, sorted descending.
@@ -20,8 +21,7 @@ class SimpleBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    if (data.isEmpty) return _empty(cs);
+    if (data.isEmpty) return _empty(context);
 
     final maxVal = data.map((e) => e.value).reduce((a, b) => a > b ? a : b);
 
@@ -71,7 +71,7 @@ class SimpleBarChart extends StatelessWidget {
                         : entry.key,
                     style: TextStyle(
                       fontSize: 9,
-                      color: textColor ?? cs.onSurfaceVariant,
+                      color: textColor ?? AdminColors.textSecondary(context),
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
@@ -85,9 +85,9 @@ class SimpleBarChart extends StatelessWidget {
     );
   }
 
-  Widget _empty(ColorScheme cs) => Center(
+  Widget _empty(BuildContext context) => Center(
         child: Text('Chưa có dữ liệu',
-            style: TextStyle(color: textColor ?? cs.onSurfaceVariant)),
+            style: TextStyle(color: textColor ?? AdminColors.textSecondary(context))),
       );
 }
 
@@ -117,7 +117,7 @@ class SimpleLineChart extends StatelessWidget {
     if (points.isEmpty) {
       return Center(
         child: Text('Chưa có dữ liệu',
-            style: TextStyle(color: textColor ?? cs.onSurfaceVariant)),
+            style: TextStyle(color: textColor ?? AdminColors.textSecondary(context))),
       );
     }
 
@@ -130,7 +130,8 @@ class SimpleLineChart extends StatelessWidget {
               points: points.map((e) => e.value).toList(),
               lineColor: lineColor,
               fillColor: lineColor.withValues(alpha: 0.08),
-              gridColor: gridColor ?? cs.outlineVariant.withValues(alpha: 0.4),
+              gridColor: gridColor ?? AdminColors.borderMuted(context).withValues(alpha: 0.4),
+              dotBgColor: AdminColors.bgCard(context),
               showDots: points.length < 15, // Ẩn chấm nếu quá nhiều ngày (như tháng)
             ),
             child: const SizedBox.expand(),
@@ -144,7 +145,7 @@ class SimpleLineChart extends StatelessWidget {
               child: Text(
                 e.key,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 8, color: textColor ?? cs.onSurfaceVariant),
+                style: TextStyle(fontSize: 8, color: textColor ?? AdminColors.textSecondary(context)),
               ),
             );
           }).toList(),
@@ -159,6 +160,7 @@ class _LinePainter extends CustomPainter {
   final Color lineColor;
   final Color fillColor;
   final Color gridColor;
+  final Color dotBgColor;
   final bool showDots;
 
   _LinePainter({
@@ -166,6 +168,7 @@ class _LinePainter extends CustomPainter {
     required this.lineColor,
     required this.fillColor,
     required this.gridColor,
+    required this.dotBgColor,
     this.showDots = true,
   });
 
@@ -228,7 +231,7 @@ class _LinePainter extends CustomPainter {
         ..color = lineColor
         ..style = PaintingStyle.fill;
       final dotBorder = Paint()
-        ..color = Colors.white
+        ..color = dotBgColor
         ..style = PaintingStyle.fill;
       for (int i = 0; i < points.length; i++) {
         final o = toOffset(i);

@@ -46,17 +46,17 @@ class _InventoryBodyState extends State<_InventoryBody>
     final lowItems = inv.items.where((i) => inv.isLow(i)).toList();
 
     return Scaffold(
-      backgroundColor: AdminColors.bgPrimary,
+      backgroundColor: AdminColors.bgPrimary(context),
       appBar: AppBar(
         title: const Text('Kho Nguyên Liệu'),
-        backgroundColor: AdminColors.bgPrimary,
+        backgroundColor: AdminColors.bgPrimary(context),
         scrolledUnderElevation: 0,
         bottom: TabBar(
           controller: _tabs,
           labelColor: AdminColors.crimson,
-          unselectedLabelColor: AdminColors.textSecondary,
+          unselectedLabelColor: AdminColors.textSecondary(context),
           indicatorColor: AdminColors.crimson,
-          dividerColor: AdminColors.borderDefault,
+          dividerColor: AdminColors.borderDefault(context),
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: [
             Tab(
@@ -93,7 +93,7 @@ class _InventoryBodyState extends State<_InventoryBody>
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AdminColors.crimson,
-        foregroundColor: AdminColors.textPrimary,
+        foregroundColor: Colors.white,
         onPressed: () => _showAddDialog(context),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Thêm nguyên liệu', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -105,23 +105,23 @@ class _InventoryBodyState extends State<_InventoryBody>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
+        backgroundColor: AdminColors.bgCard(context),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AdminColors.borderDefault),
+          side: BorderSide(color: AdminColors.borderDefault(context)),
         ),
-        title: Text('Xác nhận xóa', style: AdminText.h1.copyWith(color: AdminColors.error)),
-        content: Text('Chắc chắn xóa vĩnh viễn nguyên liệu "${item.name}" khỏi hệ thống?', style: const TextStyle(color: AdminColors.textSecondary)),
+        title: Text('Xác nhận xóa', style: AdminText.h1(context).copyWith(color: AdminColors.error)),
+        content: Text('Chắc chắn xóa vĩnh viễn nguyên liệu "${item.name}" khỏi hệ thống?', style: TextStyle(color: AdminColors.textSecondary(context))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary)),
+            child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context))),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: AdminColors.error,
-              foregroundColor: AdminColors.textPrimary,
+              foregroundColor: Colors.white,
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -129,8 +129,8 @@ class _InventoryBodyState extends State<_InventoryBody>
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Đã xóa ${item.name}', style: const TextStyle(color: AdminColors.textPrimary)),
-                    backgroundColor: AdminColors.bgElevated,
+                    content: Text('Đã xóa ${item.name}', style: TextStyle(color: AdminColors.textPrimary(context))),
+                    backgroundColor: AdminColors.bgElevated(context),
                   ),
                 );
               }
@@ -151,41 +151,41 @@ class _InventoryBodyState extends State<_InventoryBody>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
+        backgroundColor: AdminColors.bgCard(context),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AdminColors.borderDefault),
+          side: BorderSide(color: AdminColors.borderDefault(context)),
         ),
-        title: Text('Thêm nguyên liệu', style: AdminText.h1),
+        title: Text('Thêm nguyên liệu', style: AdminText.h1(context)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
             controller: nameCtrl,
-            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
             decoration: _inputDeco('Tên nguyên liệu', Icons.inventory_outlined),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: qtyCtrl,
             keyboardType: TextInputType.number,
-            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
             decoration: _inputDeco('Số lượng ban đầu', Icons.numbers),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: unitCtrl,
-            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
             decoration: _inputDeco('Đơn vị (kg, lít, cái...)', Icons.straighten),
           ),
         ]),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
+              child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context)))),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: AdminColors.crimson,
-              foregroundColor: AdminColors.textPrimary,
+              foregroundColor: Colors.white,
             ),
             onPressed: () async {
               if (nameCtrl.text.isEmpty) return;
@@ -215,27 +215,27 @@ class _InventoryBodyState extends State<_InventoryBody>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AdminColors.bgCard,
+        backgroundColor: AdminColors.bgCard(context),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AdminColors.borderDefault),
+          side: BorderSide(color: AdminColors.borderDefault(context)),
         ),
         title: Row(
           children: [
             Icon(isImport ? Icons.download_rounded : Icons.upload_rounded, 
                 color: isImport ? AdminColors.success : AdminColors.warning, size: 28),
             const SizedBox(width: 8),
-            Text(isImport ? 'Nhập kho' : 'Xuất kho', style: AdminText.h1),
+            Text(isImport ? 'Nhập kho' : 'Xuất kho', style: AdminText.h1(context)),
           ],
         ),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AdminColors.bgElevated,
+              color: AdminColors.bgElevated(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AdminColors.borderDefault),
+              border: Border.all(color: AdminColors.borderDefault(context)),
             ),
             child: Row(
               children: [
@@ -245,10 +245,10 @@ class _InventoryBodyState extends State<_InventoryBody>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.name, style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold)),
+                      Text(item.name, style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold)),
                       const SizedBox(height: 2),
                       Text('Tồn hiện tại: ${item.quantity.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '')} ${item.unit}',
-                          style: const TextStyle(color: AdminColors.textSecondary, fontSize: 13)),
+                          style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 13)),
                     ],
                   ),
                 ),
@@ -259,20 +259,20 @@ class _InventoryBodyState extends State<_InventoryBody>
           TextField(
             controller: qtyCtrl,
             keyboardType: TextInputType.number,
-            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AdminColors.textPrimary(context), fontWeight: FontWeight.bold),
             decoration: _inputDeco('Số lượng ${isImport ? "nhập" : "xuất"}', Icons.numbers),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: noteCtrl,
-            style: const TextStyle(color: AdminColors.textPrimary),
+            style: TextStyle(color: AdminColors.textPrimary(context)),
             decoration: _inputDeco('Ghi chú thay đổi', Icons.note_outlined),
           ),
         ]),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
+              child: Text('Hủy', style: TextStyle(color: AdminColors.textSecondary(context)))),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: isImport
@@ -317,12 +317,12 @@ class _InventoryBodyState extends State<_InventoryBody>
   InputDecoration _inputDeco(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AdminColors.textSecondary),
-      prefixIcon: Icon(icon, color: AdminColors.textSecondary),
+      labelStyle: TextStyle(color: AdminColors.textSecondary(context)),
+      prefixIcon: Icon(icon, color: AdminColors.textSecondary(context)),
       filled: true,
-      fillColor: AdminColors.bgElevated,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      fillColor: AdminColors.bgElevated(context),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AdminColors.borderDefault(context))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.crimson)),
     );
   }
@@ -356,15 +356,15 @@ class _ItemList extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AdminColors.bgElevated,
+                color: AdminColors.bgElevated(context),
                 shape: BoxShape.circle,
-                border: Border.all(color: AdminColors.borderDefault),
+                border: Border.all(color: AdminColors.borderDefault(context)),
               ),
-              child: const Icon(Icons.inventory_2_rounded, size: 64, color: AdminColors.textMuted),
+              child: Icon(Icons.inventory_2_rounded, size: 64, color: AdminColors.textMuted(context)),
             ),
             const SizedBox(height: 24),
             Text(emptyLabel,
-                style: const TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AdminColors.textSecondary(context), fontSize: 16, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center),
           ],
         ),

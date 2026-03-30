@@ -70,9 +70,9 @@ class _DashboardCardState extends State<DashboardCard>
             Transform.scale(scale: _scaleAnim.value, child: child),
         child: Container(
           decoration: BoxDecoration(
-            color: AdminColors.bgCard,
+            color: AdminColors.bgCard(context),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AdminColors.borderDefault, width: 1),
+            border: Border.all(color: AdminColors.borderDefault(context), width: 1),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -125,7 +125,7 @@ class _DashboardCardState extends State<DashboardCard>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: AdminColors.gold,
+                    color: Theme.of(context).brightness == Brightness.dark ? AdminColors.gold : AdminColors.crimson,
                     letterSpacing: -0.4,
                   ),
                   maxLines: 1,
@@ -135,7 +135,7 @@ class _DashboardCardState extends State<DashboardCard>
                 // ── Title ────────────────────────────────────────────────────
                 Text(
                   widget.title,
-                  style: AdminText.caption,
+                  style: AdminText.caption(context),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

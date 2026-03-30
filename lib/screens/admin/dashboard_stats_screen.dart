@@ -34,14 +34,14 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AdminColors.bgPrimary,
+      backgroundColor: AdminColors.bgPrimary(context),
       appBar: AppBar(
         title: const Text('Thống Kê Doanh Thu'),
-        backgroundColor: AdminColors.bgPrimary,
+        backgroundColor: AdminColors.bgPrimary(context),
         scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_month_rounded, color: AdminColors.textSecondary),
+            icon: Icon(Icons.calendar_month_rounded, color: AdminColors.textSecondary(context)),
             tooltip: 'Chọn ngày',
             onPressed: _pickDate,
           ),
@@ -49,7 +49,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
       ),
       body: RefreshIndicator(
         color: AdminColors.crimson,
-        backgroundColor: AdminColors.bgElevated,
+        backgroundColor: AdminColors.bgElevated(context),
         onRefresh: () async => _loadStats(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -62,9 +62,9 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AdminColors.bgElevated,
+                  color: AdminColors.bgElevated(context),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AdminColors.borderDefault),
+                  border: Border.all(color: AdminColors.borderDefault(context)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.today_rounded,
@@ -72,7 +72,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                   const SizedBox(width: 6),
                   Text(
                     'Ngày ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                    style: AdminText.bodyMedium.copyWith(color: AdminColors.textPrimary),
+                    style: AdminText.bodyMedium(context).copyWith(color: AdminColors.textPrimary(context)),
                   ),
                 ]),
               ),
@@ -92,7 +92,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                   }
 
                   if (!snap.hasData) {
-                    return const Center(child: Text('Không tìm thấy dữ liệu.', style: TextStyle(color: AdminColors.textSecondary)));
+                    return Center(child: Text('Không tìm thấy dữ liệu.', style: TextStyle(color: AdminColors.textSecondary(context))));
                   }
 
                   final data = snap.data!;
@@ -127,27 +127,27 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                       const SizedBox(height: 24),
 
                       // ── Line Chart: 7-day revenue trend ──────────────────────
-                      _ChartCard(
-                        title: '📈 Doanh thu 7 ngày qua',
-                        child: SimpleLineChart(
-                          points: data.weeklyRevenueTrend,
-                          lineColor: AdminColors.crimsonBright,
-                          textColor: AdminColors.textSecondary,
-                          gridColor: AdminColors.borderMuted,
-                          height: 140,
+                        _ChartCard(
+                          title: '📈 Doanh thu 7 ngày qua',
+                          child: SimpleLineChart(
+                            points: data.weeklyRevenueTrend,
+                            lineColor: AdminColors.crimsonBright,
+                            textColor: AdminColors.textSecondary(context),
+                            gridColor: AdminColors.borderMuted(context),
+                            height: 140,
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 16),
 
                       // ── Bar Chart: Top dishes ─────────────────────────────────
                       _ChartCard(
                         title: '🏆 Top 5 Món Bán Chạy',
                         child: data.topDishes.isEmpty 
-                          ? const Padding(
-                              padding: EdgeInsets.all(20),
+                          ? Padding(
+                              padding: const EdgeInsets.all(20),
                               child: Center(
                                 child: Text('Chưa có dữ liệu tháng này',
-                                    style: TextStyle(color: AdminColors.textSecondary)),
+                                    style: TextStyle(color: AdminColors.textSecondary(context))),
                               ),
                             )
                           : SimpleBarChart(
@@ -155,7 +155,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                                   .map((e) => MapEntry(e.key, e.value.toDouble()))
                                   .toList(),
                               barColor: AdminColors.gold,
-                              textColor: AdminColors.textSecondary,
+                              textColor: AdminColors.textSecondary(context),
                               unit: ' suất',
                               height: 160,
                             ),
@@ -164,7 +164,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
 
                       // ── Order status summary ──────────────────────────────────
                       Text('📊 Trạng thái đơn hàng hôm nay',
-                          style: AdminText.h2),
+                          style: AdminText.h2(context)),
                       const SizedBox(height: 12),
                       StreamBuilder<List<OrderModel>>(
                         stream: _db.getOrders(),
@@ -247,13 +247,13 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
             const SizedBox(height: 12),
             const Text('Lỗi tải dữ liệu', style: TextStyle(color: AdminColors.error, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(error, textAlign: TextAlign.center, style: const TextStyle(color: AdminColors.textMuted, fontSize: 12)),
+            Text(error, textAlign: TextAlign.center, style: TextStyle(color: AdminColors.textMuted(context), fontSize: 12)),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _loadStats,
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Thử lại'),
-              style: FilledButton.styleFrom(backgroundColor: AdminColors.bgElevated, foregroundColor: AdminColors.textPrimary),
+              style: FilledButton.styleFrom(backgroundColor: AdminColors.bgElevated(context), foregroundColor: AdminColors.textPrimary(context)),
             ),
           ],
         ),
@@ -271,9 +271,9 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (_, controller) => Container(
-          decoration: const BoxDecoration(
-            color: AdminColors.bgPrimary,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          decoration: BoxDecoration(
+            color: AdminColors.bgPrimary(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
@@ -284,7 +284,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AdminColors.textMuted,
+                    color: AdminColors.textMuted(context),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -294,10 +294,10 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                 child: Row(
                   children: [
                     Text('Doanh thu tháng ${_selectedDate.month}',
-                        style: AdminText.h1),
+                        style: AdminText.h1(context)),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AdminColors.textSecondary),
+                      icon: Icon(Icons.close_rounded, color: AdminColors.textSecondary(context)),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
@@ -313,20 +313,20 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                       child: SimpleLineChart(
                         points: dailyData,
                         lineColor: AdminColors.teal,
-                        textColor: AdminColors.textSecondary,
-                        gridColor: AdminColors.borderMuted,
+                        textColor: AdminColors.textSecondary(context),
+                        gridColor: AdminColors.borderMuted(context),
                         height: 180,
                       ),
                     ),
                     const SizedBox(height: 24),
                     Text('Bảng kê hàng ngày', 
-                      style: AdminText.h2),
+                      style: AdminText.h2(context)),
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(
-                        color: AdminColors.bgCard,
+                        color: AdminColors.bgCard(context),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AdminColors.borderDefault),
+                        border: Border.all(color: AdminColors.borderDefault(context)),
                       ),
                       child: Column(
                         children: dailyData.reversed.map((e) => Column(
@@ -336,12 +336,12 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                                 backgroundColor: AdminColors.teal.withValues(alpha: 0.15),
                                 child: Text(e.key, style: const TextStyle(color: AdminColors.teal, fontSize: 12, fontWeight: FontWeight.bold)),
                               ),
-                              title: Text('Ngày ${e.key}/${_selectedDate.month}', style: const TextStyle(color: AdminColors.textPrimary)),
+                              title: Text('Ngày ${e.key}/${_selectedDate.month}', style: TextStyle(color: AdminColors.textPrimary(context))),
                               trailing: Text('${_fmtPrice(e.value)}đ', 
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminColors.gold)),
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminColors.gold)),
                             ),
                             if (dailyData.indexOf(e) != dailyData.length - 1) 
-                              Divider(height: 1, indent: 70, color: AdminColors.borderMuted),
+                              Divider(height: 1, indent: 70, color: AdminColors.borderMuted(context)),
                           ],
                         )).toList(),
                       ),
@@ -368,9 +368,9 @@ class _ChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AdminColors.bgCard,
+        color: AdminColors.bgCard(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AdminColors.borderDefault),
+        border: Border.all(color: AdminColors.borderDefault(context)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -387,7 +387,7 @@ class _ChartCard extends StatelessWidget {
                 )
               ),
               const SizedBox(width: 8),
-              Text(title, style: AdminText.h3),
+              Text(title, style: AdminText.h3(context)),
             ],
           ),
           const SizedBox(height: 20),
