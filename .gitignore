@@ -47,3 +47,4 @@ app.*.map.json
 # Seed script secrets (DO NOT commit)
 scripts/serviceAccountKey.json
 scripts/node_modules/
+.env*
