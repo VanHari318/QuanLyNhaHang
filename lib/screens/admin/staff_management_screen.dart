@@ -12,6 +12,7 @@ class StaffManagementScreen extends StatefulWidget {
 
 class _StaffManagementScreenState extends State<StaffManagementScreen> {
   final _db = DatabaseService();
+  UserRole? _selectedRoleFilter; // null = Tất cả
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +35,25 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             final staff = snapshot.data!;
-            final activeStaff = staff.where((u) => u.role != UserRole.undefined).toList();
+            var activeStaff = staff.where((u) => u.role != UserRole.undefined).toList();
             final pendingStaff = staff.where((u) => u.role == UserRole.undefined).toList();
 
-            return TabBarView(
+            // Áp dụng bộ lọc chức vụ cho tab nhân sự
+            if (_selectedRoleFilter != null) {
+              activeStaff = activeStaff.where((u) => u.role == _selectedRoleFilter).toList();
+            }
+
+            return Column(
               children: [
-                _buildList(activeStaff, 'Chưa có nhân viên nào'),
-                _buildList(pendingStaff, 'Không có yêu cầu chờ duyệt'),
+                if (DefaultTabController.of(context).index == 0) _buildRoleFilterBar(),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildList(activeStaff, _selectedRoleFilter == null ? 'Chưa có nhân viên nào' : 'Không tìm thấy nhân viên với chức vụ này'),
+                      _buildList(pendingStaff, 'Không có yêu cầu chờ duyệt'),
+                    ],
+                  ),
+                ),
               ],
             );
           },
@@ -204,6 +217,47 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRoleFilterBar() {
+    final cs = Theme.of(context).colorScheme;
+    final roles = [
+      null, // Tất cả
+      UserRole.waiter,
+      UserRole.chef,
+      UserRole.cashier,
+    ];
+
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: roles.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (ctx, i) {
+          final role = roles[i];
+          final isSelected = _selectedRoleFilter == role;
+          final label = role == null ? 'Tất cả' : _roleLabel(role);
+
+          return ChoiceChip(
+            label: Text(label),
+            selected: isSelected,
+            onSelected: (val) {
+              if (val) setState(() => _selectedRoleFilter = role);
+            },
+            showCheckmark: false,
+            selectedColor: cs.primary,
+            labelStyle: TextStyle(
+              color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          );
+        },
       ),
     );
   }

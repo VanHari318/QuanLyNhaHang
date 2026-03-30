@@ -12,6 +12,8 @@ class CustomerManagementScreen extends StatefulWidget {
 
 class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
   final _db = DatabaseService();
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
@@ -27,59 +29,168 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          final customers = snapshot.data!;
+          var customers = snapshot.data!;
 
-          if (customers.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_search_rounded,
-                      size: 64, color: cs.outlineVariant),
-                  const SizedBox(height: 16),
-                  const Text('Chưa có khách hàng nào đăng ký'),
-                ],
-              ),
-            );
+          // Lọc theo tìm kiếm
+          if (_searchQuery.isNotEmpty) {
+            customers = customers.where((u) {
+              final searchStr = '${u.name} ${u.email}'.toLowerCase();
+              return searchStr.contains(_searchQuery.toLowerCase());
+            }).toList();
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: customers.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final user = customers[index];
-              return Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: cs.primaryContainer,
-                    backgroundImage: user.imageUrl.isNotEmpty
-                        ? NetworkImage(user.imageUrl)
-                        : null,
-                    child: user.imageUrl.isEmpty
-                        ? Text(user.name[0].toUpperCase(),
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, color: cs.onPrimaryContainer))
-                        : null,
+          return Column(
+            children: [
+              // Thanh tìm kiếm
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Tìm theo tên hoặc email...',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _searchQuery.isNotEmpty 
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _searchQuery = "");
+                          },
+                        )
+                      : null,
+                    filled: true,
+                    fillColor: cs.surfaceContainerHighest.withOpacity(0.5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
-                  title: Text(user.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(user.email,
-                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete_outline_rounded, color: cs.error),
-                    onPressed: () => _confirmDelete(user),
-                  ),
+                  onChanged: (v) => setState(() => _searchQuery = v.trim()),
                 ),
-              );
-            },
+              ),
+              Expanded(
+                child: customers.isEmpty
+                    ? _emptyState(cs)
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        itemCount: customers.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final user = customers[index];
+                          return Card(
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: cs.primaryContainer,
+                                backgroundImage: user.imageUrl.isNotEmpty
+                                    ? NetworkImage(user.imageUrl)
+                                    : null,
+                                child: user.imageUrl.isEmpty
+                                    ? Text(
+                                        user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: cs.onPrimaryContainer))
+                                    : null,
+                              ),
+                              title: Text(user.name,
+                                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text(user.email,
+                                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.admin_panel_settings_rounded, color: cs.primary),
+                                    onPressed: () => _showRoleDialog(user),
+                                    tooltip: 'Cấp quyền nhân sự',
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete_outline_rounded, color: cs.error),
+                                    onPressed: () => _confirmDelete(user),
+                                    tooltip: 'Xóa',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _emptyState(ColorScheme cs) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.person_search_rounded, size: 64, color: cs.outlineVariant),
+          const SizedBox(height: 16),
+          Text(_searchQuery.isEmpty 
+            ? 'Chưa có khách hàng nào đăng ký'
+            : 'Không tìm thấy khách hàng nào phù hợp'),
+        ],
+      ),
+    );
+  }
+
+  void _showRoleDialog(UserModel user) {
+    UserRole selected = UserRole.waiter;
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: Text('Cấp quyền: ${user.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Chọn chức vụ nhân sự cho người dùng này:'),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<UserRole>(
+                value: selected,
+                decoration: const InputDecoration(labelText: 'Chức vụ'),
+                items: UserRole.values
+                    .where((r) => r != UserRole.admin && r != UserRole.customer && r != UserRole.undefined)
+                    .map((r) => DropdownMenuItem(
+                        value: r, 
+                        child: Text(r == UserRole.waiter ? 'Phục vụ' : (r == UserRole.chef ? 'Đầu bếp' : 'Thu ngân'))))
+                    .toList(),
+                onChanged: (v) => setS(() => selected = v!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            FilledButton(
+              onPressed: () async {
+                await _db.saveUser(UserModel(
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  role: selected,
+                  imageUrl: user.imageUrl,
+                ));
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Đã cấp quyền ${selected.name} cho ${user.name}')),
+                  );
+                }
+              },
+              child: const Text('Cấp quyền'),
+            ),
+          ],
+        ),
       ),
     );
   }
