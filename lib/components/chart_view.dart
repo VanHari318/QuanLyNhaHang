@@ -7,6 +7,7 @@ class SimpleBarChart extends StatelessWidget {
   final Color barColor;
   final String unit;
   final double height;
+  final Color? textColor;
 
   const SimpleBarChart({
     super.key,
@@ -14,6 +15,7 @@ class SimpleBarChart extends StatelessWidget {
     this.barColor = const Color(0xFFD32F2F),
     this.unit = '',
     this.height = 180,
+    this.textColor,
   });
 
   @override
@@ -55,7 +57,7 @@ class SimpleBarChart extends StatelessWidget {
                         end: Alignment.topCenter,
                         colors: [
                           barColor,
-                          barColor.withValues(alpha: 0.5),
+                          barColor.withOpacity(0.5),
                         ],
                       ),
                       borderRadius: const BorderRadius.vertical(
@@ -69,7 +71,7 @@ class SimpleBarChart extends StatelessWidget {
                         : entry.key,
                     style: TextStyle(
                       fontSize: 9,
-                      color: cs.onSurfaceVariant,
+                      color: textColor ?? cs.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
@@ -85,7 +87,7 @@ class SimpleBarChart extends StatelessWidget {
 
   Widget _empty(ColorScheme cs) => Center(
         child: Text('Chưa có dữ liệu',
-            style: TextStyle(color: cs.onSurfaceVariant)),
+            style: TextStyle(color: textColor ?? cs.onSurfaceVariant)),
       );
 }
 
@@ -97,12 +99,16 @@ class SimpleLineChart extends StatelessWidget {
   final List<MapEntry<String, double>> points;
   final Color lineColor;
   final double height;
+  final Color? textColor;
+  final Color? gridColor;
 
   const SimpleLineChart({
     super.key,
     required this.points,
     this.lineColor = const Color(0xFFD32F2F),
     this.height = 150,
+    this.textColor,
+    this.gridColor,
   });
 
   @override
@@ -111,7 +117,7 @@ class SimpleLineChart extends StatelessWidget {
     if (points.isEmpty) {
       return Center(
         child: Text('Chưa có dữ liệu',
-            style: TextStyle(color: cs.onSurfaceVariant)),
+            style: TextStyle(color: textColor ?? cs.onSurfaceVariant)),
       );
     }
 
@@ -124,7 +130,8 @@ class SimpleLineChart extends StatelessWidget {
               points: points.map((e) => e.value).toList(),
               lineColor: lineColor,
               fillColor: lineColor.withValues(alpha: 0.08),
-              gridColor: cs.outlineVariant.withValues(alpha: 0.4),
+              gridColor: gridColor ?? cs.outlineVariant.withValues(alpha: 0.4),
+              showDots: points.length < 15, // Ẩn chấm nếu quá nhiều ngày (như tháng)
             ),
             child: const SizedBox.expand(),
           ),
@@ -137,7 +144,7 @@ class SimpleLineChart extends StatelessWidget {
               child: Text(
                 e.key,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant),
+                style: TextStyle(fontSize: 8, color: textColor ?? cs.onSurfaceVariant),
               ),
             );
           }).toList(),
@@ -152,12 +159,14 @@ class _LinePainter extends CustomPainter {
   final Color lineColor;
   final Color fillColor;
   final Color gridColor;
+  final bool showDots;
 
   _LinePainter({
     required this.points,
     required this.lineColor,
     required this.fillColor,
     required this.gridColor,
+    this.showDots = true,
   });
 
   @override
@@ -213,17 +222,19 @@ class _LinePainter extends CustomPainter {
     }
     canvas.drawPath(path, linePaint);
 
-    // Dots
-    final dotPaint = Paint()
-      ..color = lineColor
-      ..style = PaintingStyle.fill;
-    final dotBorder = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    for (int i = 0; i < points.length; i++) {
-      final o = toOffset(i);
-      canvas.drawCircle(o, 5, dotBorder);
-      canvas.drawCircle(o, 3.5, dotPaint);
+    // Dots (Optional)
+    if (showDots) {
+      final dotPaint = Paint()
+        ..color = lineColor
+        ..style = PaintingStyle.fill;
+      final dotBorder = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      for (int i = 0; i < points.length; i++) {
+        final o = toOffset(i);
+        canvas.drawCircle(o, 5, dotBorder);
+        canvas.drawCircle(o, 3.5, dotPaint);
+      }
     }
   }
 

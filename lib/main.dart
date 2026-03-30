@@ -22,6 +22,8 @@ import 'screens/cashier/cashier_screen.dart';
 import 'screens/customer/customer_menu_page.dart';
 import 'screens/customer/customer_main_screen.dart';
 import 'utils/logout_helper.dart';
+import 'theme/admin_theme.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -236,7 +238,10 @@ class AuthWrapper extends StatelessWidget {
 
     switch (authProvider.user!.role) {
       case UserRole.admin:
-        return const AdminDashboard();
+        return Theme(
+          data: AdminTheme.darkTheme,
+          child: const AdminDashboard(),
+        );
       case UserRole.waiter:
         return const WaiterScreen();
       case UserRole.chef:

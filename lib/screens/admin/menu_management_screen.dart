@@ -11,9 +11,9 @@ import '../../models/inventory_model.dart';
 import '../../models/recipe_model.dart';
 import '../../services/cloudinary_service.dart';
 import '../../services/database_service.dart';
-import 'dish_detail_dialog.dart';
+import '../../theme/admin_theme.dart';
 
-/// Màn hình quản lý món ăn – MD3
+/// Màn hình quản lý món ăn – Haidilao Premium Dark
 class MenuManagementScreen extends StatelessWidget {
   const MenuManagementScreen({super.key});
 
@@ -37,28 +37,34 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
   @override
   Widget build(BuildContext context) {
     final menuProvider = context.watch<MenuProvider>();
-    final cs = Theme.of(context).colorScheme;
     final categories = [
       const CategoryModel(id: '', name: 'Tất cả'),
       ...CategoryModel.defaults,
     ];
 
     return Scaffold(
+      backgroundColor: AdminColors.bgPrimary,
       appBar: AppBar(
         title: _isSearching
             ? TextField(
                 autofocus: true,
+                style: const TextStyle(color: AdminColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Tìm món ăn...',
-                  hintStyle: TextStyle(color: cs.onSurfaceVariant),
+                  hintStyle: const TextStyle(color: AdminColors.textMuted),
                   border: InputBorder.none,
                 ),
                 onChanged: menuProvider.setSearchQuery,
               )
             : const Text('Quản Lý Món Ăn'),
+        backgroundColor: AdminColors.bgPrimary,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close_rounded : Icons.search_rounded),
+            icon: Icon(
+              _isSearching ? Icons.close_rounded : Icons.search_rounded,
+              color: AdminColors.textSecondary,
+            ),
             tooltip: 'Tìm kiếm',
             onPressed: () {
               setState(() => _isSearching = !_isSearching);
@@ -72,13 +78,14 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
                   : (menuProvider.isSortAsc!
                       ? Icons.arrow_upward_rounded
                       : Icons.arrow_downward_rounded),
+              color: AdminColors.textSecondary,
             ),
             tooltip: 'Sắp xếp giá',
             onPressed: menuProvider.toggleSortByPrice,
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
+          preferredSize: const Size.fromHeight(64),
           child: _CategoryFilterBar(
             categories: categories,
             selected: menuProvider.selectedCategory,
@@ -87,11 +94,11 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
         ),
       ),
       body: menuProvider.filteredItems.isEmpty
-          ? _emptyState(cs)
+          ? _emptyState()
           : ListView.separated(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               itemCount: menuProvider.filteredItems.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final dish = menuProvider.filteredItems[index];
                 return _DishTile(
@@ -106,22 +113,32 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
               },
             ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AdminColors.crimson,
+        foregroundColor: AdminColors.textPrimary,
         onPressed: () => _showDishDialog(context),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Thêm món'),
+        label: const Text('Thêm món', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _emptyState(ColorScheme cs) {
+  Widget _emptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.restaurant_menu_rounded, size: 72, color: cs.outlineVariant),
-          const SizedBox(height: 16),
-          Text('Chưa có món ăn nào',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 16)),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AdminColors.bgElevated,
+              shape: BoxShape.circle,
+              border: Border.all(color: AdminColors.borderDefault),
+            ),
+            child: const Icon(Icons.restaurant_menu_rounded, size: 64, color: AdminColors.textMuted),
+          ),
+          const SizedBox(height: 24),
+          const Text('Chưa có món ăn nào',
+              style: TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -131,17 +148,25 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Xóa món ăn'),
-        content: Text('Bạn muốn xóa "${dish.name}"?'),
+        backgroundColor: AdminColors.bgCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AdminColors.borderDefault),
+        ),
+        title: Text('Xóa món ăn', style: AdminText.h1),
+        content: Text('Bạn muốn xóa vĩnh viễn món "${dish.name}"?', 
+            style: const TextStyle(color: AdminColors.textSecondary)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Hủy')),
+              child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
           FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error),
+                  backgroundColor: AdminColors.error,
+                  foregroundColor: AdminColors.textPrimary),
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Xóa')),
+              child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -183,22 +208,11 @@ class _CategoryFilterBar extends StatelessWidget {
     return m[id] ?? Icons.restaurant_rounded;
   }
 
-  static Color _colorFor(String id) {
-    const m = {
-      '': Color(0xFF5C6BC0),
-      'appetizer': Color(0xFFFF7043),
-      'main': Color(0xFFD32F2F),
-      'dessert': Color(0xFFAB47BC),
-      'drink': Color(0xFF00897B),
-    };
-    return m[id] ?? const Color(0xFF757575);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.surface,
-      height: 72,
+      color: AdminColors.bgPrimary,
+      height: 64,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         scrollDirection: Axis.horizontal,
@@ -207,34 +221,36 @@ class _CategoryFilterBar extends StatelessWidget {
         itemBuilder: (_, i) {
           final cat = categories[i];
           final isSelected = cat.id == selected;
-          final color = _colorFor(cat.id);
           final icon = _iconFor(cat.id);
 
           return GestureDetector(
             onTap: () => onSelected(cat.id),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.fastOutSlowIn,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? color : color.withOpacity(0.10),
+                color: isSelected ? AdminColors.crimson : AdminColors.bgElevated,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isSelected ? color : color.withOpacity(0.35),
-                  width: isSelected ? 0 : 1.2,
+                  color: isSelected ? AdminColors.crimsonBright : AdminColors.borderDefault,
+                  width: 1,
                 ),
+                boxShadow: isSelected 
+                  ? [BoxShadow(color: AdminColors.crimson.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                  : [],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 18, color: isSelected ? Colors.white : color),
-                  const SizedBox(width: 6),
+                  Icon(icon, size: 18, color: isSelected ? AdminColors.textPrimary : AdminColors.textSecondary),
+                  const SizedBox(width: 8),
                   Text(
                     cat.name,
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : color,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: isSelected ? AdminColors.textPrimary : AdminColors.textSecondary,
                     ),
                   ),
                 ],
@@ -265,131 +281,143 @@ class _DishTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final inventory = context.watch<InventoryProvider>().items;
     final menu = context.watch<MenuProvider>();
     final isOutOfStock = menu.isOutOfStock(dish.id, inventory);
 
     return InkWell(
       onTap: onEdit,
-      borderRadius: BorderRadius.circular(12),
-      child: Card(
-        margin: EdgeInsets.zero,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AdminColors.bgCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AdminColors.borderDefault),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              // Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: ColorFiltered(
-                  colorFilter: isOutOfStock
-                      ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
-                      : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
-                  child: dish.imageUrl.isNotEmpty
-                      ? Image.network(dish.imageUrl,
-                          width: 64, height: 64, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(cs))
-                      : _placeholder(cs),
-                ),
+        child: Row(
+          children: [
+            // Image
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AdminColors.bgElevated,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AdminColors.borderDefault),
               ),
-              const SizedBox(width: 12),
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(dish.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: isOutOfStock ? cs.error : null,
-                                  )),
+              clipBehavior: Clip.antiAlias,
+              child: ColorFiltered(
+                colorFilter: isOutOfStock
+                    ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
+                    : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                child: dish.imageUrl.isNotEmpty
+                    ? Image.network(dish.imageUrl, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholder())
+                    : _placeholder(),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(dish.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AdminText.h2.copyWith(
+                              color: isOutOfStock ? AdminColors.error : AdminColors.textPrimary,
+                            )),
+                      ),
+                      if (dish.isBestSeller)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AdminColors.gold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AdminColors.gold.withValues(alpha: 0.3)),
+                          ),
+                          child: const Text('⭐ Hot',
+                              style: TextStyle(
+                                  color: AdminColors.gold, fontSize: 11, fontWeight: FontWeight.bold)),
                         ),
-                        if (dish.isBestSeller)
-                          Container(
-                            margin: const EdgeInsets.only(left: 6),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text('⭐ Hot',
-                                style: TextStyle(
-                                    fontSize: 11, fontWeight: FontWeight.w600)),
+                      if (isOutOfStock)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AdminColors.error.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AdminColors.error.withValues(alpha: 0.3)),
                           ),
-                        if (isOutOfStock)
-                          Container(
-                            margin: const EdgeInsets.only(left: 6),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: cs.errorContainer,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text('⚠️ Hết hàng',
-                                style: TextStyle(
-                                    color: cs.onErrorContainer,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_formatPrice(dish.price)}đ  •  ${CategoryModel.labelOf(dish.category)}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: cs.onSurfaceVariant),
-                    ),
-                  ],
-                ),
+                          child: const Text('⚠️ Hết hàng',
+                              style: TextStyle(
+                                  color: AdminColors.error,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${_formatPrice(dish.price)}đ',
+                    style: AdminText.h3.copyWith(color: AdminColors.gold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    CategoryModel.labelOf(dish.category),
+                    style: AdminText.caption,
+                  ),
+                ],
               ),
+            ),
             Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon:
-                          Icon(Icons.edit_rounded, size: 20, color: cs.primary),
+                      icon: const Icon(Icons.edit_rounded, size: 20, color: AdminColors.teal),
                       onPressed: onEdit,
                       tooltip: 'Sửa',
+                      style: IconButton.styleFrom(
+                        backgroundColor: AdminColors.bgElevated,
+                      ),
                     ),
+                    const SizedBox(width: 6),
                     IconButton(
-                      icon: Icon(Icons.delete_outline_rounded,
-                          size: 20, color: cs.error),
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          size: 20, color: AdminColors.error),
                       onPressed: onDelete,
                       tooltip: 'Xóa',
+                      style: IconButton.styleFrom(
+                        backgroundColor: AdminColors.error.withValues(alpha: 0.1),
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.star_rounded,
-                        size: 16,
-                        color: dish.isBestSeller
-                            ? Colors.amber
-                            : cs.outlineVariant),
+                    const Text('Top Seller', style: TextStyle(color: AdminColors.textSecondary, fontSize: 11)),
+                    const SizedBox(width: 4),
                     Switch(
                       value: dish.isBestSeller,
                       onChanged: onToggleBestSeller,
+                      activeColor: AdminColors.gold,
+                      activeTrackColor: AdminColors.gold.withValues(alpha: 0.3),
+                      inactiveThumbColor: AdminColors.textMuted,
+                      inactiveTrackColor: AdminColors.bgElevated,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ],
@@ -399,21 +427,15 @@ class _DishTile extends StatelessWidget {
           ],
         ),
       ),
-    ),
-  );
-}
-
-  Widget _placeholder(ColorScheme cs) {
-    return Container(
-      width: 64,
-      height: 64,
-      color: cs.surfaceContainerHighest,
-      child: Icon(Icons.fastfood_rounded, color: cs.onSurfaceVariant, size: 30),
     );
   }
 
+  Widget _placeholder() {
+    return const Center(child: Icon(Icons.fastfood_rounded, color: AdminColors.textMuted, size: 28));
+  }
+
   String _formatPrice(double price) {
-    return price.toStringAsFixed(2);
+    return price.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
   }
 }
 
@@ -579,14 +601,19 @@ class _DishDialogState extends State<_DishDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final isEdit = widget.existingDish != null;
     final inventory = context.watch<InventoryProvider>().items;
     final screenWidth = MediaQuery.of(context).size.width;
     final dialogWidth = (screenWidth > 600) ? 500.0 : (screenWidth - 48);
 
     return AlertDialog(
-      title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới'),
+      backgroundColor: AdminColors.bgCard,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: AdminColors.borderDefault),
+      ),
+      title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới', style: AdminText.h1),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: dialogWidth,
@@ -598,90 +625,103 @@ class _DishDialogState extends State<_DishDialog> {
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  height: 120,
+                  height: 140,
                   decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
+                    color: AdminColors.bgElevated,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AdminColors.borderDefault),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: _buildImagePreview(cs),
+                  child: _buildImagePreview(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Tên món *', prefixIcon: Icon(Icons.restaurant)),
+                style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+                decoration: _inputDeco('Tên món *', Icons.restaurant),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: _descCtrl,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                    labelText: 'Mô tả', prefixIcon: Icon(Icons.description_outlined)),
+                style: const TextStyle(color: AdminColors.textPrimary),
+                decoration: _inputDeco('Mô tả', Icons.description_outlined),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: _priceCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                    labelText: 'Giá (VNĐ) *', prefixIcon: Icon(Icons.attach_money)),
+                style: const TextStyle(color: AdminColors.gold, fontWeight: FontWeight.bold),
+                decoration: _inputDeco('Giá (VNĐ) *', Icons.attach_money),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _selectedCat,
-                decoration: const InputDecoration(
-                    labelText: 'Danh mục',
-                    prefixIcon: Icon(Icons.category_outlined)),
+                dropdownColor: AdminColors.bgCard,
+                style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+                decoration: _inputDeco('Danh mục', Icons.category_outlined),
                 items: CategoryModel.defaults
                     .map((c) =>
                         DropdownMenuItem(value: c.id, child: Text(c.name)))
                     .toList(),
                 onChanged: (v) => setState(() => _selectedCat = v!),
               ),
-              const SizedBox(height: 6),
-              SwitchListTile.adaptive(
-                title: const Text('Best Seller ⭐'),
-                value: _isBestSeller,
-                onChanged: (v) => setState(() => _isBestSeller = v),
-                contentPadding: EdgeInsets.zero,
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: AdminColors.bgElevated,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AdminColors.borderDefault),
+                ),
+                child: SwitchListTile.adaptive(
+                  title: const Text('Best Seller ⭐', style: TextStyle(color: AdminColors.gold, fontWeight: FontWeight.bold)),
+                  value: _isBestSeller,
+                  onChanged: (v) => setState(() => _isBestSeller = v),
+                  activeColor: AdminColors.gold,
+                  activeTrackColor: AdminColors.gold.withValues(alpha: 0.3),
+                  inactiveThumbColor: AdminColors.textMuted,
+                  inactiveTrackColor: AdminColors.bgPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 32, color: AdminColors.borderMuted),
               Row(
                 children: [
-                  Icon(Icons.science_outlined, size: 18, color: cs.primary),
+                  const Icon(Icons.science_outlined, size: 18, color: AdminColors.teal),
                   const SizedBox(width: 8),
-                  Text(
+                  const Text(
                     'Công thức (1 suất)',
                     style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: cs.primary),
+                        color: AdminColors.teal),
                   ),
                   const Spacer(),
                   if (_loadingRecipe)
                     const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2)),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.teal)),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
+              const Text(
                 'Thiết lập nguyên liệu cần dùng để làm 1 suất món này. Kho sẽ tự trừ khi thanh toán.',
-                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                style: TextStyle(fontSize: 12, color: AdminColors.textSecondary),
               ),
               const SizedBox(height: 12),
               if (inventory.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest,
+                    color: AdminColors.bgElevated,
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AdminColors.borderDefault),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Chưa có nguyên liệu nào trong kho. Vào mục Kho để thêm trước.',
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                    style: TextStyle(color: AdminColors.textSecondary, fontSize: 13),
                   ),
                 )
               else ...[
@@ -693,20 +733,20 @@ class _DishDialogState extends State<_DishDialog> {
                           flex: 3,
                           child: Text('Nguyên liệu',
                               style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600))),
+                                  color: AdminColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold))),
                       const SizedBox(width: 6),
                       const SizedBox(
                           width: 70,
-                          child: Text('Số lượng',
+                          child: Text('Định lượng',
                               style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600),
+                                  color: AdminColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center)),
                       const SizedBox(width: 4),
                       const SizedBox(
                           width: 32,
                           child: Text('ĐV',
                               style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600),
+                                  color: AdminColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center)),
                       const SizedBox(width: 30),
                     ],
@@ -732,10 +772,11 @@ class _DishDialogState extends State<_DishDialog> {
                   onPressed: () => _addIngredientRow(inventory),
                   icon:
                       const Icon(Icons.add_circle_outline_rounded, size: 18),
-                  label: const Text('Thêm nguyên liệu'),
+                  label: const Text('Thêm nguyên liệu', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: TextButton.styleFrom(
                       alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(vertical: 4)),
+                      foregroundColor: AdminColors.teal,
+                      padding: const EdgeInsets.symmetric(vertical: 8)),
                 ),
               ],
               const SizedBox(height: 12),
@@ -743,43 +784,61 @@ class _DishDialogState extends State<_DishDialog> {
           ),
         ),
       ),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy')),
+            child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
         _uploading
             ? const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: SizedBox(
                     width: 24,
                     height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2)))
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.crimson)))
             : FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AdminColors.crimson,
+                  foregroundColor: AdminColors.textPrimary,
+                ),
                 onPressed: _save,
-                child: Text(isEdit ? 'Lưu' : 'Thêm'),
+                child: Text(isEdit ? 'Lưu cập nhật' : 'Thêm món', style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
       ],
     );
   }
 
-  Widget _buildImagePreview(ColorScheme cs) {
+  InputDecoration _inputDeco(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AdminColors.textSecondary),
+      prefixIcon: Icon(icon, color: AdminColors.textSecondary),
+      filled: true,
+      fillColor: AdminColors.bgElevated,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.crimson)),
+    );
+  }
+
+  Widget _buildImagePreview() {
     if (_localImage != null) {
-      return Image.file(_localImage!, fit: BoxFit.cover);
+      return Image.file(_localImage!, fit: BoxFit.cover, width: double.infinity);
     }
     if (_webImage != null) {
-      return Image.network(_webImage!.path, fit: BoxFit.cover);
+      return Image.network(_webImage!.path, fit: BoxFit.cover, width: double.infinity);
     }
     if (widget.existingDish?.imageUrl.isNotEmpty == true) {
       return Image.network(widget.existingDish!.imageUrl,
-          fit: BoxFit.cover);
+          fit: BoxFit.cover, width: double.infinity);
     }
-    return Column(
+    return const Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.add_photo_alternate_rounded,
-            size: 36, color: cs.onSurfaceVariant),
-        const SizedBox(height: 6),
-        Text('Chọn ảnh', style: TextStyle(color: cs.onSurfaceVariant)),
+            size: 36, color: AdminColors.textMuted),
+        SizedBox(height: 6),
+        Text('Tải ảnh lên', style: TextStyle(color: AdminColors.textMuted, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -801,7 +860,6 @@ class _IngredientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final currentItem = inventory.firstWhere(
       (i) => i.name == entry.name,
       orElse: () => inventory.first,
@@ -814,20 +872,24 @@ class _IngredientRow extends StatelessWidget {
         children: [
           // Dropdown nguyên liệu
           Expanded(
-            flex: 3, // Giảm từ 4 xuống 3 để dành chỗ cho số lượng
+            flex: 3,
             child: DropdownButtonFormField<InventoryModel>(
               value: currentItem,
               isDense: true,
-              isExpanded: true, // Cho phép text co lại nếu quá dài
+              isExpanded: true,
+              dropdownColor: AdminColors.bgCard,
+              style: const TextStyle(color: AdminColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.teal)),
+                filled: true,
+                fillColor: AdminColors.bgElevated,
               ),
               items: inventory.map((inv) => DropdownMenuItem(
                 value: inv,
-                child: Text(inv.name,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13)),
+                child: Text(inv.name, overflow: TextOverflow.ellipsis),
               )).toList(),
               onChanged: (inv) {
                 if (inv != null) onInventoryChanged(inv);
@@ -837,18 +899,22 @@ class _IngredientRow extends StatelessWidget {
           const SizedBox(width: 6),
           // Số lượng
           SizedBox(
-            width: 70, // Dùng chiều rộng cố định nhỏ cho số lượng
+            width: 70, 
             child: TextField(
               controller: entry.quantityCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AdminColors.textPrimary),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AdminColors.teal)),
                 hintText: '0',
-                fillColor: cs.surface,
+                hintStyle: const TextStyle(color: AdminColors.textMuted),
+                fillColor: AdminColors.bgElevated,
+                filled: true,
               ),
             ),
           ),
@@ -857,16 +923,16 @@ class _IngredientRow extends StatelessWidget {
           SizedBox(
             width: 32,
             child: Text(entry.unit,
-              style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 12, color: AdminColors.textSecondary, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ),
           // Nút xóa dòng
           IconButton(
-            icon: Icon(Icons.remove_circle_outline_rounded, size: 18, color: cs.error),
+            icon: const Icon(Icons.remove_circle_outline_rounded, size: 20, color: AdminColors.error),
             onPressed: onRemove,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
         ],
       ),

@@ -8,6 +8,7 @@ import '../models/inventory_model.dart';
 import '../models/chatbot_model.dart';
 import '../models/recipe_model.dart';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 
 /// Lớp service tương tác với Firestore – project: quan-ly-nha-hang-20f37
 class DatabaseService {
@@ -142,22 +143,23 @@ class DatabaseService {
 
   // ─── ORDERS ──────────────────────────────────────────────────────────────────
 
-  Stream<List<OrderModel>> getOrders({OrderType? type, OrderStatus? status}) {
-    // Dùng query đơn giản để tránh lỗi Firestore Composite Index
-    // Sort được thực hiện client-side sau khi nhận data
+  Stream<List<OrderModel>> getOrders({OrderType? type, OrderStatus? status, int limit = 300}) {
+    // Dùng query đơn giản, sắp xếp client-side để tránh lỗi Firestore Index nếu không cần thiết
     Query<Map<String, dynamic>> q = _orders;
     if (type != null) q = q.where('type', isEqualTo: type.name);
     if (status != null) q = q.where('status', isEqualTo: status.name);
+    q = q.limit(limit); // Giới hạn để tránh load quá nhiều document gây chậm
+
     return q.snapshots().map((s) {
       final result = <OrderModel>[];
       for (final doc in s.docs) {
         try {
           result.add(OrderModel.fromMap(doc.data()));
-        } catch (_) {
-          // Bỏ qua document lỗi format, không crash toàn stream
+        } catch (e) {
+          debugPrint('Lỗi nạp Order: $e');
         }
       }
-      // Sort client-side theo createdAt mới nhất
+      // Ưu tiên sắp xếp thời gian mới nhất tại máy khách
       result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return result;
     });
@@ -422,6 +424,118 @@ class DatabaseService {
     return total;
   }
 
+  /// Lấy doanh thu từng ngày trong 1 tháng (hiệu quả hơn gọi lẻ tẻ)
+  Future<List<MapEntry<String, double>>> getMonthlyDailyRevenue(DateTime month) async {
+    final stats = await getDetailedDashboardStats(month, DateTime.now());
+    return stats.dailyRevenue;
+  }
+
+  /// Cấu trúc chứa toàn bộ thông tin thống kê Dashboard
+  /// Giúp nạp 1 lần duy nhất thay vì gọi nhiều hàm lẻ tẻ gây chậm/hết hạn mức Firebase
+  Future<DashboardStatsData> getDetailedDashboardStats(DateTime month, DateTime selectedDate) async {
+    // Xác định khoảng thời gian đầu tháng và cuối tháng
+    final startOfMonth = DateTime(month.year, month.month, 1);
+    final nextMonth = month.month == 12 ? 1 : month.month + 1;
+    final yearOfNextMonth = month.month == 12 ? month.year + 1 : month.year;
+    final endOfMonth = DateTime(yearOfNextMonth, nextMonth, 0, 23, 59, 59);
+
+    // Load tất cả đơn rồi filter client-side để tránh lỗi so sánh kiểu
+    // (một số đơn cũ lưu createdAt dạng ISO String, đơn mới dùng Timestamp)
+    // Firestore không thể so sánh chéo 2 kiểu → trả rỗng mà không báo lỗi
+    final snap = await _orders.limit(2000).get();
+
+    // Lọc theo khoảng tháng phía client
+    final docsInMonth = snap.docs.where((doc) {
+      try {
+        final raw = doc.data()['createdAt'];
+        DateTime dt;
+        if (raw is String) {
+          dt = DateTime.tryParse(raw) ?? DateTime(1970);
+        } else if (raw != null) {
+          dt = (raw as Timestamp).toDate();
+        } else {
+          return false;
+        }
+        return !dt.isBefore(startOfMonth) && !dt.isAfter(endOfMonth);
+      } catch (_) {
+        return false;
+      }
+    }).toList();
+
+    double monthTotal = 0;
+    double todayTotal = 0;
+    final Map<int, double> dailyMap = {};
+    final Map<String, int> dishFreq = {};
+    
+    final now = DateTime.now();
+    final currentMonth = month.month;
+    final currentYear = month.year;
+
+    for (var doc in docsInMonth) {
+      try {
+        final order = OrderModel.fromMap(doc.data());
+
+        // Chỉ tính toán doanh thu cho đơn hoàn thành
+        if (order.status != OrderStatus.completed) continue;
+
+        final orderDate = order.createdAt;
+        monthTotal += order.totalPrice;
+
+        // Thống kê theo ngày
+        final day = orderDate.day;
+        dailyMap[day] = (dailyMap[day] ?? 0) + order.totalPrice;
+
+        // Doanh thu ngày được chọn (mặc định là hôm nay)
+        if (orderDate.day == selectedDate.day &&
+            orderDate.month == selectedDate.month &&
+            orderDate.year == selectedDate.year) {
+          todayTotal += order.totalPrice;
+        }
+
+        for (final item in order.items) {
+          final name = item.dish.name;
+          final qty = item.quantity;
+          dishFreq[name] = (dishFreq[name] ?? 0) + qty;
+        }
+      } catch (e) {
+        debugPrint('Lỗi parse order trong stats: $e');
+      }
+    }
+
+    // Tạo danh sách 7 ngày gần nhất (từ selectedDate trở về trước)
+    final last7Days = <MapEntry<String, double>>[];
+    for (int i = 6; i >= 0; i--) {
+      final d = selectedDate.subtract(Duration(days: i));
+      // Chỉ lấy nếu cùng tháng/năm (đơn giản hóa)
+      if (d.month == currentMonth && d.year == currentYear) {
+        last7Days.add(MapEntry('${d.day}/${d.month}', dailyMap[d.day] ?? 0));
+      } else {
+        last7Days.add(MapEntry('${d.day}/${d.month}', 0));
+      }
+    }
+
+    // Tạo danh sách toàn bộ ngày trong tháng cho biểu đồ chi tiết
+    final fullMonth = <MapEntry<String, double>>[];
+    final lastDay = (currentMonth == now.month && currentYear == now.year) 
+        ? now.day 
+        : DateTime(currentYear, currentMonth + 1, 0).day;
+    for (int d = 1; d <= lastDay; d++) {
+      fullMonth.add(MapEntry('$d', dailyMap[d] ?? 0));
+    }
+
+    // Sắp xếp món ăn bán chạy
+    final sortedDishes = dishFreq.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return DashboardStatsData(
+      todayRevenue: todayTotal,
+      monthRevenue: monthTotal,
+      weeklyRevenueTrend: last7Days,
+      dailyRevenue: fullMonth,
+      topDishes: sortedDishes.take(5).toList(),
+    );
+  }
+
   /// Bộ phân tích số thông minh (Ưu tiên chấm là thập phân theo yêu cầu 100.00)
   static double parseVnNum(String text) {
     String t = text.trim();
@@ -461,4 +575,20 @@ class DatabaseService {
     final sorted = freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     return sorted.take(limit).toList();
   }
+}
+
+class DashboardStatsData {
+  final double todayRevenue;
+  final double monthRevenue;
+  final List<MapEntry<String, double>> weeklyRevenueTrend;
+  final List<MapEntry<String, double>> dailyRevenue;
+  final List<MapEntry<String, int>> topDishes;
+
+  DashboardStatsData({
+    required this.todayRevenue,
+    required this.monthRevenue,
+    required this.weeklyRevenueTrend,
+    required this.dailyRevenue,
+    required this.topDishes,
+  });
 }

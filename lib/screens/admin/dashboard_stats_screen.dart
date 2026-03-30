@@ -3,8 +3,9 @@ import '../../services/database_service.dart';
 import '../../models/order_model.dart';
 import '../../components/dashboard_card.dart';
 import '../../components/chart_view.dart';
+import '../../theme/admin_theme.dart';
 
-/// Dashboard thống kê doanh thu – MD3 enhanced with charts
+/// Dashboard thống kê doanh thu – Haidilao Premium Dark
 class DashboardStatsScreen extends StatefulWidget {
   const DashboardStatsScreen({super.key});
 
@@ -16,10 +17,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
   final _db = DatabaseService();
   DateTime _selectedDate = DateTime.now();
 
-  Future<double>? _todayRevenue;
-  Future<double>? _monthRevenue;
-  Future<List<MapEntry<String, int>>>? _topDishes;
-  Future<List<MapEntry<String, double>>>? _weekRevenue;
+  Future<DashboardStatsData>? _statsFuture;
 
   @override
   void initState() {
@@ -28,51 +26,30 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
   }
 
   void _loadStats() {
-    final now = DateTime.now();
     setState(() {
-      _todayRevenue = _db.getRevenueForDate(_selectedDate);
-      _monthRevenue = _getMonthRevenue(now);
-      _topDishes = _db.getTopDishes(limit: 5);
-      _weekRevenue = _getLast7DaysRevenue(now);
+      _statsFuture = _db.getDetailedDashboardStats(_selectedDate, _selectedDate);
     });
-  }
-
-  Future<double> _getMonthRevenue(DateTime month) async {
-    double total = 0;
-    for (int d = 1; d <= month.day; d++) {
-      total +=
-          await _db.getRevenueForDate(DateTime(month.year, month.month, d));
-    }
-    return total;
-  }
-
-  Future<List<MapEntry<String, double>>> _getLast7DaysRevenue(
-      DateTime today) async {
-    final result = <MapEntry<String, double>>[];
-    for (int i = 6; i >= 0; i--) {
-      final day = today.subtract(Duration(days: i));
-      final rev = await _db.getRevenueForDate(day);
-      result.add(MapEntry('${day.day}/${day.month}', rev));
-    }
-    return result;
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: AdminColors.bgPrimary,
       appBar: AppBar(
         title: const Text('Thống Kê Doanh Thu'),
+        backgroundColor: AdminColors.bgPrimary,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_month_rounded),
+            icon: const Icon(Icons.calendar_month_rounded, color: AdminColors.textSecondary),
             tooltip: 'Chọn ngày',
             onPressed: _pickDate,
           ),
         ],
       ),
       body: RefreshIndicator(
+        color: AdminColors.crimson,
+        backgroundColor: AdminColors.bgElevated,
         onRefresh: () async => _loadStats(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -85,135 +62,139 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: cs.primaryContainer,
+                  color: AdminColors.bgElevated,
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AdminColors.borderDefault),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.today_rounded,
-                      color: cs.onPrimaryContainer, size: 16),
+                  const Icon(Icons.today_rounded,
+                      color: AdminColors.crimson, size: 16),
                   const SizedBox(width: 6),
                   Text(
                     'Ngày ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                    style: TextStyle(
-                        color: cs.onPrimaryContainer,
-                        fontWeight: FontWeight.w600),
+                    style: AdminText.bodyMedium.copyWith(color: AdminColors.textPrimary),
                   ),
                 ]),
               ),
               const SizedBox(height: 16),
-
-              // KPI cards row
-              Row(children: [
-                Expanded(
-                  child: FutureBuilder<double>(
-                    future: _todayRevenue,
-                    builder: (_, snap) => DashboardCard(
-                      icon: Icons.today_rounded,
-                      title: 'Hôm nay',
-                      value: '${_fmtPrice(snap.data ?? 0)}đ',
-                      color: cs.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FutureBuilder<double>(
-                    future: _monthRevenue,
-                    builder: (_, snap) => DashboardCard(
-                      icon: Icons.calendar_month_rounded,
-                      title: 'Tháng này',
-                      value: '${_fmtPrice(snap.data ?? 0)}đ',
-                      color: Colors.teal,
-                    ),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 24),
-
-              // ── Line Chart: 7-day revenue trend ──────────────────────
-              _ChartCard(
-                title: '📈 Doanh thu 7 ngày qua',
-                child: FutureBuilder<List<MapEntry<String, double>>>(
-                  future: _weekRevenue,
-                  builder: (_, snap) {
-                    if (!snap.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    return SimpleLineChart(
-                      points: snap.data!,
-                      lineColor: cs.primary,
-                      height: 140,
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Bar Chart: Top dishes ─────────────────────────────────
-              _ChartCard(
-                title: '🏆 Top 5 Món Bán Chạy',
-                child: FutureBuilder<List<MapEntry<String, int>>>(
-                  future: _topDishes,
-                  builder: (_, snap) {
-                    if (!snap.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snap.data!.isEmpty) {
-                      return Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Center(
-                          child: Text('Chưa có dữ liệu',
-                              style:
-                                  TextStyle(color: cs.onSurfaceVariant)),
-                        ),
-                      );
-                    }
-                    return SimpleBarChart(
-                      data: snap.data!
-                          .map((e) => MapEntry(e.key, e.value.toDouble()))
-                          .toList(),
-                      barColor: cs.primary,
-                      unit: ' suất',
-                      height: 160,
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // ── Order status summary ──────────────────────────────────
-              Text('📊 Trạng thái đơn hàng hôm nay',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              StreamBuilder<List<OrderModel>>(
-                stream: _db.getOrders(),
+              FutureBuilder<DashboardStatsData>(
+                future: _statsFuture,
                 builder: (ctx, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 60),
+                      child: Center(child: CircularProgressIndicator(color: AdminColors.crimson)),
+                    );
+                  }
+                  
+                  if (snap.hasError) {
+                    return _buildErrorWidget(snap.error.toString());
+                  }
+
                   if (!snap.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final now = DateTime.now();
-                  final today = snap.data!.where((o) =>
-                      o.createdAt.year == now.year &&
-                      o.createdAt.month == now.month &&
-                      o.createdAt.day == now.day).toList();
-
-                  final counts = <OrderStatus, int>{};
-                  for (final o in today) {
-                    counts[o.status] = (counts[o.status] ?? 0) + 1;
+                    return const Center(child: Text('Không tìm thấy dữ liệu.', style: TextStyle(color: AdminColors.textSecondary)));
                   }
 
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: OrderStatus.values
-                        .map((s) => _StatusBadge(
-                            status: s, count: counts[s] ?? 0))
-                        .toList(),
+                  final data = snap.data!;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // KPI cards row
+                      SizedBox(
+                        height: 140,
+                        child: Row(children: [
+                          Expanded(
+                            child: DashboardCard(
+                              icon: Icons.today_rounded,
+                              title: 'Hôm nay',
+                              value: '${_fmtPrice(data.todayRevenue)}đ',
+                              color: AdminColors.crimson,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DashboardCard(
+                              icon: Icons.calendar_month_rounded,
+                              title: 'Tháng này',
+                              value: '${_fmtPrice(data.monthRevenue)}đ',
+                              color: AdminColors.teal,
+                              onTap: () => _showMonthlyDetail(data.dailyRevenue),
+                            ),
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // ── Line Chart: 7-day revenue trend ──────────────────────
+                      _ChartCard(
+                        title: '📈 Doanh thu 7 ngày qua',
+                        child: SimpleLineChart(
+                          points: data.weeklyRevenueTrend,
+                          lineColor: AdminColors.crimsonBright,
+                          textColor: AdminColors.textSecondary,
+                          gridColor: AdminColors.borderMuted,
+                          height: 140,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Bar Chart: Top dishes ─────────────────────────────────
+                      _ChartCard(
+                        title: '🏆 Top 5 Món Bán Chạy',
+                        child: data.topDishes.isEmpty 
+                          ? const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Center(
+                                child: Text('Chưa có dữ liệu tháng này',
+                                    style: TextStyle(color: AdminColors.textSecondary)),
+                              ),
+                            )
+                          : SimpleBarChart(
+                              data: data.topDishes
+                                  .map((e) => MapEntry(e.key, e.value.toDouble()))
+                                  .toList(),
+                              barColor: AdminColors.gold,
+                              textColor: AdminColors.textSecondary,
+                              unit: ' suất',
+                              height: 160,
+                            ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // ── Order status summary ──────────────────────────────────
+                      Text('📊 Trạng thái đơn hàng hôm nay',
+                          style: AdminText.h2),
+                      const SizedBox(height: 12),
+                      StreamBuilder<List<OrderModel>>(
+                        stream: _db.getOrders(),
+                        builder: (ctx, orderSnap) {
+                          if (!orderSnap.hasData) {
+                            return const Center(child: CircularProgressIndicator(color: AdminColors.crimson));
+                          }
+                          final todayOrders = orderSnap.data!.where((o) =>
+                              o.createdAt.year == _selectedDate.year &&
+                              o.createdAt.month == _selectedDate.month &&
+                              o.createdAt.day == _selectedDate.day).toList();
+
+                          final counts = <OrderStatus, int>{};
+                          for (final o in todayOrders) {
+                            counts[o.status] = (counts[o.status] ?? 0) + 1;
+                          }
+
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: OrderStatus.values
+                                .map((s) => _StatusBadge(
+                                    status: s, count: counts[s] ?? 0))
+                                .toList(),
+                          );
+                        },
+                      ),
+                    ],
                   );
-                },
+                }
               ),
               const SizedBox(height: 24),
             ],
@@ -229,6 +210,16 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
       initialDate: _selectedDate,
       firstDate: DateTime(2024),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: AdminTheme.darkTheme.copyWith(
+            colorScheme: AdminTheme.darkTheme.colorScheme.copyWith(
+              primary: AdminColors.crimson,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       _selectedDate = picked;
@@ -245,6 +236,125 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
     }
     return buf.toString();
   }
+
+  Widget _buildErrorWidget(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: AdminColors.error, size: 48),
+            const SizedBox(height: 12),
+            const Text('Lỗi tải dữ liệu', style: TextStyle(color: AdminColors.error, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(error, textAlign: TextAlign.center, style: const TextStyle(color: AdminColors.textMuted, fontSize: 12)),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _loadStats,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Thử lại'),
+              style: FilledButton.styleFrom(backgroundColor: AdminColors.bgElevated, foregroundColor: AdminColors.textPrimary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMonthlyDetail(List<MapEntry<String, double>> dailyData) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: AdminColors.bgPrimary,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AdminColors.textMuted,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Text('Doanh thu tháng ${_selectedDate.month}',
+                        style: AdminText.h1),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: AdminColors.textSecondary),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    _ChartCard(
+                      title: 'Biểu đồ thu nhập tháng',
+                      child: SimpleLineChart(
+                        points: dailyData,
+                        lineColor: AdminColors.teal,
+                        textColor: AdminColors.textSecondary,
+                        gridColor: AdminColors.borderMuted,
+                        height: 180,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text('Bảng kê hàng ngày', 
+                      style: AdminText.h2),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AdminColors.bgCard,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AdminColors.borderDefault),
+                      ),
+                      child: Column(
+                        children: dailyData.reversed.map((e) => Column(
+                          children: [
+                            ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: AdminColors.teal.withValues(alpha: 0.15),
+                                child: Text(e.key, style: const TextStyle(color: AdminColors.teal, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
+                              title: Text('Ngày ${e.key}/${_selectedDate.month}', style: const TextStyle(color: AdminColors.textPrimary)),
+                              trailing: Text('${_fmtPrice(e.value)}đ', 
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AdminColors.gold)),
+                            ),
+                            if (dailyData.indexOf(e) != dailyData.length - 1) 
+                              Divider(height: 1, indent: 70, color: AdminColors.borderMuted),
+                          ],
+                        )).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Chart card wrapper ────────────────────────────────────────────────────────
@@ -256,21 +366,33 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            child,
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AdminColors.bgCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AdminColors.borderDefault),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 3, 
+                height: 16,
+                decoration: BoxDecoration(
+                  color: AdminColors.crimson,
+                  borderRadius: BorderRadius.circular(2),
+                )
+              ),
+              const SizedBox(width: 8),
+              Text(title, style: AdminText.h3),
+            ],
+          ),
+          const SizedBox(height: 20),
+          child,
+        ],
       ),
     );
   }
@@ -285,8 +407,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = _statusColor(status, cs);
+    final color = _statusColor(status);
     final label = _statusLabel(status);
 
     return Container(
@@ -313,13 +434,13 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-Color _statusColor(OrderStatus s, ColorScheme cs) => switch (s) {
-      OrderStatus.pending => Colors.orange,
-      OrderStatus.preparing => Colors.blue,
-      OrderStatus.ready => Colors.teal,
-      OrderStatus.served => Colors.purple,
-      OrderStatus.completed => Colors.green,
-      OrderStatus.cancelled => cs.error,
+Color _statusColor(OrderStatus s) => switch (s) {
+      OrderStatus.pending => AdminColors.warning,
+      OrderStatus.preparing => AdminColors.info,
+      OrderStatus.ready => AdminColors.teal,
+      OrderStatus.served => AdminColors.purple,
+      OrderStatus.completed => AdminColors.success,
+      OrderStatus.cancelled => AdminColors.error,
     };
 
 String _statusLabel(OrderStatus s) => switch (s) {

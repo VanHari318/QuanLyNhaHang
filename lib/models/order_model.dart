@@ -1,4 +1,4 @@
-// Model đơn hàng – Firestore collection: 'orders'
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dish_model.dart';
 
 enum OrderStatus { pending, preparing, ready, served, completed, cancelled }
@@ -72,7 +72,7 @@ class OrderModel {
     'location': location?.toMap(),
     'customerNote': customerNote,
     'paymentMethod': paymentMethod,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': Timestamp.fromDate(createdAt),
   };
 
   factory OrderModel.fromMap(Map<String, dynamic> map) {
@@ -111,7 +111,7 @@ class OrderModel {
         orElse: () => OrderStatus.pending,
       ),
       location: map['location'] != null
-          ? OrderLocation.fromMap(map['location'])
+          ? OrderLocation.fromMap(Map<String, dynamic>.from(map['location'] as Map))
           : null,
       customerNote: map['customerNote'],
       paymentMethod: map['paymentMethod'],
@@ -136,7 +136,7 @@ class OrderItem {
 
   factory OrderItem.fromMap(Map<String, dynamic> map) {
     return OrderItem(
-      dish: DishModel.fromMap(map['dish'] as Map<String, dynamic>),
+      dish: DishModel.fromMap(Map<String, dynamic>.from(map['dish'] as Map)),
       quantity: map['quantity'] ?? 1,
       note: map['note'],
     );

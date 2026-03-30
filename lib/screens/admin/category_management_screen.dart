@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/category_model.dart';
 import '../../services/database_service.dart';
+import '../../theme/admin_theme.dart';
 
-/// Màn hình quản lý danh mục – MD3
+/// Màn hình quản lý danh mục – Haidilao Premium Dark
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
 
@@ -18,12 +19,17 @@ class _CategoryManagementScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Quản Lý Danh Mục')),
+      backgroundColor: AdminColors.bgPrimary,
+      appBar: AppBar(
+        title: const Text('Quản Lý Danh Mục'),
+        backgroundColor: AdminColors.bgPrimary,
+        scrolledUnderElevation: 0,
+      ),
       body: StreamBuilder<List<CategoryModel>>(
         stream: _db.getCategories(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AdminColors.crimson));
           }
           final cats = snapshot.data!;
           if (cats.isEmpty) {
@@ -32,7 +38,7 @@ class _CategoryManagementScreenState
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: cats.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (_, i) => _CategoryTile(
               category: cats[i],
               onEdit: () => _showDialog(cats[i]),
@@ -42,27 +48,44 @@ class _CategoryManagementScreenState
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AdminColors.crimson,
+        foregroundColor: AdminColors.textPrimary,
         onPressed: () => _showDialog(null),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Thêm danh mục'),
+        label: const Text('Thêm danh mục', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
   Widget _emptyState(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.category_rounded, size: 64, color: cs.outlineVariant),
-        const SizedBox(height: 12),
-        Text('Chưa có danh mục', style: TextStyle(color: cs.onSurfaceVariant)),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          icon: const Icon(Icons.auto_awesome_rounded),
-          label: const Text('Tạo 4 danh mục mặc định'),
-          onPressed: _seedDefaults,
-        ),
-      ]),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, 
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AdminColors.bgElevated,
+              shape: BoxShape.circle,
+              border: Border.all(color: AdminColors.borderDefault),
+            ),
+            child: const Icon(Icons.category_rounded, size: 64, color: AdminColors.textMuted),
+          ),
+          const SizedBox(height: 24),
+          const Text('Chưa có danh mục nào', style: TextStyle(color: AdminColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AdminColors.teal,
+              foregroundColor: AdminColors.textPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            ),
+            icon: const Icon(Icons.auto_awesome_rounded),
+            label: const Text('Tạo 4 danh mục mặc định', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: _seedDefaults,
+          ),
+        ]
+      ),
     );
   }
 
@@ -74,15 +97,22 @@ class _CategoryManagementScreenState
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Xóa danh mục'),
-        content: Text('Xóa danh mục "${cat.name}"?'),
+        backgroundColor: AdminColors.bgCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AdminColors.borderDefault),
+        ),
+        title: Text('Xóa danh mục', style: AdminText.h1),
+        content: Text('Xóa vĩnh viễn danh mục "${cat.name}"?', style: const TextStyle(color: AdminColors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error),
+                backgroundColor: AdminColors.error,
+                foregroundColor: AdminColors.textPrimary),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa'),
+            child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -97,36 +127,58 @@ class _CategoryManagementScreenState
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(cat == null ? 'Thêm danh mục' : 'Sửa danh mục'),
+        backgroundColor: AdminColors.bgCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: AdminColors.borderDefault),
+        ),
+        title: Text(cat == null ? 'Thêm danh mục' : 'Sửa danh mục', style: AdminText.h1),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
             controller: idCtrl,
             enabled: cat == null,
-            decoration: const InputDecoration(
-              labelText: 'ID (vd: appetizer)',
-              prefixIcon: Icon(Icons.label_outline)),
+            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            decoration: _inputDeco('Mã ID (vd: appetizer)', Icons.label_outline),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           TextField(
             controller: nameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Tên hiển thị',
-              prefixIcon: Icon(Icons.title)),
+            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            decoration: _inputDeco('Tên hiển thị', Icons.title),
           ),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary))),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AdminColors.crimson,
+              foregroundColor: AdminColors.textPrimary,
+            ),
             onPressed: () async {
               if (idCtrl.text.isEmpty || nameCtrl.text.isEmpty) return;
               await _db.saveCategory(CategoryModel(
                   id: idCtrl.text.trim(), name: nameCtrl.text.trim()));
               if (mounted) Navigator.pop(context);
             },
-            child: Text(cat == null ? 'Thêm' : 'Lưu'),
+            child: Text(cat == null ? 'Thêm' : 'Lưu', style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
+    );
+  }
+
+  InputDecoration _inputDeco(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AdminColors.textSecondary),
+      prefixIcon: Icon(icon, color: AdminColors.textSecondary),
+      filled: true,
+      fillColor: AdminColors.bgElevated,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderDefault)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.crimson)),
+      disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AdminColors.borderMuted)),
     );
   }
 }
@@ -144,25 +196,53 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: ListTile(
-        leading: Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            color: cs.primaryContainer,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(Icons.category_rounded, color: cs.onPrimaryContainer),
+    return InkWell(
+      onTap: onEdit,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AdminColors.bgCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AdminColors.borderDefault),
         ),
-        title: Text(category.name,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('ID: ${category.id}'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            IconButton(icon: Icon(Icons.edit_rounded, color: cs.primary), onPressed: onEdit),
-            IconButton(icon: Icon(Icons.delete_outline_rounded, color: cs.error), onPressed: onDelete),
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: AdminColors.crimson.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.category_rounded, color: AdminColors.crimsonBright, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Text(category.name, style: AdminText.h3),
+                   const SizedBox(height: 2),
+                   Text('ID: ${category.id}', style: const TextStyle(color: AdminColors.textSecondary, fontSize: 13)),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded, color: AdminColors.teal, size: 20),
+                  onPressed: onEdit,
+                  style: IconButton.styleFrom(backgroundColor: AdminColors.bgElevated),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: AdminColors.error, size: 20),
+                  onPressed: onDelete,
+                  style: IconButton.styleFrom(backgroundColor: AdminColors.error.withValues(alpha: 0.1)),
+                ),
+              ],
+            ),
           ],
         ),
       ),

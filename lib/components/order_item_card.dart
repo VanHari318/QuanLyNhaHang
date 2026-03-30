@@ -1,88 +1,115 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/order_model.dart';
+import '../theme/admin_theme.dart';
 
-/// Compact order card for realtime feeds and order management lists.
+/// Compact dark order card – used in Admin Dashboard feed
 class OrderItemCard extends StatelessWidget {
   final OrderModel order;
-  final VoidCallback? onStatusTap;
   final VoidCallback? onTap;
 
-  const OrderItemCard({
-    super.key,
-    required this.order,
-    this.onStatusTap,
-    this.onTap,
-  });
+  const OrderItemCard({super.key, required this.order, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = _statusColor(order.status, cs);
-    final label = _statusLabel(order.status);
+    final bool isOnline = order.type == OrderType.online;
+    final Color statusColor = _statusColor(order.status);
+    final String shortId = order.id.length > 8
+        ? order.id.substring(order.id.length - 8)
+        : order.id;
 
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AdminColors.bgCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AdminColors.borderDefault, width: 1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
           child: Row(
             children: [
-              // Status icon
+              // ── Status indicator bar ──────────────────────────────────────
               Container(
-                width: 46,
-                height: 46,
+                width: 3,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(_statusIcon(order.status), color: color, size: 22),
-              ),
-              const SizedBox(width: 12),
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      order.type == OrderType.dine_in
-                          ? '🪑 ${order.tableId ?? "Bàn?"}'
-                          : '🛵 Giao hàng online',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${order.items.length} món  •  ${_formatPrice(order.totalPrice)}đ',
-                      style: TextStyle(
-                          color: cs.onSurfaceVariant, fontSize: 12),
-                    ),
-                    Text(
-                      _formatTime(order.createdAt),
-                      style: TextStyle(
-                          color: cs.onSurfaceVariant, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              // Status chip
-              GestureDetector(
-                onTap: onStatusTap,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: color.withValues(alpha: 0.4), width: 1),
+                  color: statusColor,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(14),
                   ),
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700),
+                ),
+              ),
+              // ── Content ──────────────────────────────────────────────────
+              Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      // Type icon
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isOnline
+                              ? AdminColors.info.withValues(alpha: 0.14)
+                              : AdminColors.crimsonSubtle,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isOnline
+                              ? Icons.delivery_dining_rounded
+                              : Icons.table_restaurant_rounded,
+                          size: 16,
+                          color: isOnline
+                              ? AdminColors.info
+                              : AdminColors.crimson,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Order info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isOnline
+                                  ? 'Online #$shortId'
+                                  : (order.tableId ?? 'Đơn chung'),
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AdminColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _formatTime(order.createdAt),
+                              style: AdminText.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Price + status pill
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${_fmtPrice(order.totalPrice)}đ',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AdminColors.gold,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          _StatusPill(order.status),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -93,7 +120,23 @@ class OrderItemCard extends StatelessWidget {
     );
   }
 
-  String _formatPrice(double p) {
+  Color _statusColor(OrderStatus s) => switch (s) {
+        OrderStatus.pending   => AdminColors.warning,
+        OrderStatus.preparing => AdminColors.info,
+        OrderStatus.ready     => AdminColors.teal,
+        OrderStatus.served    => AdminColors.purple,
+        OrderStatus.completed => AdminColors.success,
+        OrderStatus.cancelled => AdminColors.error,
+      };
+
+  String _formatTime(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    final d = '${dt.day}/${dt.month}/${dt.year}';
+    return '$h:$m · $d';
+  }
+
+  String _fmtPrice(double p) {
     final s = p.toInt().toString();
     final buf = StringBuffer();
     for (int i = 0; i < s.length; i++) {
@@ -102,35 +145,41 @@ class OrderItemCard extends StatelessWidget {
     }
     return buf.toString();
   }
-
-  String _formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  }
 }
 
-Color _statusColor(OrderStatus s, ColorScheme cs) => switch (s) {
-      OrderStatus.pending => Colors.orange,
-      OrderStatus.preparing => Colors.blue,
-      OrderStatus.ready => Colors.teal,
-      OrderStatus.served => Colors.purple,
-      OrderStatus.completed => Colors.green,
-      OrderStatus.cancelled => cs.error,
-    };
+/// Tiny pill badge for order status
+class _StatusPill extends StatelessWidget {
+  final OrderStatus status;
+  const _StatusPill(this.status);
 
-String _statusLabel(OrderStatus s) => switch (s) {
-      OrderStatus.pending => 'Chờ xử lý',
-      OrderStatus.preparing => 'Đang làm',
-      OrderStatus.ready => 'Sẵn sàng',
-      OrderStatus.served => 'Phục vụ xong',
-      OrderStatus.completed => 'Hoàn thành',
-      OrderStatus.cancelled => 'Đã hủy',
-    };
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = _data();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
 
-IconData _statusIcon(OrderStatus s) => switch (s) {
-      OrderStatus.pending => Icons.schedule_rounded,
-      OrderStatus.preparing => Icons.soup_kitchen_rounded,
-      OrderStatus.ready => Icons.room_service_rounded,
-      OrderStatus.served => Icons.check_circle_outline_rounded,
-      OrderStatus.completed => Icons.check_circle_rounded,
-      OrderStatus.cancelled => Icons.cancel_rounded,
-    };
+  (String, Color) _data() => switch (status) {
+        OrderStatus.pending   => ('CHỜ XỬ LÝ', AdminColors.warning),
+        OrderStatus.preparing => ('ĐANG LÀM', AdminColors.info),
+        OrderStatus.ready     => ('SẴN SÀNG', AdminColors.teal),
+        OrderStatus.served    => ('ĐÃ PHỤC VỤ', AdminColors.purple),
+        OrderStatus.completed => ('HOÀN THÀNH', AdminColors.success),
+        OrderStatus.cancelled => ('ĐÃ HỦY', AdminColors.error),
+      };
+}

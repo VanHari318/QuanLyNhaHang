@@ -3,6 +3,7 @@ import '../../models/dish_model.dart';
 import '../../models/category_model.dart';
 import '../../services/database_service.dart';
 import '../../models/recipe_model.dart';
+import '../../theme/admin_theme.dart';
 import 'recipe_editor_dialog.dart';
 
 class DishDetailDialog extends StatefulWidget {
@@ -47,18 +48,23 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final dish = widget.dish;
     final servings = _recipe?.servings ?? 1;
     final ingredients = _recipe?.ingredients ?? [];
 
     return AlertDialog(
+      backgroundColor: AdminColors.bgCard,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: AdminColors.borderDefault),
+      ),
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('Chi tiết món ăn'),
+          Text('Chi tiết món ăn', style: AdminText.h1),
           IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: const Icon(Icons.close_rounded, color: AdminColors.textSecondary),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -75,17 +81,22 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AdminColors.bgElevated,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AdminColors.borderDefault),
+                    ),
+                    clipBehavior: Clip.antiAlias,
                     child: dish.imageUrl.isNotEmpty
                         ? Image.network(
                             dish.imageUrl,
-                            width: 100,
-                            height: 100,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(cs),
+                            errorBuilder: (_, __, ___) => _placeholder(),
                           )
-                        : _placeholder(cs),
+                        : _placeholder(),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -94,23 +105,24 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                       children: [
                         Text(
                           dish.name,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                          style: AdminText.h2,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           '${_formatPrice(dish.price)} VNĐ',
-                          style: TextStyle(color: cs.primary, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: AdminText.h3.copyWith(color: AdminColors.gold),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: cs.primaryContainer,
+                            color: AdminColors.crimson.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AdminColors.crimson.withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             CategoryModel.labelOf(dish.category),
-                            style: TextStyle(color: cs.onPrimaryContainer, fontSize: 12),
+                            style: const TextStyle(color: AdminColors.crimsonBright, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -119,14 +131,14 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                 ],
               ),
               if (dish.description.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text('Mô tả:', style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
-                const SizedBox(height: 4),
-                Text(dish.description, style: TextStyle(color: cs.onSurfaceVariant)),
+                const SizedBox(height: 20),
+                const Text('Mô tả:', style: TextStyle(fontWeight: FontWeight.bold, color: AdminColors.textPrimary)),
+                const SizedBox(height: 6),
+                Text(dish.description, style: const TextStyle(color: AdminColors.textSecondary, height: 1.4)),
               ],
               
               const SizedBox(height: 24),
-              const Divider(),
+              const Divider(color: AdminColors.borderMuted),
               const SizedBox(height: 16),
               
               // Ingredients section
@@ -134,9 +146,12 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Expanded(
-                    child: Text('Công thức (1 suất)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: Text('Công thức (1 suất)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AdminColors.textPrimary)),
                   ),
                   TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AdminColors.gold,
+                    ),
                     icon: const Icon(Icons.edit_rounded, size: 18),
                     label: const Text('Sửa'),
                     onPressed: () async {
@@ -157,50 +172,47 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
               const SizedBox(height: 8),
               
               _isLoading
-                  ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                  ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: AdminColors.crimson)))
                   : ingredients.isEmpty
                       ? Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest,
+                            color: AdminColors.bgElevated,
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AdminColors.borderDefault),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Chưa có công thức nào được tạo.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: cs.onSurfaceVariant),
+                            style: TextStyle(color: AdminColors.textMuted),
                           ),
                         )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 8),
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: cs.outlineVariant),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: ingredients.length,
-                                separatorBuilder: (_, __) => Divider(height: 1, color: cs.outlineVariant),
-                                itemBuilder: (context, index) {
-                                  final ing = ingredients[index];
-                                  final qty = (ing.quantity / servings).toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
-                                  return ListTile(
-                                    dense: true,
-                                    title: Text(ing.name),
-                                    trailing: Text(
-                                      '$qty ${ing.unit}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                      : Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AdminColors.borderMuted),
+                            borderRadius: BorderRadius.circular(12),
+                            color: AdminColors.bgPrimary,
+                          ),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: ingredients.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1, color: AdminColors.borderMuted),
+                            itemBuilder: (context, index) {
+                              final ing = ingredients[index];
+                              final qty = (ing.quantity / servings).toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
+                              return ListTile(
+                                dense: true,
+                                title: Text(ing.name, style: const TextStyle(color: AdminColors.textPrimary)),
+                                trailing: Text(
+                                  '$qty ${ing.unit}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AdminColors.teal),
+                                ),
+                              );
+                            },
+                          ),
                         ),
             ],
           ),
@@ -209,12 +221,9 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
     );
   }
 
-  Widget _placeholder(ColorScheme cs) {
-    return Container(
-      width: 100,
-      height: 100,
-      color: cs.surfaceContainerHighest,
-      child: Icon(Icons.fastfood_rounded, color: cs.onSurfaceVariant, size: 40),
+  Widget _placeholder() {
+    return const Center(
+      child: Icon(Icons.fastfood_rounded, color: AdminColors.textMuted, size: 40),
     );
   }
 }

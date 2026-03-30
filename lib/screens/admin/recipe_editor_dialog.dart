@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/database_service.dart';
 import '../../providers/inventory_provider.dart';
 import '../../models/recipe_model.dart';
+import '../../theme/admin_theme.dart';
 
 class RecipeEditorDialog extends StatefulWidget {
   final String dishId;
@@ -41,11 +42,6 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
     }).toList();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   void _addIngredient() {
     setState(() {
       _ingredients.add({
@@ -64,7 +60,7 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
 
   Future<void> _save() async {
     // Luôn lưu với số suất là 1
-    final servings = 1;
+    const servings = 1;
     
     // Validate
     for (var ing in _ingredients) {
@@ -102,11 +98,16 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final inventoryItems = context.read<InventoryProvider>().items;
 
     return AlertDialog(
-      title: Text('Sửa công thức: ${widget.dishName}'),
+      backgroundColor: AdminColors.bgCard,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: AdminColors.borderDefault),
+      ),
+      title: Text('Sửa công thức: ${widget.dishName}', style: AdminText.h1),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: 600,
@@ -114,19 +115,20 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
         child: Column(
           children: [
             Container(
-               padding: const EdgeInsets.all(8),
+               padding: const EdgeInsets.all(12),
                decoration: BoxDecoration(
-                 color: cs.secondaryContainer.withOpacity(0.5),
-                 borderRadius: BorderRadius.circular(8),
+                 color: AdminColors.info.withValues(alpha: 0.1),
+                 borderRadius: BorderRadius.circular(12),
+                 border: Border.all(color: AdminColors.info.withValues(alpha: 0.3)),
                ),
-               child: Row(
+               child: const Row(
                  children: [
-                   Icon(Icons.info_outline_rounded, size: 16, color: cs.onSecondaryContainer),
-                   const SizedBox(width: 8),
+                   Icon(Icons.info_outline_rounded, size: 20, color: AdminColors.info),
+                   SizedBox(width: 12),
                    Expanded(
                      child: Text(
-                       'Gõ và chọn tên nguyên liệu từ kho. Nếu là nguyên liệu mới hoàn toàn, hệ thống sẽ tự động thêm vào kho (số lượng kho = 0).',
-                       style: TextStyle(fontSize: 12, color: cs.onSecondaryContainer),
+                       'Gõ và chọn tên nguyên liệu từ kho. Nếu là nguyên liệu mới hoàn toàn, hệ thống sẽ tự động thêm vào kho (khi lưu, số lượng kho = 0).',
+                       style: TextStyle(fontSize: 13, color: AdminColors.textSecondary, height: 1.3),
                      ),
                    ),
                  ],
@@ -135,42 +137,52 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
             const SizedBox(height: 16),
             Expanded(
               child: _ingredients.isEmpty
-                  ? Center(child: Text('Chưa có nguyên liệu nào.', style: TextStyle(color: cs.onSurfaceVariant)))
+                  ? const Center(child: Text('Chưa có nguyên liệu nào.', style: TextStyle(color: AdminColors.textMuted)))
                   : ListView.separated(
                       itemCount: _ingredients.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        return _buildIngredientRow(index, inventoryItems, cs);
+                        return _buildIngredientRow(index, inventoryItems);
                       },
                     ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextButton.icon(
+              style: TextButton.styleFrom(
+                backgroundColor: AdminColors.bgElevated,
+                foregroundColor: AdminColors.teal,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Thêm nguyên liệu'),
+              label: const Text('Thêm nguyên liệu', style: TextStyle(fontWeight: FontWeight.bold)),
               onPressed: _addIngredient,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
           ],
         ),
       ),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Hủy'),
+          child: const Text('Hủy', style: TextStyle(color: AdminColors.textSecondary)),
         ),
         FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: AdminColors.crimson,
+            foregroundColor: AdminColors.textPrimary,
+          ),
           icon: _isSaving 
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AdminColors.textPrimary))
               : const Icon(Icons.save_rounded, size: 18),
-          label: Text(_isSaving ? 'Đang lưu...' : 'Lưu công thức'),
+          label: Text(_isSaving ? 'Đang lưu...' : 'Lưu công thức', style: const TextStyle(fontWeight: FontWeight.bold)),
           onPressed: _isSaving ? null : _save,
         ),
       ],
     );
   }
 
-  Widget _buildIngredientRow(int index, List inventoryItems, ColorScheme cs) {
+  Widget _buildIngredientRow(int index, List inventoryItems) {
     final ing = _ingredients[index];
     
     // Format quantity cleanly (drop .0)
@@ -179,17 +191,17 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
     final qtyStr = qty == qty.toInt() ? qty.toInt().toString() : qty.toString();
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        color: AdminColors.bgElevated,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AdminColors.borderDefault),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
         Expanded(
-          flex: 3,
+          flex: 4,
           child: Autocomplete<String>(
             initialValue: TextEditingValue(text: ing['name']),
             optionsBuilder: (TextEditingValue textEditingValue) {
@@ -213,11 +225,17 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
               return TextField(
                 controller: controller,
                 focusNode: focusNode,
+                style: const TextStyle(color: AdminColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: 'Tên nguyên liệu',
+                  labelStyle: const TextStyle(color: AdminColors.textSecondary),
                   isDense: true,
                   hintText: 'Nhập hoặc chọn...',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  hintStyle: const TextStyle(color: AdminColors.textMuted),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+                  enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+                  focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.crimson), borderRadius: BorderRadius.circular(10)),
                 ),
                 onChanged: (val) {
                   _ingredients[index]['name'] = val;
@@ -226,44 +244,54 @@ class _RecipeEditorDialogState extends State<RecipeEditorDialog> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Expanded(
           flex: 2,
           child: TextFormField(
             key: ValueKey('qty-${index}-$qtyStr'),
             initialValue: qtyStr,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
+            style: const TextStyle(color: AdminColors.textPrimary, fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
               labelText: 'Định lượng',
+              labelStyle: const TextStyle(color: AdminColors.textSecondary),
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.crimson), borderRadius: BorderRadius.circular(10)),
             ),
             onChanged: (val) {
               _ingredients[index]['total_quantity'] = val;
             },
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Expanded(
           flex: 2,
           child: TextFormField(
             key: ValueKey('unit-${index}-${ing['unit']}'),
             initialValue: ing['unit']?.toString() ?? '',
-            decoration: const InputDecoration(
+            style: const TextStyle(color: AdminColors.textPrimary),
+            decoration: InputDecoration(
               labelText: 'Đơn vị',
+              labelStyle: const TextStyle(color: AdminColors.textSecondary),
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+              enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.borderMuted), borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AdminColors.crimson), borderRadius: BorderRadius.circular(10)),
             ),
             onChanged: (val) {
               _ingredients[index]['unit'] = val;
             },
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 8),
         Padding(
-          padding: const EdgeInsets.only(bottom: 2),
+          padding: const EdgeInsets.only(bottom: 4),
           child: IconButton(
-            icon: Icon(Icons.close_rounded, color: cs.error),
+            icon: const Icon(Icons.close_rounded, color: AdminColors.error),
             onPressed: () => _removeIngredient(index),
             tooltip: 'Xóa',
           ),

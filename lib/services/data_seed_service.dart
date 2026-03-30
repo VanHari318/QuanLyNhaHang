@@ -71,7 +71,6 @@ class DataSeedService {
                 if (inventoryMap.containsKey(ing.name)) {
                   double deductAmount = (ing.quantity / (recipe.servings ?? 1)) * qty;
                   
-                  // Unit conversion logic (must match DatabaseService)
                   final recipeUnit = ing.unit.toLowerCase().trim();
                   final stockUnit = inventoryUnitMap[ing.name] ?? '';
                   const kgUnits = ['kg', 'kí', 'kilogram', 'kilôgam', 'ký', 'kilo'];
@@ -91,15 +90,33 @@ class DataSeedService {
           }
 
           final orderTime = date.add(Duration(hours: 8 + _random.nextInt(13), minutes: _random.nextInt(60)));
+          final isOnline = _random.nextBool();
+          final hanoiAddresses = [
+            {'addr': '12 Phố Huế, Hai Bà Trưng, Hà Nội', 'lat': 21.0177, 'lng': 105.8504},
+            {'addr': '88 Cầu Giấy, Quan Hoa, Hà Nội', 'lat': 21.0333, 'lng': 105.8000},
+            {'addr': '1 Lê Thái Tổ, Hoàn Kiếm, Hà Nội', 'lat': 21.0285, 'lng': 105.8522},
+            {'addr': '144 Xuân Thủy, Cầu Giấy, Hà Nội', 'lat': 21.0372, 'lng': 105.7828},
+            {'addr': '54 Liễu Giai, Ba Đình, Hà Nội', 'lat': 21.0315, 'lng': 105.8115},
+            {'addr': '101 Láng Hạ, Đống Đa, Hà Nội', 'lat': 21.0150, 'lng': 105.8141},
+            {'addr': '210 Nghi Tàm, Tây Hồ, Hà Nội', 'lat': 21.0545, 'lng': 105.8285},
+            {'addr': '72 Nguyễn Trãi, Thanh Xuân, Hà Nội', 'lat': 21.0022, 'lng': 105.8123},
+          ];
+          final randomAddr = hanoiAddresses[_random.nextInt(hanoiAddresses.length)];
+
           mockOrders.add(OrderModel(
             id: orderId,
-            type: _random.nextBool() ? OrderType.dine_in : OrderType.online,
+            type: isOnline ? OrderType.online : OrderType.dine_in,
             items: items,
             totalPrice: orderTotal,
             status: OrderStatus.completed,
             createdAt: orderTime,
             paymentMethod: 'Tiền mặt',
-            tableId: 'Bàn ${_random.nextInt(10) + 1}',
+            tableId: isOnline ? null : 'Bàn ${_random.nextInt(10) + 1}',
+            location: isOnline ? OrderLocation(
+              lat: (randomAddr['lat'] as double) + (_random.nextDouble() - 0.5) * 0.01,
+              lng: (randomAddr['lng'] as double) + (_random.nextDouble() - 0.5) * 0.01,
+              address: randomAddr['addr'] as String,
+            ) : null,
           ));
           currentDailyRevenue += orderTotal;
         }
@@ -107,9 +124,8 @@ class DataSeedService {
 
       // 3. Batched Writes (Firestore limit: 500 per batch)
       onProgress('Đang tải dữ liệu lên Máy chủ (0%)...');
-      final firestore = DatabaseService().db; // access internal db for batch
+      final firestore = DatabaseService().db;
       
-      // Save Orders
       for (int i = 0; i < mockOrders.length; i += 400) {
         final batch = firestore.batch();
         final chunk = mockOrders.skip(i).take(400);
@@ -120,7 +136,6 @@ class DataSeedService {
         await batch.commit();
       }
 
-      // Save Inventory Updates
       onProgress('Đang cập nhật kho hàng...');
       final invBatch = firestore.batch();
       inventoryMap.forEach((name, qty) {
@@ -134,6 +149,66 @@ class DataSeedService {
       onComplete('Thành công! Đã sinh ${mockOrders.length} đơn hàng và cập nhật kho.');
     } catch (e) {
       onError('Lỗi: $e');
+    }
+  }
+
+  /// Chỉ cập nhật địa chỉ cho các đơn Online Mock có sẵn
+  Future<void> updateMockOnlineAddresses({
+    required Function(String) onProgress,
+    required Function(String) onComplete,
+    required Function(String) onError,
+  }) async {
+    try {
+      onProgress('Đang tìm kiếm đơn hàng Mock Online...');
+      final firestore = DatabaseService().db;
+      final snap = await firestore.collection('orders')
+          .where('type', isEqualTo: OrderType.online.name)
+          .get();
+
+      final mockOnlineOrders = snap.docs.where((d) => d.id.startsWith('MOCK_')).toList();
+      if (mockOnlineOrders.isEmpty) {
+        onComplete('Không tìm thấy đơn hàng Mock Online nào để cập nhật.');
+        return;
+      }
+
+      onProgress('Tìm thấy ${mockOnlineOrders.length} đơn. Đang chuẩn bị địa chỉ...');
+      final hanoiAddresses = [
+        {'addr': '12 Phố Huế, Hai Bà Trưng, Hà Nội', 'lat': 21.0177, 'lng': 105.8504},
+        {'addr': '88 Cầu Giấy, Quan Hoa, Hà Nội', 'lat': 21.0333, 'lng': 105.8000},
+        {'addr': '1 Lê Thái Tổ, Hoàn Kiếm, Hà Nội', 'lat': 21.0285, 'lng': 105.8522},
+        {'addr': '144 Xuân Thủy, Cầu Giấy, Hà Nội', 'lat': 21.0372, 'lng': 105.7828},
+        {'addr': '54 Liễu Giai, Ba Đình, Hà Nội', 'lat': 21.0315, 'lng': 105.8115},
+        {'addr': '101 Láng Hạ, Đống Đa, Hà Nội', 'lat': 21.0150, 'lng': 105.8141},
+        {'addr': '210 Nghi Tàm, Tây Hồ, Hà Nội', 'lat': 21.0545, 'lng': 105.8285},
+        {'addr': '72 Nguyễn Trãi, Thanh Xuân, Hà Nội', 'lat': 21.0022, 'lng': 105.8123},
+      ];
+
+      final batch = firestore.batch();
+      int count = 0;
+      for (var doc in mockOnlineOrders) {
+        final data = doc.data();
+        if (data['location'] == null || (data['location']['address'] ?? '').isEmpty) {
+          final randomAddr = hanoiAddresses[_random.nextInt(hanoiAddresses.length)];
+          batch.update(doc.reference, {
+            'location': {
+              'lat': (randomAddr['lat'] as double) + (_random.nextDouble() - 0.5) * 0.01,
+              'lng': (randomAddr['lng'] as double) + (_random.nextDouble() - 0.5) * 0.01,
+              'address': randomAddr['addr'] as String,
+            }
+          });
+          count++;
+        }
+      }
+
+      if (count > 0) {
+        onProgress('Đang gửi dữ liệu cập nhật ($count đơn)...');
+        await batch.commit();
+        onComplete('Thành công! Đã cập nhật địa chỉ cho $count đơn hàng Mock Online.');
+      } else {
+        onComplete('Tất cả đơn hàng Mock Online đã có địa chỉ đầy đủ.');
+      }
+    } catch (e) {
+      onError('Lỗi cập nhật: $e');
     }
   }
 }
