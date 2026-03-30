@@ -49,7 +49,7 @@ class AuthProvider with ChangeNotifier {
     return result != null;
   }
 
-  Future<void> updateProfile({String? name, String? phoneNumber}) async {
+  Future<void> updateProfile({String? name, String? phoneNumber, String? imageUrl}) async {
     if (_user == null) return;
     
     final updatedUser = UserModel(
@@ -57,7 +57,7 @@ class AuthProvider with ChangeNotifier {
       name: name ?? _user!.name,
       email: _user!.email,
       role: _user!.role,
-      imageUrl: _user!.imageUrl,
+      imageUrl: imageUrl ?? _user!.imageUrl,
       phoneNumber: phoneNumber ?? _user!.phoneNumber,
     );
     

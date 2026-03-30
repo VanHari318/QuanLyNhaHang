@@ -5,6 +5,7 @@ import '../../providers/order_provider.dart';
 import '../../models/order_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/logout_helper.dart';
+import '../profile/profile_screen.dart';
 
 /// Màn hình bếp – dùng OrderModel API mới (item.dish thay item.foodItem)
 class KitchenScreen extends StatelessWidget {
@@ -32,6 +33,13 @@ class KitchenScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(context))
             : null,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: () => LogoutHelper.showLogoutDialog(context),

@@ -9,6 +9,7 @@ import '../../models/order_model.dart';
 import 'ordering_screen.dart';
 import '../active_table_dialog.dart';
 import '../../utils/logout_helper.dart';
+import '../profile/profile_screen.dart';
 
 /// Màn hình chọn bàn cho waiter – dùng table.name (thay table.number)
 class TableSelectionScreen extends StatelessWidget {
@@ -31,6 +32,13 @@ class TableSelectionScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(context))
             : null,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: () => LogoutHelper.showLogoutDialog(context),

@@ -7,6 +7,7 @@ import '../../models/order_model.dart';
 import '../../models/table_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/logout_helper.dart';
+import '../profile/profile_screen.dart';
 
 /// Màn hình thu ngân – dùng OrderModel API mới (dish thay foodItem, tableId thay tableNumber)
 class CashierScreen extends StatelessWidget {
@@ -33,6 +34,13 @@ class CashierScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(context))
             : null,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: () => LogoutHelper.showLogoutDialog(context),
