@@ -81,7 +81,14 @@ Future<String> _enqueueNominatim(OrderLocation loc, String key) async {
 
 /// Màn hình quản lý đơn hàng – Giao diện 1 Tab với lưới Lọc Trạng Thái
 class OrderManagementScreen extends StatefulWidget {
-  const OrderManagementScreen({super.key});
+  final OrderStatus? initialStatus;
+  final DateTime? initialDate;
+
+  const OrderManagementScreen({
+    super.key,
+    this.initialStatus,
+    this.initialDate,
+  });
 
   @override
   State<OrderManagementScreen> createState() => _OrderManagementScreenState();
@@ -89,8 +96,16 @@ class OrderManagementScreen extends StatefulWidget {
 
 class _OrderManagementScreenState extends State<OrderManagementScreen> {
   final _db = DatabaseService();
-  OrderStatus? _selectedStatus; // null = "Tất cả"
+  late OrderStatus? _selectedStatus; // null = "Tất cả"
+  late DateTime? _selectedDate;     // null = "Tất cả"
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedStatus = widget.initialStatus;
+    _selectedDate = widget.initialDate;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +135,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 hintText: 'Tìm theo mã đơn hoặc bàn số...',
                 prefixIcon: const Icon(Icons.search_rounded),
                 filled: true,
-                fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                fillColor: cs.surfaceContainerHighest.withOpacity(0.5),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -131,26 +146,63 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
             ),
           ),
           
-          // Thanh lọc trạng thái ngang
-          SizedBox(
-            height: 52,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _buildFilterChip(null, 'Tất cả'),
-                const SizedBox(width: 8),
-                _buildFilterChip(OrderStatus.pending, 'Chờ xử lý', Colors.orange),
-                const SizedBox(width: 8),
-                _buildFilterChip(OrderStatus.preparing, 'Đang làm', Colors.blue),
-                const SizedBox(width: 8),
-                _buildFilterChip(OrderStatus.ready, 'Sẵn sàng', Colors.teal),
-                const SizedBox(width: 8),
-                _buildFilterChip(OrderStatus.completed, 'Hoàn thành', Colors.green),
-                const SizedBox(width: 8),
-                _buildFilterChip(OrderStatus.cancelled, 'Đã hủy', cs.error),
-              ],
-            ),
+          // Thanh lọc trạng thái và ngày
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _buildFilterChip(null, 'Tất cả'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(OrderStatus.pending, 'Chờ xử lý', Colors.orange),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(OrderStatus.preparing, 'Đang làm', Colors.blue),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(OrderStatus.ready, 'Sẵn sàng', Colors.teal),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(OrderStatus.completed, 'Hoàn thành', Colors.green),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(OrderStatus.cancelled, 'Đã hủy', cs.error),
+                    ],
+                  ),
+                ),
+              ),
+              // Nút lọc ngày
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: IntrinsicWidth(
+                  child: ActionChip(
+                    avatar: Icon(
+                      _selectedDate == null ? Icons.calendar_today_rounded : Icons.event_available_rounded,
+                      size: 18,
+                      color: _selectedDate == null ? cs.onSurfaceVariant : Colors.white,
+                    ),
+                    label: Text(_selectedDate == null ? 'Ngày' : '${_selectedDate!.day}/${_selectedDate!.month}'),
+                    onPressed: () => _selectDate(context),
+                    backgroundColor: _selectedDate == null ? cs.surfaceContainerHighest : cs.primary,
+                    labelStyle: TextStyle(
+                      color: _selectedDate == null ? cs.onSurfaceVariant : Colors.white,
+                      fontWeight: _selectedDate == null ? FontWeight.w500 : FontWeight.w700,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    side: BorderSide(color: _selectedDate == null ? cs.outlineVariant.withOpacity(0.5) : cs.primary),
+                  ),
+                ),
+              ),
+              if (_selectedDate != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 20),
+                    onPressed: () => setState(() => _selectedDate = null),
+                    tooltip: 'Xóa lọc ngày',
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           
@@ -164,6 +216,15 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                 }
                 var orders = snapshot.data!;
                 
+                // Lọc thêm theo ngày nếu có
+                if (_selectedDate != null) {
+                  orders = orders.where((o) {
+                    return o.createdAt.year == _selectedDate!.year &&
+                           o.createdAt.month == _selectedDate!.month &&
+                           o.createdAt.day == _selectedDate!.day;
+                  }).toList();
+                }
+
                 // Lọc thêm theo chuỗi tìm kiếm nếu có
                 if (_searchQuery.isNotEmpty) {
                   orders = orders.where((o) {
@@ -180,7 +241,9 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                         Icon(Icons.inbox_rounded, size: 64, color: cs.outlineVariant),
                         const SizedBox(height: 12),
                         Text(
-                          _selectedStatus == null ? 'Không có đơn hàng nào' : 'Không có đơn (${_statusLabel(_selectedStatus!)})',
+                          _selectedStatus == null && _selectedDate == null 
+                            ? 'Không có đơn hàng nào' 
+                            : 'Không tìm thấy đơn hàng phù hợp',
                           style: TextStyle(color: cs.onSurfaceVariant, fontSize: 16),
                         ),
                       ],
@@ -227,9 +290,32 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: isSelected ? BorderSide(color: color) : BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        side: isSelected ? BorderSide(color: color) : BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
       ),
     );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2023),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      locale: const Locale('vi', 'VN'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+    }
   }
 }
 
@@ -255,12 +341,12 @@ class _FullOrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: cs.shadow.withValues(alpha: 0.05),
+            color: cs.shadow.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
         ],
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.3)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -271,8 +357,8 @@ class _FullOrderCard extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  statusColor.withValues(alpha: 0.15),
-                  statusColor.withValues(alpha: 0.02),
+                  statusColor.withOpacity(0.15),
+                  statusColor.withOpacity(0.02),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -284,7 +370,7 @@ class _FullOrderCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (isOnline ? cs.secondary : cs.primary).withValues(alpha: 0.1),
+                    color: (isOnline ? cs.secondary : cs.primary).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -337,7 +423,7 @@ class _FullOrderCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: statusColor.withValues(alpha: 0.3),
+                        color: statusColor.withOpacity(0.3),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       )

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../services/database_service.dart';
 import '../../providers/inventory_provider.dart';
 import '../../models/inventory_model.dart';
 import '../../components/inventory_item_card.dart';
@@ -42,7 +43,7 @@ class _InventoryBodyState extends State<_InventoryBody>
     final inv = context.watch<InventoryProvider>();
     final cs = Theme.of(context).colorScheme;
 
-    final lowItems = inv.items.where((i) => _isLow(i)).toList();
+    final lowItems = inv.items.where((i) => inv.isLow(i)).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -70,12 +71,14 @@ class _InventoryBodyState extends State<_InventoryBody>
             onImport: (item) => _showAdjustDialog(context, item, isImport: true),
             onExport: (item) => _showAdjustDialog(context, item, isImport: false),
             onDelete: (item) => _confirmDelete(context, item, inv),
+            isLowBuilder: (item) => inv.isLow(item),
           ),
           _ItemList(
             items: lowItems,
             onImport: (item) => _showAdjustDialog(context, item, isImport: true),
             onExport: (item) => _showAdjustDialog(context, item, isImport: false),
             onDelete: (item) => _confirmDelete(context, item, inv),
+            isLowBuilder: (item) => true,
             emptyLabel: '✅ Kho đủ hàng, không có mặt hàng sắp hết!',
           ),
         ],
@@ -118,15 +121,9 @@ class _InventoryBodyState extends State<_InventoryBody>
   }
 
 
-  bool _isLow(InventoryModel item) =>
-      item.maxQuantity > 0
-          ? item.quantity < item.maxQuantity * 0.2
-          : item.quantity < 5;
-
   void _showAddDialog(BuildContext context) {
     final nameCtrl = TextEditingController();
     final qtyCtrl = TextEditingController(text: '0');
-    final maxQtyCtrl = TextEditingController();
     final unitCtrl = TextEditingController();
 
     showDialog(
@@ -150,15 +147,6 @@ class _InventoryBodyState extends State<_InventoryBody>
           ),
           const SizedBox(height: 10),
           TextField(
-            controller: maxQtyCtrl,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-                labelText: 'Số lượng tối đa (để tính %)',
-                prefixIcon: Icon(Icons.exposure_rounded),
-                hintText: 'Để trống = không giới hạn'),
-          ),
-          const SizedBox(height: 10),
-          TextField(
             controller: unitCtrl,
             decoration: const InputDecoration(
                 labelText: 'Đơn vị (kg, lít, cái...)',
@@ -172,14 +160,13 @@ class _InventoryBodyState extends State<_InventoryBody>
           FilledButton(
             onPressed: () async {
               if (nameCtrl.text.isEmpty) return;
-              final qty = double.tryParse(qtyCtrl.text) ?? 0;
-              final maxQty = double.tryParse(maxQtyCtrl.text) ?? 0;
+              final qty = DatabaseService.parseVnNum(qtyCtrl.text);
               final item = InventoryModel(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
                 name: nameCtrl.text.trim(),
                 quantity: qty,
                 unit: unitCtrl.text.trim(),
-                maxQuantity: maxQty > 0 ? maxQty : qty * 5, // default: 5× initial
+                maxQuantity: 0,
               );
               await context.read<InventoryProvider>().addItem(item);
               if (context.mounted) Navigator.pop(context);
@@ -233,7 +220,7 @@ class _InventoryBodyState extends State<_InventoryBody>
                   : Theme.of(context).colorScheme.error,
             ),
             onPressed: () async {
-              final qty = double.tryParse(qtyCtrl.text) ?? 0;
+              final qty = DatabaseService.parseVnNum(qtyCtrl.text);
               if (qty <= 0) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -273,6 +260,7 @@ class _ItemList extends StatelessWidget {
   final void Function(InventoryModel) onImport;
   final void Function(InventoryModel) onExport;
   final void Function(InventoryModel) onDelete;
+  final bool Function(InventoryModel) isLowBuilder;
   final String emptyLabel;
 
   const _ItemList({
@@ -280,6 +268,7 @@ class _ItemList extends StatelessWidget {
     required this.onImport,
     required this.onExport,
     required this.onDelete,
+    required this.isLowBuilder,
     this.emptyLabel = 'Kho trống',
   });
 
@@ -305,12 +294,16 @@ class _ItemList extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 4),
-      itemBuilder: (_, i) => InventoryItemCard(
-        item: items[i],
-        onImport: () => onImport(items[i]),
-        onExport: () => onExport(items[i]),
-        onDelete: () => onDelete(items[i]),
-      ),
+      itemBuilder: (_, i) {
+        final item = items[i];
+        return InventoryItemCard(
+          item: item,
+          isLow: isLowBuilder(item),
+          onImport: () => onImport(item),
+          onExport: () => onExport(item),
+          onDelete: () => onDelete(item),
+        );
+      },
     );
   }
 }

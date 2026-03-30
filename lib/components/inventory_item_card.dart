@@ -4,6 +4,7 @@ import '../models/inventory_model.dart';
 /// Inventory row card with low-stock detection at < 20% of maxQuantity.
 class InventoryItemCard extends StatelessWidget {
   final InventoryModel item;
+  final bool isLow;
   final VoidCallback? onImport;
   final VoidCallback? onExport;
   final VoidCallback? onDelete;
@@ -11,6 +12,7 @@ class InventoryItemCard extends StatelessWidget {
   const InventoryItemCard({
     super.key,
     required this.item,
+    this.isLow = false,
     this.onImport,
     this.onExport,
     this.onDelete,
@@ -19,16 +21,10 @@ class InventoryItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isLow = item.maxQuantity > 0
-        ? item.quantity < item.maxQuantity * 0.2
-        : item.quantity < 5;
-    final percent = item.maxQuantity > 0
-        ? (item.quantity / item.maxQuantity).clamp(0.0, 1.0)
-        : null;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -36,19 +32,19 @@ class InventoryItemCard extends StatelessWidget {
               children: [
                 // Icon
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: isLow ? cs.errorContainer : cs.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
+                    color: isLow ? cs.errorContainer : cs.primaryContainer.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     Icons.inventory_2_rounded,
-                    color: isLow ? cs.onErrorContainer : cs.onPrimaryContainer,
-                    size: 22,
+                    color: isLow ? cs.onErrorContainer : cs.primary,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 // Name & quantity
                 Expanded(
                   child: Column(
@@ -60,20 +56,20 @@ class InventoryItemCard extends StatelessWidget {
                             child: Text(
                               item.name,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 14),
+                                  fontWeight: FontWeight.w700, fontSize: 15),
                             ),
                           ),
                           if (isLow)
                             _LowStockBadge(cs: cs),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
-                        '${_formatQty(item.quantity)} ${item.unit}',
+                        'Số lượng: ${_formatQty(item.quantity)} ${item.unit}',
                         style: TextStyle(
                           color: isLow ? cs.error : cs.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -106,35 +102,6 @@ class InventoryItemCard extends StatelessWidget {
                 ),
               ],
             ),
-            // Stock progress bar
-            if (percent != null) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: percent,
-                        minHeight: 6,
-                        backgroundColor: cs.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation(
-                            isLow ? cs.error : cs.primary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${(percent * 100).toInt()}%',
-                    style: TextStyle(
-                      color: isLow ? cs.error : cs.onSurfaceVariant,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       ),
@@ -142,9 +109,7 @@ class InventoryItemCard extends StatelessWidget {
   }
 
   String _formatQty(double qty) {
-    return qty == qty.roundToDouble()
-        ? qty.toInt().toString()
-        : qty.toStringAsFixed(1);
+    return qty.toStringAsFixed(2);
   }
 }
 
@@ -173,6 +138,7 @@ class _LowStockBadgeState extends State<_LowStockBadge>
 
   @override
   void dispose() {
+    _ctrl.dispose();
     _ctrl.dispose();
     super.dispose();
   }

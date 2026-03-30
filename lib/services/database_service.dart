@@ -12,6 +12,7 @@ import 'dart:math' as math;
 /// Lớp service tương tác với Firestore – project: quan-ly-nha-hang-20f37
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirebaseFirestore get db => _db;
 
   // ─── COLLECTION REFERENCES ──────────────────────────────────────────────────
 
@@ -243,38 +244,57 @@ class DatabaseService {
       final dishId = item.dish.id;
       final qty = item.quantity;
       
-      // 1. Lấy công thức nấu 100 suất
+      // 1. Lấy công thức nấu
       final recipeDoc = await _bulkIngredients.doc(dishId).get();
       if (!recipeDoc.exists) continue;
       
       final recipeData = recipeDoc.data()!;
-      final servings = (recipeData['servings'] as num?)?.toInt() ?? 100;
+      final servings = (recipeData['servings'] as num?)?.toDouble() ?? 100.0;
       final ingredients = recipeData['ingredients'] as List<dynamic>? ?? [];
       
       // 2. Tính lượng nguyên liệu trừ đi và update inventory
       for (final ing in ingredients) {
         final name = ing['name'] as String;
-        final totalNeeded100 = (ing['total_quantity'] as num).toDouble();
-        final unitStr = ing['unit'] as String;
+        final totalQuantityInRecipe = (ing['total_quantity'] as num).toDouble();
+        final unitInRecipe = (ing['unit'] as String? ?? '').toLowerCase().trim();
         
-        // Tính định mức 1 suất -> nhân với số lượng đặt
-        double deductAmount = (totalNeeded100 / servings) * qty;
+        // Tính định mức cho số lượng đặt: (tổng lượng trong CT / số suất của CT) * số lượng khách đặt
+        double deductAmount = (totalQuantityInRecipe / servings) * qty;
         
-        // Quy đổi sang kg/lít nếu nguyên liệu dùng đơn vị > 1000g/ml
-        if (totalNeeded100 >= 1000 && (unitStr == 'g' || unitStr == 'ml')) {
-          deductAmount = deductAmount / 1000;
-        }
-
         // 3. Tìm nguyên liệu thực tế trong kho (theo tên chuẩn xác)
         final invQuery = await _inventory.where('name', isEqualTo: name).limit(1).get();
         if (invQuery.docs.isNotEmpty) {
           final invDoc = invQuery.docs.first;
-          final currentQty = (invDoc.data()['quantity'] as num).toDouble();
+          final currentQtyInStock = (invDoc.data()['quantity'] as num? ?? 0).toDouble();
+          final unitInStock = (invDoc.data()['unit'] as String? ?? '').toLowerCase().trim();
           
-          final newQty = currentQty - deductAmount;
+          // 4. Quy đổi đơn vị THÔNG MINH
+          const kgUnits = ['kg', 'kí', 'kilogram', 'kilôgam', 'ký', 'kilo'];
+          const gUnits = ['g', 'gam', 'gram'];
+          const lUnits = ['lít', 'lit', 'l', 'litre', 'liter'];
+          const mlUnits = ['ml', 'mililit', 'milliliter', 'mili'];
+
+          // Nếu công thức dùng G/GAM nhưng kho dùng KG/KÍ -> chia 1000
+          if (gUnits.contains(unitInRecipe) && kgUnits.contains(unitInStock)) {
+            deductAmount = deductAmount / 1000;
+          }
+          // Nếu công thức dùng ML nhưng kho dùng LÍT -> chia 1000
+          else if (mlUnits.contains(unitInRecipe) && lUnits.contains(unitInStock)) {
+            deductAmount = deductAmount / 1000;
+          }
+          // Trường hợp ngược lại: Kho dùng G nhưng công thức dùng KG -> nhân 1000
+          else if (kgUnits.contains(unitInRecipe) && gUnits.contains(unitInStock)) {
+            deductAmount = deductAmount * 1000;
+          }
+          // Kho dùng ML nhưng công thức dùng LÍT -> nhân 1000
+          else if (lUnits.contains(unitInRecipe) && mlUnits.contains(unitInStock)) {
+            deductAmount = deductAmount * 1000;
+          }
+
+          final newQty = currentQtyInStock - deductAmount;
           batch.update(invDoc.reference, {'quantity': newQty < 0 ? 0 : newQty});
           
-          // 4. Ghi log tự động xuất kho
+          // 5. Ghi log tự động xuất kho
           final logId = DateTime.now().millisecondsSinceEpoch.toString() + '_' + invDoc.id + '_' + math.Random().nextInt(100).toString();
           final log = InventoryLogModel(
              id: logId,
@@ -282,7 +302,7 @@ class DatabaseService {
              itemName: name,
              type: InventoryLogType.export,
              quantity: deductAmount,
-             note: 'Auto xuất món ${item.dish.name} (SL: $qty)'
+             note: 'Auto xuất cho món ${item.dish.name} (SL: $qty). Trừ $deductAmount $unitInStock.'
           );
           batch.set(_invLogs.doc(logId), log.toMap());
         }
@@ -358,6 +378,13 @@ class DatabaseService {
   Future<void> deleteRecipe(String dishId) async {
     await _bulkIngredients.doc(dishId).delete();
   }
+  Future<Map<String, DishRecipeModel>> getAllDishRecipes() async {
+    final snap = await _bulkIngredients.get();
+    return {
+      for (var doc in snap.docs)
+        doc.id: DishRecipeModel.fromMap(doc.data())
+    };
+  }
 
   // ─── CHATBOT ─────────────────────────────────────────────────────────────────
 
@@ -384,16 +411,37 @@ class DatabaseService {
         .get();
 
     double total = 0;
-    for (final doc in snap.docs) {
-      try {
-        final order = OrderModel.fromMap(doc.data());
-        final d = order.createdAt;
-        if (d.year == date.year && d.month == date.month && d.day == date.day) {
-          total += order.totalPrice;
-        }
-      } catch (_) {}
+    for (var doc in snap.docs) {
+      final order = OrderModel.fromMap(doc.data());
+      if (order.createdAt.year == date.year &&
+          order.createdAt.month == date.month &&
+          order.createdAt.day == date.day) {
+        total += order.totalPrice;
+      }
     }
     return total;
+  }
+
+  /// Bộ phân tích số thông minh (Ưu tiên chấm là thập phân theo yêu cầu 100.00)
+  static double parseVnNum(String text) {
+    String t = text.trim();
+    if (t.isEmpty) return 0;
+
+    // Nếu gõ kiểu 1.000,50 -> Chuyển thành 1000.50
+    if (t.contains('.') && t.contains(',')) {
+      t = t.replaceAll('.', '').replaceAll(',', '.');
+    } else if (t.contains(',')) {
+      // Nếu chỉ có dấu phẩy (1,5 hoặc 1,000)
+      // Theo yêu cầu mới dot là thập phân, nên ta vẫn hỗ trợ phẩy là thập phân nếu chỉ có 1 dấu
+      t = t.replaceAll(',', '.');
+    }
+
+    // Nếu lúc này vẫn còn nhiều dấu chấm (1.000.000) -> Coi là ngăn cách hàng nghìn
+    if ('.'.allMatches(t).length > 1) {
+      t = t.replaceAll('.', '');
+    }
+
+    return double.tryParse(t) ?? 0;
   }
 
   /// Top 5 món bán chạy (đếm tần suất xuất hiện trong orders completed)

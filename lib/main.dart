@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/menu_provider.dart';
@@ -61,7 +62,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,
-        textTheme: GoogleFonts.montserratTextTheme(),
+        textTheme: GoogleFonts.interTextTheme(),
 
         // AppBar – MD3 uses surface as default background
         appBarTheme: AppBarTheme(
@@ -76,7 +77,7 @@ class MyApp extends StatelessWidget {
         // Card – Haidilao Style: High rounded corners
         cardTheme: CardThemeData(
           elevation: 2,
-          shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
+          shadowColor: colorScheme.shadow.withOpacity(0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           clipBehavior: Clip.antiAlias,
           color: colorScheme.surface,
@@ -107,14 +108,14 @@ class MyApp extends StatelessWidget {
             minimumSize: const Size(0, 54),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             elevation: 2,
-            shadowColor: colorScheme.shadow.withValues(alpha: 0.2),
+            shadowColor: colorScheme.shadow.withOpacity(0.2),
           ),
         ),
 
         // InputDecoration – Premium Rounded style
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          fillColor: colorScheme.surfaceContainerHighest.withOpacity(0.5),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(28),
             borderSide: BorderSide.none,
@@ -171,9 +172,19 @@ class MyApp extends StatelessWidget {
         dividerTheme: DividerThemeData(
           space: 24, 
           thickness: 1, 
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+          color: colorScheme.outlineVariant.withOpacity(0.3),
         ),
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('vi', 'VN'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('vi', 'VN'),
       home: const _RouterEntry(),
     );
   }

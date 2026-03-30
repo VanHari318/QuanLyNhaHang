@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../providers/inventory_provider.dart';
 import '../../models/dish_model.dart';
 import '../../models/order_model.dart';
 import '../../models/category_model.dart';
@@ -349,7 +350,6 @@ class _BrowsePrompt extends StatelessWidget {
     );
   }
 }
-
 class _MenuTab extends StatelessWidget {
   final bool canOrder;
   final String selectedCategory;
@@ -364,6 +364,7 @@ class _MenuTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final menuProvider = context.watch<MenuProvider>();
+    final inventory = context.watch<InventoryProvider>().items;
     final cart = context.watch<CartProvider>();
     final cs = Theme.of(context).colorScheme;
 
@@ -420,12 +421,14 @@ class _MenuTab extends StatelessWidget {
                   itemBuilder: (_, i) {
                     final dish = dishes[i];
                     final qty = cart.items[dish] ?? 0;
+                    final isOutOfStock = menuProvider.isOutOfStock(dish.id, inventory);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _DishCard(
                         dish: dish, 
                         qty: qty, 
-                        canOrder: canOrder, 
+                        isOutOfStock: isOutOfStock,
+                        canOrder: canOrder && !isOutOfStock, 
                         onAdd: () => cart.addItem(dish), 
                         onRemove: () => cart.removeItem(dish)
                       ),
@@ -441,6 +444,7 @@ class _MenuTab extends StatelessWidget {
 class _DishCard extends StatelessWidget {
   final DishModel dish;
   final int qty;
+  final bool isOutOfStock;
   final bool canOrder;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
@@ -448,6 +452,7 @@ class _DishCard extends StatelessWidget {
   const _DishCard({
     required this.dish,
     required this.qty,
+    required this.isOutOfStock,
     required this.canOrder,
     required this.onAdd,
     required this.onRemove,
@@ -471,10 +476,15 @@ class _DishCard extends StatelessWidget {
               tag: 'dish_${dish.id}',
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: dish.imageUrl.isNotEmpty
-                    ? Image.network(dish.imageUrl, width: 90, height: 90, fit: BoxFit.cover, 
-                        errorBuilder: (_, __, ___) => _imgPlaceholder(cs))
-                    : _imgPlaceholder(cs),
+                child: ColorFiltered(
+                  colorFilter: isOutOfStock 
+                    ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
+                    : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                  child: dish.imageUrl.isNotEmpty
+                      ? Image.network(dish.imageUrl, width: 90, height: 90, fit: BoxFit.cover, 
+                          errorBuilder: (_, __, ___) => _imgPlaceholder(cs))
+                      : _imgPlaceholder(cs),
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -485,8 +495,18 @@ class _DishCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
-                    Expanded(child: Text(dish.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                    if (dish.isBestSeller) 
+                    Expanded(child: Text(dish.name, style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16,
+                      color: isOutOfStock ? cs.outline : null,
+                    ))),
+                    if (isOutOfStock)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(6)),
+                        child: Text('Hết món', style: TextStyle(color: cs.onErrorContainer, fontSize: 10, fontWeight: FontWeight.bold)),
+                      )
+                    else if (dish.isBestSeller) 
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
@@ -495,13 +515,13 @@ class _DishCard extends StatelessWidget {
                   ]),
                   if (dish.description.isNotEmpty)
                     Text(dish.description, maxLines: 1, overflow: TextOverflow.ellipsis, 
-                      style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+                      style: TextStyle(fontSize: 14, color: isOutOfStock ? cs.outline : cs.onSurfaceVariant)),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${_fmtPrice(dish.price)}đ', 
-                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: cs.primary)),
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: isOutOfStock ? cs.outline : cs.primary)),
                       
                       if (canOrder)
                         AnimatedSwitcher(
@@ -520,7 +540,9 @@ class _DishCard extends StatelessWidget {
                                 ),
                                 _QtyBtn(icon: Icons.add_rounded, color: cs.primary, onTap: onAdd),
                               ]),
-                        ),
+                        )
+                      else if (isOutOfStock)
+                        Text('Tạm hết hàng', style: TextStyle(color: cs.error, fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ],

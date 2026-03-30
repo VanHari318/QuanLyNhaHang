@@ -217,10 +217,10 @@ class _CategoryFilterBar extends StatelessWidget {
               curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? color : color.withValues(alpha: 0.10),
+                color: isSelected ? color : color.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isSelected ? color : color.withValues(alpha: 0.35),
+                  color: isSelected ? color : color.withOpacity(0.35),
                   width: isSelected ? 0 : 1.2,
                 ),
               ),
@@ -266,66 +266,99 @@ class _DishTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final inventory = context.watch<InventoryProvider>().items;
+    final menu = context.watch<MenuProvider>();
+    final isOutOfStock = menu.isOutOfStock(dish.id, inventory);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          showDialog(
-            context: context,
-            builder: (_) => DishDetailDialog(dish: dish),
-          );
-        },
+    return InkWell(
+      onTap: onEdit,
+      borderRadius: BorderRadius.circular(12),
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.all(10),
           child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: dish.imageUrl.isNotEmpty
-                  ? Image.network(dish.imageUrl,
-                      width: 64, height: 64, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(cs))
-                  : _placeholder(cs),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(dish.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600)),
-                      if (dish.isBestSeller)
-                        Container(
-                          margin: const EdgeInsets.only(left: 6),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('⭐ Hot',
-                              style: TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w600)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_formatPrice(dish.price)}đ  •  ${CategoryModel.labelOf(dish.category)}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ],
+            children: [
+              // Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ColorFiltered(
+                  colorFilter: isOutOfStock
+                      ? const ColorFilter.mode(Colors.grey, BlendMode.saturation)
+                      : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                  child: dish.imageUrl.isNotEmpty
+                      ? Image.network(dish.imageUrl,
+                          width: 64, height: 64, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _placeholder(cs))
+                      : _placeholder(cs),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(dish.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: isOutOfStock ? cs.error : null,
+                                  )),
+                        ),
+                        if (dish.isBestSeller)
+                          Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text('⭐ Hot',
+                                style: TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w600)),
+                          ),
+                        if (isOutOfStock)
+                          Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: cs.errorContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text('⚠️ Hết hàng',
+                                style: TextStyle(
+                                    color: cs.onErrorContainer,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_formatPrice(dish.price)}đ  •  ${CategoryModel.labelOf(dish.category)}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -380,13 +413,7 @@ class _DishTile extends StatelessWidget {
   }
 
   String _formatPrice(double price) {
-    final s = price.toInt().toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(s[i]);
-    }
-    return buffer.toString();
+    return price.toStringAsFixed(2);
   }
 }
 
@@ -435,8 +462,7 @@ class _DishDialogState extends State<_DishDialog> {
     final d = widget.existingDish;
     _nameCtrl = TextEditingController(text: d?.name);
     _descCtrl = TextEditingController(text: d?.description);
-    _priceCtrl =
-        TextEditingController(text: d?.price.toStringAsFixed(0));
+    _priceCtrl = TextEditingController(text: d?.price.toStringAsFixed(0));
     _selectedCat = d?.category ?? 'main';
     _isBestSeller = d?.isBestSeller ?? false;
 
@@ -452,8 +478,7 @@ class _DishDialogState extends State<_DishDialog> {
           (i) => _IngredientEntry(
             name: i.name,
             unit: i.unit,
-            quantityCtrl:
-                TextEditingController(text: i.quantity.toString()),
+            quantityCtrl: TextEditingController(text: i.quantity.toString()),
           ),
         ));
       });
@@ -473,8 +498,7 @@ class _DishDialogState extends State<_DishDialog> {
   }
 
   Future<void> _pickImage() async {
-    final img =
-        await widget.picker.pickImage(source: ImageSource.camera);
+    final img = await widget.picker.pickImage(source: ImageSource.camera);
     if (img != null) {
       setState(() {
         if (kIsWeb) {
@@ -507,7 +531,7 @@ class _DishDialogState extends State<_DishDialog> {
       id: dishId,
       name: _nameCtrl.text.trim(),
       description: _descCtrl.text.trim(),
-      price: double.tryParse(_priceCtrl.text) ?? 0,
+      price: DatabaseService.parseVnNum(_priceCtrl.text),
       imageUrl: imageUrl,
       category: _selectedCat,
       isBestSeller: _isBestSeller,
@@ -521,21 +545,22 @@ class _DishDialogState extends State<_DishDialog> {
       await provider.updateDish(dish);
     }
 
-    // Lưu công thức nếu có nguyên liệu
     final recipeIngredients = _ingredients
         .where((e) =>
             e.name.isNotEmpty &&
             e.quantityCtrl.text.isNotEmpty &&
-            (double.tryParse(e.quantityCtrl.text) ?? 0) > 0)
+            DatabaseService.parseVnNum(e.quantityCtrl.text) > 0)
         .map((e) => RecipeIngredient(
               name: e.name,
-              quantity: double.tryParse(e.quantityCtrl.text) ?? 0,
+              quantity: DatabaseService.parseVnNum(e.quantityCtrl.text),
               unit: e.unit,
             ))
         .toList();
 
     await _db.saveDishRecipe(
         dishId, DishRecipeModel(ingredients: recipeIngredients));
+
+    await provider.refreshRecipes();
 
     if (mounted) Navigator.pop(context);
   }
@@ -557,18 +582,19 @@ class _DishDialogState extends State<_DishDialog> {
     final cs = Theme.of(context).colorScheme;
     final isEdit = widget.existingDish != null;
     final inventory = context.watch<InventoryProvider>().items;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = (screenWidth > 600) ? 500.0 : (screenWidth - 48);
 
     return AlertDialog(
       title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới'),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
-        width: 480,
+        width: dialogWidth,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Image picker ────────────────────────────────────────────
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
@@ -582,29 +608,24 @@ class _DishDialogState extends State<_DishDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // ── Basic info ──────────────────────────────────────────────
               TextField(
                 controller: _nameCtrl,
                 decoration: const InputDecoration(
-                    labelText: 'Tên món *',
-                    prefixIcon: Icon(Icons.restaurant)),
+                    labelText: 'Tên món *', prefixIcon: Icon(Icons.restaurant)),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _descCtrl,
                 maxLines: 2,
                 decoration: const InputDecoration(
-                    labelText: 'Mô tả',
-                    prefixIcon: Icon(Icons.description_outlined)),
+                    labelText: 'Mô tả', prefixIcon: Icon(Icons.description_outlined)),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _priceCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                    labelText: 'Giá (VNĐ) *',
-                    prefixIcon: Icon(Icons.attach_money)),
+                    labelText: 'Giá (VNĐ) *', prefixIcon: Icon(Icons.attach_money)),
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
@@ -625,13 +646,10 @@ class _DishDialogState extends State<_DishDialog> {
                 onChanged: (v) => setState(() => _isBestSeller = v),
                 contentPadding: EdgeInsets.zero,
               ),
-
-              // ── Recipe section ──────────────────────────────────────────
               const Divider(height: 24),
               Row(
                 children: [
-                  Icon(Icons.science_outlined,
-                      size: 18, color: cs.primary),
+                  Icon(Icons.science_outlined, size: 18, color: cs.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Công thức (1 suất)',
@@ -651,11 +669,9 @@ class _DishDialogState extends State<_DishDialog> {
               const SizedBox(height: 4),
               Text(
                 'Thiết lập nguyên liệu cần dùng để làm 1 suất món này. Kho sẽ tự trừ khi thanh toán.',
-                style: TextStyle(
-                    fontSize: 12, color: cs.onSurfaceVariant),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
-
               if (inventory.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -665,35 +681,44 @@ class _DishDialogState extends State<_DishDialog> {
                   ),
                   child: Text(
                     'Chưa có nguyên liệu nào trong kho. Vào mục Kho để thêm trước.',
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant, fontSize: 13),
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                   ),
                 )
               else ...[
-                // Header row
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     children: [
-                      const Expanded(flex: 4, child: Text('Nguyên liệu', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-                      const SizedBox(width: 8),
-                      const Expanded(flex: 2, child: Text('Số lượng', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
+                      const Expanded(
+                          flex: 3,
+                          child: Text('Nguyên liệu',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600))),
+                      const SizedBox(width: 6),
+                      const SizedBox(
+                          width: 70,
+                          child: Text('Số lượng',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center)),
                       const SizedBox(width: 4),
-                      const SizedBox(width: 36, child: Text('ĐV', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
-                      const SizedBox(width: 32),
+                      const SizedBox(
+                          width: 32,
+                          child: Text('ĐV',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center)),
+                      const SizedBox(width: 30),
                     ],
                   ),
                 ),
-
-                // Ingredient rows
                 ..._ingredients.asMap().entries.map((entry) {
                   final idx = entry.key;
                   final ing = entry.value;
                   return _IngredientRow(
                     entry: ing,
                     inventory: inventory,
-                    onRemove: () =>
-                        setState(() => _ingredients.removeAt(idx)),
+                    onRemove: () => setState(() => _ingredients.removeAt(idx)),
                     onInventoryChanged: (inv) => setState(() {
                       _ingredients[idx] = _IngredientEntry(
                         name: inv.name,
@@ -703,19 +728,16 @@ class _DishDialogState extends State<_DishDialog> {
                     }),
                   );
                 }),
-
-                // Add button
                 TextButton.icon(
                   onPressed: () => _addIngredientRow(inventory),
-                  icon: const Icon(Icons.add_circle_outline_rounded,
-                      size: 18),
+                  icon:
+                      const Icon(Icons.add_circle_outline_rounded, size: 18),
                   label: const Text('Thêm nguyên liệu'),
                   style: TextButton.styleFrom(
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.symmetric(vertical: 4)),
                 ),
               ],
-
               const SizedBox(height: 12),
             ],
           ),
@@ -792,68 +814,59 @@ class _IngredientRow extends StatelessWidget {
         children: [
           // Dropdown nguyên liệu
           Expanded(
-            flex: 4,
+            flex: 3, // Giảm từ 4 xuống 3 để dành chỗ cho số lượng
             child: DropdownButtonFormField<InventoryModel>(
               value: currentItem,
               isDense: true,
+              isExpanded: true, // Cho phép text co lại nếu quá dài
               decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              items: inventory
-                  .map((inv) => DropdownMenuItem(
-                        value: inv,
-                        child: Text(inv.name,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13)),
-                      ))
-                  .toList(),
+              items: inventory.map((inv) => DropdownMenuItem(
+                value: inv,
+                child: Text(inv.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13)),
+              )).toList(),
               onChanged: (inv) {
                 if (inv != null) onInventoryChanged(inv);
               },
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           // Số lượng
-          Expanded(
-            flex: 2,
+          SizedBox(
+            width: 70, // Dùng chiều rộng cố định nhỏ cho số lượng
             child: TextField(
               controller: entry.quantityCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 10),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 hintText: '0',
+                fillColor: cs.surface,
               ),
             ),
           ),
           const SizedBox(width: 4),
           // Đơn vị
           SizedBox(
-            width: 36,
-            child: Text(
-              entry.unit,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w600),
+            width: 32,
+            child: Text(entry.unit,
+              style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
           ),
           // Nút xóa dòng
           IconButton(
-            icon: Icon(Icons.remove_circle_outline_rounded,
-                size: 20, color: cs.error),
+            icon: Icon(Icons.remove_circle_outline_rounded, size: 18, color: cs.error),
             onPressed: onRemove,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
           ),
         ],
       ),

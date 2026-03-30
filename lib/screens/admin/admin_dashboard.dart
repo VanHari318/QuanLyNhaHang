@@ -19,6 +19,7 @@ import 'dashboard_stats_screen.dart';
 import 'chatbot_management_screen.dart';
 import 'restaurant_location_screen.dart';
 import '../customer/customer_management_screen.dart';
+import '../../services/data_seed_service.dart';
 
 /// Admin Dashboard – Vị Lai Quán (未来馆) – Premium MD3 layout
 class AdminDashboard extends StatefulWidget {
@@ -38,11 +39,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final inv = context.watch<InventoryProvider>();
 
     // Count low-stock items
-    final lowStockCount = inv.items.where((item) {
-      return item.maxQuantity > 0
-          ? item.quantity < item.maxQuantity * 0.2
-          : item.quantity < 5;
-    }).length;
+    final lowStockCount = inv.items.where((item) => inv.isLow(item)).length;
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
@@ -85,6 +82,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 tooltip: 'Thông báo',
                 onPressed: () => _push(context, const InventoryManagementScreen()),
+              ),
+              IconButton(
+                icon: const Icon(Icons.data_exploration_rounded),
+                tooltip: 'Tạo dữ liệu mẫu',
+                onPressed: () => _generateMockData(context),
               ),
               IconButton(
                 icon: const Icon(Icons.logout_rounded),
@@ -214,20 +216,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           .where((o) => o.status == OrderStatus.completed)
                           .fold(0.0, (sum, o) => sum + o.totalPrice);
 
-                      // Top dish from today
-                      final dishCount = <String, int>{};
-                      for (final o in todayOrders) {
+                      // Top dish calculation (All-time, COMPLETED only)
+                      final allTimeDishCount = <String, int>{};
+                      for (final o in orders.where((o) => o.status == OrderStatus.completed)) {
                         for (final item in o.items) {
-                          dishCount[item.dish.name] =
-                              (dishCount[item.dish.name] ?? 0) + item.quantity;
+                          allTimeDishCount[item.dish.name] =
+                              (allTimeDishCount[item.dish.name] ?? 0) + item.quantity;
                         }
                       }
-                      final topDish = dishCount.isNotEmpty
-                          ? (dishCount.entries.toList()
-                                ..sort((a, b) => b.value.compareTo(a.value)))
-                              .first
-                              .key
-                          : '–';
+                      
+                      final sortedDishes = allTimeDishCount.entries.toList()
+                        ..sort((a, b) => b.value.compareTo(a.value));
+                      
+                      final topDish = sortedDishes.isNotEmpty ? sortedDishes.first.key : '–';
+                      final topDishQty = sortedDishes.isNotEmpty ? sortedDishes.first.value : 0;
 
                       return GridView.count(
                         crossAxisCount: 2,
@@ -242,7 +244,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             title: 'Doanh thu hôm nay',
                             value: '${_fmt(todayRevenue)}đ',
                             color: const Color(0xFFD32F2F),
-                            onTap: () => _push(context, const DashboardStatsScreen()),
+                            onTap: () => _push(
+                              context,
+                              OrderManagementScreen(
+                                initialStatus: OrderStatus.completed,
+                                initialDate: DateTime.now(),
+                              ),
+                            ),
                           ),
                           DashboardCard(
                             icon: Icons.receipt_long_rounded,
@@ -255,13 +263,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 ? '${todayOrders.where((o) => o.status == OrderStatus.pending).length} chờ xử lý'
                                 : null,
                             badgeColor: Colors.orange,
-                            onTap: () => _push(context, const OrderManagementScreen()),
+                            onTap: () => _push(
+                              context,
+                              OrderManagementScreen(
+                                initialDate: DateTime.now(),
+                              ),
+                            ),
                           ),
                           DashboardCard(
                             icon: Icons.whatshot_rounded,
-                            title: 'Món bán chạy',
+                            title: 'Bán chạy nhất',
                             value: topDish,
                             color: Colors.orange,
+                            badge: topDishQty > 0 ? '$topDishQty suất' : null,
+                            badgeColor: Colors.orange,
                             onTap: () => _push(context, const DashboardStatsScreen()),
                           ),
                           DashboardCard(
@@ -397,19 +412,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   icon: Icons.smart_toy_rounded,
                   label: 'ChatBot FAQ',
                   color: Colors.green,
-                  onTap: () => _push(context, const ChatbotManagementScreen()),
+                  onTap: () => _push(context, ChatbotManagementScreen()),
                 ),
                 _ModuleCard(
                   icon: Icons.map_rounded,
                   label: 'Vị Trí & Bản Đồ',
                   color: Colors.red,
-                  onTap: () => _push(context, const RestaurantLocationScreen()),
+                  onTap: () => _push(context, RestaurantLocationScreen()),
                 ),
                 _ModuleCard(
                   icon: Icons.person_search_rounded,
                   label: 'Khách Hàng',
                   color: Colors.orange,
-                  onTap: () => _push(context, const CustomerManagementScreen()),
+                  onTap: () => _push(context, CustomerManagementScreen()),
                 ),
               ],
             ),
@@ -421,6 +436,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   void _push(BuildContext context, Widget screen) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  String _fmt(double price) {
+    final s = price.toInt().toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
+      buf.write(s[i]);
+    }
+    return buf.toString();
   }
 
   Widget _emptyFeed(ColorScheme cs) {
@@ -438,14 +463,51 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  String _fmt(double price) {
-    final s = price.toInt().toString();
-    final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-      buf.write(s[i]);
-    }
-    return buf.toString();
+  Future<void> _generateMockData(BuildContext context) async {
+    final seed = DataSeedService();
+    final progressNotifier = ValueNotifier<String>('Đang khởi tạo...');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('⏳ Đang tạo dữ liệu mẫu...'),
+        content: ValueListenableBuilder<String>(
+          valueListenable: progressNotifier,
+          builder: (context, msg, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(msg, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await seed.seedMockOrders(
+      onProgress: (p) => progressNotifier.value = p,
+      onComplete: (msg) {
+        if (context.mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.green.shade700,
+            duration: const Duration(seconds: 4),
+          ));
+        }
+      },
+      onError: (err) {
+        if (context.mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(err),
+            backgroundColor: Colors.red,
+          ));
+        }
+      },
+    );
   }
 }
 
