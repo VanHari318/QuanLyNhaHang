@@ -183,32 +183,6 @@ void showActiveTableDialog(BuildContext context, TableModel table, OrderModel ac
                         Navigator.push(context, MaterialPageRoute(builder: (_) => OrderingScreen(table: table)));
                       },
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      icon: isUpdating 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.cleaning_services_rounded),
-                      label: const Text('Khách đã về - Trả bàn trống'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.green,
-                        side: const BorderSide(color: Colors.green),
-                        minimumSize: const Size(0, 52),
-                      ),
-                      onPressed: isUpdating ? null : () async {
-                        setModalState(() => isUpdating = true);
-                        try {
-                          await tableProvider.updateStatus(table.id, TableStatus.available);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('✅ Bàn đã được dọn sạch và sẵn sàng đón khách mới')),
-                            );
-                          }
-                        } finally {
-                          setModalState(() => isUpdating = false);
-                        }
-                      },
-                    ),
                   ],
 
                   if (!isCompleted && !isReady) ...[

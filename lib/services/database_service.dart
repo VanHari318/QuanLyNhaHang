@@ -237,11 +237,15 @@ class DatabaseService {
       currentOrder = OrderModel.fromMap(orderDoc.data()!);
     }
 
-    // 1. Tự động trừ kho nếu đơn hàng chuyển sang chuyển sang hoàn thành (completed)
+    // 1. Tự động trừ kho và reset bàn nếu đơn hàng chuyển sang hoàn thành (completed)
     if (status == OrderStatus.completed) {
-      // Kiểm tra tránh trừ 2 lần (nếu status cũ đã là completed rồi thì bỏ qua)
       if (currentOrder.status != OrderStatus.completed) {
         await _deductInventoryForOrder(currentOrder);
+        
+        // Tự động trả bàn về trạng thái trống khi thanh toán xong
+        if (currentOrder.tableId != null) {
+          await updateTableStatus(currentOrder.tableId!, TableStatus.available);
+        }
       }
     }
 

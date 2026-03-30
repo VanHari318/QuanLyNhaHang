@@ -86,9 +86,7 @@ class TableSelectionScreen extends StatelessWidget {
                     }
                   }
                   
-                  final hasReadyItems = activeOrder?.status == OrderStatus.ready;
-                  final isCleaningNeeded = isOccupied && 
-                      (activeOrder?.status == OrderStatus.completed || activeOrder?.status == OrderStatus.cancelled);
+                  final bool hasReadyItems = activeOrder?.status == OrderStatus.ready;
 
                   return InkWell(
                     onTap: () {
@@ -105,18 +103,11 @@ class TableSelectionScreen extends StatelessWidget {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
-                        color: isCleaningNeeded 
-                            ? Colors.orange.withValues(alpha: 0.15)
-                            : color.withValues(alpha: 0.12),
+                        color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: isCleaningNeeded 
-                                ? Colors.orange.withValues(alpha: 0.6)
-                                : color.withValues(alpha: 0.4), 
-                            width: isCleaningNeeded ? 2 : 1.5),
-                        boxShadow: isCleaningNeeded ? [
-                          BoxShadow(color: Colors.orange.withValues(alpha: 0.2), blurRadius: 8, spreadRadius: 1)
-                        ] : null,
+                            color: color.withValues(alpha: 0.4), 
+                            width: 1.5),
                       ),
                       child: Stack(
                         alignment: Alignment.center,
@@ -125,21 +116,20 @@ class TableSelectionScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                isCleaningNeeded ? Icons.cleaning_services_rounded : Icons.table_bar_rounded,
-                                color: isCleaningNeeded ? Colors.orange : (isAvailable || isOccupied ? color : cs.outlineVariant),
+                                Icons.table_bar_rounded,
+                                color: isAvailable || isOccupied ? color : cs.outlineVariant,
                                 size: 30,
                               ),
                               const SizedBox(height: 6),
                               Text(table.name,
                                   style: TextStyle(
                                       fontWeight: FontWeight.w800,
-                                      color: isCleaningNeeded ? Colors.orange : color,
+                                      color: color,
                                       fontSize: 13)),
-                              Text(isCleaningNeeded ? 'Chờ dọn dẹp' : '${table.capacity} chỗ',
+                              Text('${table.capacity} chỗ',
                                   style: TextStyle(
                                       fontSize: 10,
-                                      fontWeight: isCleaningNeeded ? FontWeight.bold : FontWeight.normal,
-                                      color: isCleaningNeeded ? Colors.orange.withValues(alpha: 0.8) : cs.onSurfaceVariant)),
+                                      color: cs.onSurfaceVariant)),
                             ],
                           ),
                           if (hasReadyItems)
