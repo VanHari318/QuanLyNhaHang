@@ -76,7 +76,7 @@ class MyApp extends StatelessWidget {
       ),
       cardTheme: CardThemeData(
         elevation: 2,
-        shadowColor: defaultColorScheme.shadow.withOpacity(0.1),
+        shadowColor: defaultColorScheme.shadow.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         clipBehavior: Clip.antiAlias,
         color: defaultColorScheme.surface,
@@ -101,12 +101,12 @@ class MyApp extends StatelessWidget {
           minimumSize: const Size(0, 54),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           elevation: 2,
-          shadowColor: defaultColorScheme.shadow.withOpacity(0.2),
+          shadowColor: defaultColorScheme.shadow.withValues(alpha: 0.2),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: defaultColorScheme.surfaceContainerHighest.withOpacity(0.5),
+        fillColor: defaultColorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
           borderSide: BorderSide.none,
@@ -151,7 +151,7 @@ class MyApp extends StatelessWidget {
       dividerTheme: DividerThemeData(
         space: 24,
         thickness: 1,
-        color: defaultColorScheme.outlineVariant.withOpacity(0.3),
+        color: defaultColorScheme.outlineVariant.withValues(alpha: 0.3),
       ),
     );
 

@@ -335,7 +335,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
 }
 
 // ── Full order card (Haidilao Premium Dark Style) ───────────────────────────
-class _FullOrderCard extends StatelessWidget {
+class _FullOrderCard extends StatefulWidget {
   final OrderModel order;
   final DatabaseService db;
 
@@ -345,7 +345,16 @@ class _FullOrderCard extends StatelessWidget {
   });
 
   @override
+  State<_FullOrderCard> createState() => _FullOrderCardState();
+}
+
+class _FullOrderCardState extends State<_FullOrderCard> {
+  bool _isUpdating = false;
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
+    final db = widget.db;
     final statusColor = _statusColor(order.status);
     final isOnline = order.type == OrderType.online;
 
@@ -621,13 +630,15 @@ class _FullOrderCard extends StatelessWidget {
                           child: const Text('Hủy', style: TextStyle(fontWeight: FontWeight.w700)),
                         ),
                         FilledButton(
-                          onPressed: () => _proceedNextStatus(context),
+                          onPressed: _isUpdating ? null : () => _proceedNextStatus(context),
                           style: FilledButton.styleFrom(
                             backgroundColor: AdminColors.crimson,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: Text(_nextActionText(order.status), style: const TextStyle(fontWeight: FontWeight.w700)),
+                          child: _isUpdating 
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text(_nextActionText(order.status), style: const TextStyle(fontWeight: FontWeight.w700)),
                         ),
                       ] else if (order.status == OrderStatus.completed) 
                          Container(
@@ -669,22 +680,29 @@ class _FullOrderCard extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx),
             child: Text('Không', style: TextStyle(color: AdminColors.textSecondary(context))),
           ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              db.updateOrderStatus(order.id, OrderStatus.cancelled);
+           FilledButton(
+            onPressed: _isUpdating ? null : () async {
+              setState(() => _isUpdating = true);
+              try {
+                Navigator.pop(ctx);
+                await widget.db.updateOrderStatus(widget.order.id, OrderStatus.cancelled, order: widget.order);
+              } finally {
+                if (mounted) setState(() => _isUpdating = false);
+              }
             },
             style: FilledButton.styleFrom(backgroundColor: AdminColors.error),
-            child: const Text('Hủy đơn', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: _isUpdating
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Text('Hủy đơn', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       )
     );
   }
 
-  void _proceedNextStatus(BuildContext context) {
+  void _proceedNextStatus(BuildContext context) async {
     OrderStatus nextStatus;
-    switch (order.status) {
+    switch (widget.order.status) {
       case OrderStatus.pending:
         nextStatus = OrderStatus.preparing;
         break;
@@ -700,7 +718,13 @@ class _FullOrderCard extends StatelessWidget {
       default:
         return;
     }
-    db.updateOrderStatus(order.id, nextStatus);
+
+    setState(() => _isUpdating = true);
+    try {
+      await widget.db.updateOrderStatus(widget.order.id, nextStatus, order: widget.order);
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
   }
 
   String _nextActionText(OrderStatus currentStatus) {

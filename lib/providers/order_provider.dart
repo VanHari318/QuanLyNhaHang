@@ -21,7 +21,7 @@ class OrderProvider with ChangeNotifier {
     await _dbService.placeOrder(order);
   }
 
-  Future<void> updateStatus(String orderId, OrderStatus status) async {
-    await _dbService.updateOrderStatus(orderId, status);
+  Future<void> updateStatus(String orderId, OrderStatus status, {OrderModel? order}) async {
+    await _dbService.updateOrderStatus(orderId, status, order: order);
   }
 }

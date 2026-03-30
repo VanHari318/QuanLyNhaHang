@@ -17,7 +17,6 @@ class CashierScreen extends StatelessWidget {
     final user = Provider.of<AuthProvider>(context).user;
     final isAdmin = user?.role == UserRole.admin;
     final orderProvider = Provider.of<OrderProvider>(context);
-    final tableProvider = Provider.of<TableProvider>(context);
     final cs = Theme.of(context).colorScheme;
 
     final servedOrders = orderProvider.orders
@@ -57,51 +56,10 @@ class CashierScreen extends StatelessWidget {
               itemCount: servedOrders.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final order = servedOrders[index];
-                // tableId hoặc "Online"
-                final tableLabel = order.tableId ?? 'Online';
-                return Card(
-                  child: ListTile(
-                    leading: Container(
-                      width: 44, height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.table_bar_rounded,
-                          color: Colors.green),
-                    ),
-                    title: Text(tableLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text(
-                        'Tổng: ${_formatPrice(order.totalPrice)}đ\n${order.items.length} món'),
-                    isThreeLine: true,
-                    trailing: FilledButton(
-                      style: FilledButton.styleFrom(
-                          backgroundColor: Colors.green),
-                      onPressed: () async {
-                        await orderProvider.updateStatus(
-                            order.id, OrderStatus.completed);
-                        // Trả bàn về trạng thái trống nếu dine-in
-                        if (order.tableId != null) {
-                          try {
-                            final table = tableProvider.tables.firstWhere(
-                                (t) => t.id == order.tableId);
-                            await tableProvider.updateStatus(
-                                table.id, TableStatus.available);
-                          } catch (_) {}
-                        }
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('✅ Thanh toán thành công')),
-                          );
-                        }
-                      },
-                      child: const Text('Thanh toán'),
-                    ),
-                    onTap: () => _showDetails(context, order),
-                  ),
+                return _CashierOrderTile(
+                  order: servedOrders[index],
+                  orderProvider: orderProvider,
+                  onTap: () => _showDetails(context, servedOrders[index]),
                 );
               },
             ),
@@ -134,6 +92,92 @@ class CashierScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Text('Đóng')),
         ],
+      ),
+    );
+  }
+
+  String _formatPrice(double p) {
+    final s = p.toInt().toString();
+    final b = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
+      b.write(s[i]);
+    }
+    return b.toString();
+  }
+}
+
+class _CashierOrderTile extends StatefulWidget {
+  final OrderModel order;
+  final OrderProvider orderProvider;
+  final VoidCallback onTap;
+
+  const _CashierOrderTile({
+    required this.order,
+    required this.orderProvider,
+    required this.onTap,
+  });
+
+  @override
+  State<_CashierOrderTile> createState() => _CashierOrderTileState();
+}
+
+class _CashierOrderTileState extends State<_CashierOrderTile> {
+  bool _isUpdating = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.order;
+    final tableLabel = order.tableId ?? 'Online';
+
+    return Card(
+      child: ListTile(
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.green.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.table_bar_rounded, color: Colors.green),
+        ),
+        title: Text(tableLabel,
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(
+            'Tổng: ${_formatPrice(order.totalPrice)}đ\n${order.items.length} món'),
+        isThreeLine: true,
+        trailing: FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.green),
+          onPressed: _isUpdating
+              ? null
+              : () async {
+                  setState(() => _isUpdating = true);
+                  try {
+                    await widget.orderProvider.updateStatus(order.id, OrderStatus.completed, order: order);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('✅ Thanh toán thành công')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('❌ Lỗi: $e')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _isUpdating = false);
+                  }
+                },
+          child: _isUpdating
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : const Text('Thanh toán'),
+        ),
+        onTap: widget.onTap,
       ),
     );
   }

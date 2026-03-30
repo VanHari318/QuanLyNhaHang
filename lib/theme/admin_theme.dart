@@ -113,7 +113,7 @@ abstract class AdminDeco {
     borderRadius: BorderRadius.circular(20),
     border: Border.all(color: AdminColors.borderDefault(context), width: 1),
     boxShadow: Theme.of(context).brightness == Brightness.light ? [
-      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
+      BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))
     ] : null,
   );
 
@@ -131,7 +131,7 @@ abstract class AdminDeco {
 
   static BoxDecoration iconContainer(Color color, {double radius = 12}) =>
       BoxDecoration(
-        color: color.withOpacity(0.14),
+        color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(radius),
       );
 

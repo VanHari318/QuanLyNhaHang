@@ -56,70 +56,108 @@ class KitchenScreen extends StatelessWidget {
               itemCount: activeOrders.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (ctx, i) {
-                final order = activeOrders[i];
-                final tableLabel = order.tableId ?? 'Online';
-                final isPending = order.status == OrderStatus.pending;
-
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(tableLabel,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800)),
-                            _StatusChip(status: order.status),
-                          ],
-                        ),
-                        const Divider(height: 16),
-                        // Items – dùng item.dish thay item.foodItem
-                        ...order.items.map((item) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(children: [
-                                Text('${item.quantity}×',
-                                    style: TextStyle(
-                                        color: cs.primary,
-                                        fontWeight: FontWeight.w700)),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(item.dish.name)),
-                                if (item.note?.isNotEmpty == true)
-                                  Text('📝 ${item.note}',
-                                      style: TextStyle(
-                                          color: cs.onSurfaceVariant,
-                                          fontSize: 12)),
-                              ]),
-                            )),
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: isPending
-                              ? FilledButton.icon(
-                                  icon: const Icon(Icons.play_arrow_rounded),
-                                  label: const Text('Bắt đầu làm'),
-                                  onPressed: () => orderProvider.updateStatus(
-                                      order.id, OrderStatus.preparing),
-                                )
-                              : FilledButton.icon(
-                                  icon: const Icon(Icons.check_circle_rounded),
-                                  label: const Text('Xong'),
-                                  style: FilledButton.styleFrom(
-                                      backgroundColor: Colors.green),
-                                  onPressed: () => orderProvider.updateStatus(
-                                      order.id, OrderStatus.ready),
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
+                return _KitchenOrderCard(
+                  order: activeOrders[i],
+                  orderProvider: orderProvider,
                 );
               },
             ),
+    );
+  }
+}
+
+class _KitchenOrderCard extends StatefulWidget {
+  final OrderModel order;
+  final OrderProvider orderProvider;
+
+  const _KitchenOrderCard({
+    required this.order,
+    required this.orderProvider,
+  });
+
+  @override
+  State<_KitchenOrderCard> createState() => _KitchenOrderCardState();
+}
+
+class _KitchenOrderCardState extends State<_KitchenOrderCard> {
+  bool _isUpdating = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final order = widget.order;
+    final tableLabel = order.tableId ?? 'Online';
+    final isPending = order.status == OrderStatus.pending;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(tableLabel,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+                _StatusChip(status: order.status),
+              ],
+            ),
+            const Divider(height: 16),
+            ...order.items.map((item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(children: [
+                    Text('${item.quantity}×',
+                        style: TextStyle(
+                            color: cs.primary, fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(item.dish.name)),
+                    if (item.note?.isNotEmpty == true)
+                      Text('📝 ${item.note}',
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 12)),
+                  ]),
+                )),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: isPending
+                  ? FilledButton.icon(
+                      icon: _isUpdating 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.play_arrow_rounded),
+                      label: const Text('Bắt đầu làm'),
+                      onPressed: _isUpdating ? null : () async {
+                        setState(() => _isUpdating = true);
+                        try {
+                          await widget.orderProvider.updateStatus(order.id, OrderStatus.preparing, order: order);
+                        } finally {
+                          if (mounted) setState(() => _isUpdating = false);
+                        }
+                      },
+                    )
+                  : FilledButton.icon(
+                      icon: _isUpdating
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.check_circle_rounded),
+                      label: const Text('Xong'),
+                      style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                      onPressed: _isUpdating ? null : () async {
+                        setState(() => _isUpdating = true);
+                        try {
+                          await widget.orderProvider.updateStatus(order.id, OrderStatus.ready, order: order);
+                        } finally {
+                          if (mounted) setState(() => _isUpdating = false);
+                        }
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

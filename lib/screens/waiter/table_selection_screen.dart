@@ -66,14 +66,29 @@ class TableSelectionScreen extends StatelessWidget {
                   final color = _statusColor(table.status, cs);
 
                   // Find active order for this table
-                  final activeOrder = isOccupied
-                      ? orderProvider.orders.where((o) =>
-                          o.tableId == table.id &&
-                          o.status != OrderStatus.completed &&
-                          o.status != OrderStatus.cancelled).firstOrNull
-                      : null;
+                  OrderModel? activeOrder;
+                  if (isOccupied) {
+                    // Try finding a "live" order first
+                    activeOrder = orderProvider.orders.where((o) =>
+                        o.tableId == table.id &&
+                        o.status != OrderStatus.completed &&
+                        o.status != OrderStatus.cancelled).firstOrNull;
+                    
+                    // If no live order, get the most recent one for this table to allow "Clear Table"
+                    if (activeOrder == null) {
+                      final tableOrders = orderProvider.orders
+                          .where((o) => o.tableId == table.id)
+                          .toList();
+                      if (tableOrders.isNotEmpty) {
+                        tableOrders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                        activeOrder = tableOrders.first;
+                      }
+                    }
+                  }
                   
                   final hasReadyItems = activeOrder?.status == OrderStatus.ready;
+                  final isCleaningNeeded = isOccupied && 
+                      (activeOrder?.status == OrderStatus.completed || activeOrder?.status == OrderStatus.cancelled);
 
                   return InkWell(
                     onTap: () {
@@ -86,13 +101,22 @@ class TableSelectionScreen extends StatelessWidget {
                         showActiveTableDialog(context, table, activeOrder);
                       }
                     },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
+                        color: isCleaningNeeded 
+                            ? Colors.orange.withValues(alpha: 0.15)
+                            : color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: color.withValues(alpha: 0.4), width: 1.5),
+                            color: isCleaningNeeded 
+                                ? Colors.orange.withValues(alpha: 0.6)
+                                : color.withValues(alpha: 0.4), 
+                            width: isCleaningNeeded ? 2 : 1.5),
+                        boxShadow: isCleaningNeeded ? [
+                          BoxShadow(color: Colors.orange.withValues(alpha: 0.2), blurRadius: 8, spreadRadius: 1)
+                        ] : null,
                       ),
                       child: Stack(
                         alignment: Alignment.center,
@@ -100,34 +124,29 @@ class TableSelectionScreen extends StatelessWidget {
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.table_bar_rounded,
-                                  color: isAvailable || isOccupied ? color : cs.outlineVariant,
-                                  size: 32),
+                              Icon(
+                                isCleaningNeeded ? Icons.cleaning_services_rounded : Icons.table_bar_rounded,
+                                color: isCleaningNeeded ? Colors.orange : (isAvailable || isOccupied ? color : cs.outlineVariant),
+                                size: 30,
+                              ),
                               const SizedBox(height: 6),
                               Text(table.name,
                                   style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: color,
+                                      fontWeight: FontWeight.w800,
+                                      color: isCleaningNeeded ? Colors.orange : color,
                                       fontSize: 13)),
-                              Text('${table.capacity} chỗ',
+                              Text(isCleaningNeeded ? 'Chờ dọn dẹp' : '${table.capacity} chỗ',
                                   style: TextStyle(
-                                      fontSize: 11,
-                                      color: cs.onSurfaceVariant)),
+                                      fontSize: 10,
+                                      fontWeight: isCleaningNeeded ? FontWeight.bold : FontWeight.normal,
+                                      color: isCleaningNeeded ? Colors.orange.withValues(alpha: 0.8) : cs.onSurfaceVariant)),
                             ],
                           ),
                           if (hasReadyItems)
                             Positioned(
-                              top: 6,
-                              right: 6,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(
-                                  color: Colors.teal,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.notifications_active_rounded,
-                                    size: 14, color: Colors.white),
-                              ),
+                              top: 8,
+                              right: 8,
+                              child: _PulsingNotification(),
                             ),
                         ],
                       ),
@@ -145,5 +164,35 @@ class TableSelectionScreen extends StatelessWidget {
       TableStatus.occupied => cs.error,
       TableStatus.reserved => Colors.orange,
     };
+  }
+}
+
+class _PulsingNotification extends StatefulWidget {
+  @override
+  State<_PulsingNotification> createState() => _PulsingNotificationState();
+}
+
+class _PulsingNotificationState extends State<_PulsingNotification> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
+  }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: Tween(begin: 0.8, end: 1.2).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut)),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: const BoxDecoration(color: Colors.teal, shape: BoxShape.circle),
+        child: const Icon(Icons.notifications_active_rounded, size: 12, color: Colors.white),
+      ),
+    );
   }
 }

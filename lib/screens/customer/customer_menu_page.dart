@@ -192,7 +192,6 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
           indicatorColor: cs.primary,
           indicatorWeight: 4,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          indicatorPadding: const EdgeInsets.symmetric(horizontal: 24),
           tabs: const [
             Tab(text: 'Menu'),
             Tab(text: 'Đơn hàng'),
@@ -226,7 +225,25 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
       ),
       bottomNavigationBar: _isBrowseMode 
           ? _BrowsePrompt(onScan: () async {
-              // (keeping scan logic)
+              final result = await Navigator.push<Map<String, String>>(
+                context,
+                MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+              );
+              
+              if (result != null && context.mounted) {
+                final tid = result['tableId'] ?? '';
+                final sid = result['sessionId'] ?? '';
+                
+                if (tid.isNotEmpty) {
+                  // Mở lại trang Menu với thông tin bàn thực tế
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CustomerMenuPage(tableId: tid, sessionId: sid),
+                    ),
+                  );
+                }
+              }
           })
           : (cart.items.isEmpty ? null : _CartSummary(
               count: cart.totalCount,

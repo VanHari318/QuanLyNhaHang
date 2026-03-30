@@ -184,7 +184,7 @@ class _DishDetailDialogState extends State<DishDetailDialog> {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AdminColors.borderDefault(context)),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Chưa có công thức nào được tạo.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: AdminColors.textMuted(context)),

@@ -6,6 +6,10 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseService _db = DatabaseService();
 
+  AuthService() {
+    _auth.setLanguageCode('vi');
+  }
+
   // Stream of auth state changes
   Stream<User?> get userStream => _auth.authStateChanges();
 
@@ -53,7 +57,7 @@ class AuthService {
       return true;
     } catch (e) {
       print('Auth Error: $e');
-      throw e; // Để provider xử lý lời nhắn cụ thể
+      rethrow; // Để provider xử lý lời nhắn cụ thể
     }
   }
 

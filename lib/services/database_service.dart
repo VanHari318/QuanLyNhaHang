@@ -228,56 +228,52 @@ class DatabaseService {
     });
   }
 
-  Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
-    final orderDoc = await _orders.doc(orderId).get();
-    if (!orderDoc.exists) return;
+  Future<void> updateOrderStatus(String orderId, OrderStatus status, {OrderModel? order}) async {
+    OrderModel? currentOrder = order;
     
-    final order = OrderModel.fromMap(orderDoc.data()!);
+    if (currentOrder == null) {
+      final orderDoc = await _orders.doc(orderId).get();
+      if (!orderDoc.exists) return;
+      currentOrder = OrderModel.fromMap(orderDoc.data()!);
+    }
 
     // 1. Tự động trừ kho nếu đơn hàng chuyển sang chuyển sang hoàn thành (completed)
     if (status == OrderStatus.completed) {
       // Kiểm tra tránh trừ 2 lần (nếu status cũ đã là completed rồi thì bỏ qua)
-      if (order.status != OrderStatus.completed) {
-        await _deductInventoryForOrder(order);
+      if (currentOrder.status != OrderStatus.completed) {
+        await _deductInventoryForOrder(currentOrder);
       }
     }
 
     // 2. Cập nhật status đơn hàng chính
     await _orders.doc(orderId).update({'status': status.name});
 
-    // 3. Tự động trả bàn về "Trống" nếu hoàn thành/hủy và không còn đơn nào khác đang chạy
-    if ((status == OrderStatus.completed || status == OrderStatus.cancelled) && 
-        order.type == OrderType.dine_in && 
-        order.tableId != null) {
-      
-      // Tìm các đơn hàng khác của bàn này mà chưa hoàn thành/hủy
-      final otherActiveOrders = await _orders
-          .where('tableId', isEqualTo: order.tableId)
-          .where('status', whereNotIn: [OrderStatus.completed.name, OrderStatus.cancelled.name])
-          .get();
-      
-      // Nếu không còn đơn nào khác đang hoạt động (trừ chính đơn vừa update nếu Firestore chưa kịp sync)
-      final remainingCount = otherActiveOrders.docs.where((doc) => doc.id != orderId).length;
-      
-      if (remainingCount == 0) {
-        await updateTableStatus(order.tableId!, TableStatus.available);
-      }
-    }
+    // 3. Tự động trả bàn – Đã xóa bỏ để nhân viên dọn bàn thủ công (Tránh lỗi khách ngồi tiếp gọi món mới)
+    // if ((status == OrderStatus.completed || status == OrderStatus.cancelled) && ... ) { ... }
   }
 
   Future<void> _deductInventoryForOrder(OrderModel order) async {
     final batch = _db.batch();
+    final Map<String, Map<String, dynamic>> recipeCache = {};
     
     // Quét từng món trong đơn hàng
     for (final item in order.items) {
       final dishId = item.dish.id;
       final qty = item.quantity;
       
-      // 1. Lấy công thức nấu
-      final recipeDoc = await _bulkIngredients.doc(dishId).get();
-      if (!recipeDoc.exists) continue;
+      // 1. Lấy công thức nấu (dùng cache nếu có)
+      if (!recipeCache.containsKey(dishId)) {
+        final recipeDoc = await _bulkIngredients.doc(dishId).get();
+        if (recipeDoc.exists) {
+          recipeCache[dishId] = recipeDoc.data()!;
+        } else {
+          recipeCache[dishId] = {}; // Đánh dấu không có công thức
+        }
+      }
       
-      final recipeData = recipeDoc.data()!;
+      final recipeData = recipeCache[dishId]!;
+      if (recipeData.isEmpty) continue;
+      
       final servings = (recipeData['servings'] as num?)?.toDouble() ?? 100.0;
       final ingredients = recipeData['ingredients'] as List<dynamic>? ?? [];
       
