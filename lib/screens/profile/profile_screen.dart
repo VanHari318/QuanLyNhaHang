@@ -48,8 +48,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final picked = await picker.pickImage(source: source);
     if (picked != null) {
       setState(() {
-        _webPickedImage = picked;
-        if (!kIsWeb) {
+        if (kIsWeb) {
+          _webPickedImage = picked;
+        } else {
           _pickedImage = File(picked.path);
         }
       });

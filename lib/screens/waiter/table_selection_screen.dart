@@ -69,17 +69,17 @@ class TableSelectionScreen extends StatelessWidget {
                 itemCount: tableProvider.tables.length,
                 itemBuilder: (context, index) {
                   final table = tableProvider.tables[index];
-                  final isAvailable = table.status == TableStatus.available;
-                  final isOccupied = table.status == TableStatus.occupied;
-                  final color = _statusColor(table.status, cs);
-
-                  // Find active order for this table
-                  final activeOrder = isOccupied
-                      ? orderProvider.orders.where((o) =>
+                  // Always find if there is an active order for this table
+                  final activeOrder = orderProvider.orders.where((o) =>
                           o.tableId == table.id &&
                           o.status != OrderStatus.completed &&
-                          o.status != OrderStatus.cancelled).firstOrNull
-                      : null;
+                          o.status != OrderStatus.cancelled).firstOrNull;
+
+                  final isOccupied = table.status == TableStatus.occupied || activeOrder != null;
+                  final isAvailable = !isOccupied && table.status == TableStatus.available;
+                  
+                  final effectiveStatus = isOccupied ? TableStatus.occupied : table.status;
+                  final color = _statusColor(effectiveStatus, cs);
                   
                   final hasReadyItems = activeOrder?.status == OrderStatus.ready;
 
