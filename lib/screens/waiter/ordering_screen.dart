@@ -6,6 +6,8 @@ import '../../models/order_model.dart';
 import '../../providers/menu_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/table_provider.dart';
+import '../../providers/inventory_provider.dart';
+import '../../utils/recipe_helper.dart';
 
 /// Màn hình đặt món cho waiter – dùng DishModel (API mới)
 class OrderingScreen extends StatefulWidget {
@@ -57,84 +59,140 @@ class _OrderingScreenState extends State<OrderingScreen> {
 
     if (!mounted) return;
     await Provider.of<OrderProvider>(context, listen: false).placeOrder(order);
-    await Provider.of<TableProvider>(context, listen: false)
-        .updateStatus(widget.table.id, TableStatus.occupied);
+    await Provider.of<TableProvider>(
+      context,
+      listen: false,
+    ).updateStatus(widget.table.id, TableStatus.occupied);
 
     if (!mounted) return;
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã gửi order vào bếp 🍳')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Đã gửi order vào bếp 🍳')));
   }
 
   @override
   Widget build(BuildContext context) {
     final menuProvider = Provider.of<MenuProvider>(context);
+    final inventory = Provider.of<InventoryProvider>(context).items;
     final cs = Theme.of(context).colorScheme;
     // Dùng allItems (tất cả món còn dùng được)
     final dishes = menuProvider.allItems.where((d) => d.isAvailable).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.table.name} – Gọi món'),
-      ),
+      appBar: AppBar(title: Text('${widget.table.name} – Gọi món')),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: dishes.length,
-              itemBuilder: (ctx, i) {
-                final dish = dishes[i];
-                final qty = _cart[dish] ?? 0;
-                return Card(
-                  child: ListTile(
-                    leading: dish.imageUrl.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(dish.imageUrl,
-                                width: 48, height: 48, fit: BoxFit.cover),
-                          )
-                        : Container(
-                            width: 48, height: 48,
-                            decoration: BoxDecoration(
-                              color: cs.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
+            child: RefreshIndicator(
+              displacement: 40,
+              edgeOffset: 20,
+              onRefresh: () async =>
+                  await Future.delayed(const Duration(seconds: 1)),
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(8),
+                itemCount: dishes.length,
+                itemBuilder: (ctx, i) {
+                  final dish = dishes[i];
+                  final qty = _cart[dish] ?? 0;
+                  final isOutOfStock = menuProvider.isOutOfStock(
+                    dish.id,
+                    inventory,
+                  );
+
+                  return Opacity(
+                    opacity: isOutOfStock ? 0.5 : 1.0,
+                    child: Card(
+                      child: ListTile(
+                        leading: dish.imageUrl.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  dish.imageUrl,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: cs.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.fastfood_rounded,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                dish.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                            child: Icon(Icons.fastfood_rounded,
-                                color: cs.onSurfaceVariant),
-                          ),
-                    title: Text(dish.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('${dish.price.toInt()}đ'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (qty > 0) ...[
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            color: cs.error,
-                            onPressed: () => _removeFromCart(dish),
-                          ),
-                          Text('$qty',
-                              style: TextStyle(
+                            if (isOutOfStock)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'HẾT MÓN',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        subtitle: Text('${dish.price.toInt()}đ'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (qty > 0) ...[
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline),
+                                color: cs.error,
+                                onPressed: () => _removeFromCart(dish),
+                              ),
+                              Text(
+                                '$qty',
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: cs.primary,
-                                  fontSize: 16)),
-                        ],
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline),
-                          color: cs.primary,
-                          onPressed: () => _addToCart(dish),
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline),
+                              color: isOutOfStock ? Colors.grey : cs.primary,
+                              onPressed: isOutOfStock
+                                  ? null
+                                  : () => _addToCart(dish),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
-          // Cart summary
           if (_cart.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(16),
@@ -142,9 +200,10 @@ class _OrderingScreenState extends State<OrderingScreen> {
                 color: cs.surface,
                 boxShadow: [
                   BoxShadow(
-                      color: cs.shadow.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -3))
+                    color: cs.shadow.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
+                  ),
                 ],
               ),
               child: Column(
@@ -152,11 +211,17 @@ class _OrderingScreenState extends State<OrderingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Tổng cộng',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      Text('${_totalPrice.toInt()}đ',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: cs.primary, fontWeight: FontWeight.w800)),
+                      Text(
+                        'Tổng cộng',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${_totalPrice.toInt()}đ',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: cs.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),

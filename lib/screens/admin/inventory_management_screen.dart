@@ -286,31 +286,39 @@ class _ItemList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inventory_2_rounded,
-                size: 64, color: cs.outlineVariant),
-            const SizedBox(height: 12),
-            Text(emptyLabel,
-                style: TextStyle(color: cs.onSurfaceVariant),
-                textAlign: TextAlign.center),
-          ],
-        ),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 4),
-      itemBuilder: (_, i) => InventoryItemCard(
-        item: items[i],
-        onImport: () => onImport(items[i]),
-        onExport: () => onExport(items[i]),
-        onDelete: () => onDelete(items[i]),
-      ),
+    return RefreshIndicator(
+      onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+      child: items.isEmpty
+          ? SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Container(
+                height: MediaQuery.of(context).size.height - 200,
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inventory_2_rounded,
+                        size: 64, color: cs.outlineVariant),
+                    const SizedBox(height: 12),
+                    Text(emptyLabel,
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                        textAlign: TextAlign.center),
+                  ],
+                ),
+              ),
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (_, i) => InventoryItemCard(
+                item: items[i],
+                onImport: () => onImport(items[i]),
+                onExport: () => onExport(items[i]),
+                onDelete: () => onDelete(items[i]),
+              ),
+            ),
     );
   }
 }

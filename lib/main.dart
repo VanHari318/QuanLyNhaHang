@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:ui';
 
 import 'providers/auth_provider.dart';
 import 'providers/menu_provider.dart';
@@ -56,6 +57,7 @@ class MyApp extends StatelessWidget {
     );
 
     return MaterialApp(
+      scrollBehavior: MyCustomScrollBehavior(),
       title: 'Vị Lai Quán – Quản Lý',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -272,4 +274,14 @@ class _AccessDeniedScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class MyCustomScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.unknown,
+      };
 }

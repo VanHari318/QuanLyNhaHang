@@ -359,6 +359,19 @@ class DatabaseService {
     await _bulkIngredients.doc(dishId).delete();
   }
 
+  /// Lắng nghe tất cả công thức nấu ăn (để phục vụ kiểm tra kho realtime)
+  Stream<Map<String, DishRecipeModel>> getAllRecipes() {
+    return _bulkIngredients.snapshots().map((s) {
+      final res = <String, DishRecipeModel>{};
+      for (var doc in s.docs) {
+        try {
+          res[doc.id] = DishRecipeModel.fromMap(doc.data());
+        } catch (_) {}
+      }
+      return res;
+    });
+  }
+
   // ─── CHATBOT ─────────────────────────────────────────────────────────────────
 
   Stream<List<ChatBotModel>> getChatBotData() {

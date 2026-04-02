@@ -29,9 +29,22 @@ class TableSelectionScreen extends StatelessWidget {
         leading: isAdmin
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context))
+                onPressed: () => Navigator.pop(context),
+              )
             : null,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Làm mới',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Đang cập nhật danh sách bàn...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.person_outline_rounded),
             onPressed: () => Navigator.push(
@@ -45,21 +58,33 @@ class TableSelectionScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: tableProvider.tables.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.table_bar_rounded,
-                      size: 64, color: cs.outlineVariant),
-                  const SizedBox(height: 12),
-                  const Text('Chưa có bàn. Admin cần seed data trước.'),
-                ],
-              ),
-            )
-          : Padding(
-              padding: const EdgeInsets.all(10),
-              child: GridView.builder(
+      body: RefreshIndicator(
+        displacement: 40,
+        edgeOffset: 20,
+        onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+        child: tableProvider.tables.isEmpty
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height - 100,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.table_bar_rounded,
+                        size: 64,
+                        color: cs.outlineVariant,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Chưa có bàn.'),
+                    ],
+                  ),
+                ),
+              )
+            : GridView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 10,
@@ -70,25 +95,37 @@ class TableSelectionScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final table = tableProvider.tables[index];
                   // Always find if there is an active order for this table
-                  final activeOrder = orderProvider.orders.where((o) =>
-                          o.tableId == table.id &&
-                          o.status != OrderStatus.completed &&
-                          o.status != OrderStatus.cancelled).firstOrNull;
+                  final activeOrder = orderProvider.orders
+                      .where(
+                        (o) =>
+                            o.tableId == table.id &&
+                            o.status != OrderStatus.completed &&
+                            o.status != OrderStatus.cancelled,
+                      )
+                      .firstOrNull;
 
-                  final isOccupied = table.status == TableStatus.occupied || activeOrder != null;
-                  final isAvailable = !isOccupied && table.status == TableStatus.available;
-                  
-                  final effectiveStatus = isOccupied ? TableStatus.occupied : table.status;
+                  final isOccupied =
+                      table.status == TableStatus.occupied ||
+                      activeOrder != null;
+                  final isAvailable =
+                      !isOccupied && table.status == TableStatus.available;
+
+                  final effectiveStatus = isOccupied
+                      ? TableStatus.occupied
+                      : table.status;
                   final color = _statusColor(effectiveStatus, cs);
-                  
-                  final hasReadyItems = activeOrder?.status == OrderStatus.ready;
+
+                  final hasReadyItems =
+                      activeOrder?.status == OrderStatus.ready;
 
                   return InkWell(
                     onTap: () {
                       if (isAvailable) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => OrderingScreen(table: table)),
+                          MaterialPageRoute(
+                            builder: (_) => OrderingScreen(table: table),
+                          ),
                         );
                       } else if (isOccupied && activeOrder != null) {
                         showActiveTableDialog(context, table, activeOrder);
@@ -100,7 +137,9 @@ class TableSelectionScreen extends StatelessWidget {
                         color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: color.withValues(alpha: 0.4), width: 1.5),
+                          color: color.withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
                       ),
                       child: Stack(
                         alignment: Alignment.center,
@@ -108,19 +147,29 @@ class TableSelectionScreen extends StatelessWidget {
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.table_bar_rounded,
-                                  color: isAvailable || isOccupied ? color : cs.outlineVariant,
-                                  size: 32),
+                              Icon(
+                                Icons.table_bar_rounded,
+                                color: isAvailable || isOccupied
+                                    ? color
+                                    : cs.outlineVariant,
+                                size: 32,
+                              ),
                               const SizedBox(height: 6),
-                              Text(table.name,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: color,
-                                      fontSize: 13)),
-                              Text('${table.capacity} chỗ',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: cs.onSurfaceVariant)),
+                              Text(
+                                table.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: color,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '${table.capacity} chỗ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
                             ],
                           ),
                           if (hasReadyItems)
@@ -133,8 +182,11 @@ class TableSelectionScreen extends StatelessWidget {
                                   color: Colors.teal,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.notifications_active_rounded,
-                                    size: 14, color: Colors.white),
+                                child: const Icon(
+                                  Icons.notifications_active_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                         ],
@@ -143,7 +195,7 @@ class TableSelectionScreen extends StatelessWidget {
                   );
                 },
               ),
-            ),
+      ),
     );
   }
 

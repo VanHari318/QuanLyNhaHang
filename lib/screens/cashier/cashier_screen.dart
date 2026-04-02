@@ -47,21 +47,29 @@ class CashierScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: servedOrders.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.payment_rounded,
-                      size: 64, color: cs.outlineVariant),
-                  const SizedBox(height: 12),
-                  Text('Không có đơn nào chờ thanh toán',
-                      style: TextStyle(color: cs.onSurfaceVariant)),
-                ],
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(12),
+      body: RefreshIndicator(
+        onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+        child: servedOrders.isEmpty
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height - 100,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.payment_rounded,
+                          size: 64, color: cs.outlineVariant),
+                      const SizedBox(height: 12),
+                      Text('Không có đơn nào chờ thanh toán',
+                          style: TextStyle(color: cs.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+              )
+            : ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(12),
               itemCount: servedOrders.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
@@ -123,6 +131,7 @@ class CashierScreen extends StatelessWidget {
                 );
               },
             ),
+      ),
     );
   }
 

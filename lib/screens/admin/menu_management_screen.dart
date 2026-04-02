@@ -86,25 +86,36 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
           ),
         ),
       ),
-      body: menuProvider.filteredItems.isEmpty
-          ? _emptyState(cs)
-          : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: menuProvider.filteredItems.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 4),
-              itemBuilder: (context, index) {
-                final dish = menuProvider.filteredItems[index];
-                return _DishTile(
-                  dish: dish,
-                  onEdit: () => _showDishDialog(context, dish: dish),
-                  onDelete: () => _confirmDelete(context, dish),
-                  onToggleBestSeller: (val) =>
-                      menuProvider.toggleBestSeller(dish.id, val),
-                  onToggleAvailable: (val) =>
-                      menuProvider.toggleAvailability(dish.id, val),
-                );
-              },
-            ),
+      body: RefreshIndicator(
+        onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+        child: menuProvider.filteredItems.isEmpty
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height - 200,
+                  alignment: Alignment.center,
+                  child: _emptyState(cs),
+                ),
+              )
+            : ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(12),
+                itemCount: menuProvider.filteredItems.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 4),
+                itemBuilder: (context, index) {
+                  final dish = menuProvider.filteredItems[index];
+                  return _DishTile(
+                    dish: dish,
+                    onEdit: () => _showDishDialog(context, dish: dish),
+                    onDelete: () => _confirmDelete(context, dish),
+                    onToggleBestSeller: (val) =>
+                        menuProvider.toggleBestSeller(dish.id, val),
+                    onToggleAvailable: (val) =>
+                        menuProvider.toggleAvailability(dish.id, val),
+                  );
+                },
+              ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showDishDialog(context),
         icon: const Icon(Icons.add_rounded),

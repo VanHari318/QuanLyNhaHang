@@ -172,30 +172,37 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
                   }).toList();
                 }
 
-                if (orders.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inbox_rounded, size: 64, color: cs.outlineVariant),
-                        const SizedBox(height: 12),
-                        Text(
-                          _selectedStatus == null ? 'Không có đơn hàng nào' : 'Không có đơn (${_statusLabel(_selectedStatus!)})',
-                          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 16),
+                return RefreshIndicator(
+                  onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+                  child: orders.isEmpty
+                      ? SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                            height: MediaQuery.of(context).size.height - 300,
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.inbox_rounded, size: 64, color: cs.outlineVariant),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _selectedStatus == null ? 'Không có đơn hàng nào' : 'Không có đơn (${_statusLabel(_selectedStatus!)})',
+                                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                          itemCount: orders.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (ctx, i) => _FullOrderCard(
+                            order: orders[i],
+                            db: _db,
+                          ),
                         ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                  itemCount: orders.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (ctx, i) => _FullOrderCard(
-                    order: orders[i],
-                    db: _db,
-                  ),
                 );
               },
             ),

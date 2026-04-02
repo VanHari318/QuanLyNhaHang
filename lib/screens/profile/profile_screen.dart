@@ -18,10 +18,10 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   final _formKey = GlobalKey<FormState>();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
-  
+
   File? _pickedImage;
   XFile? _webPickedImage;
   String? _currentImageUrl;
@@ -70,7 +70,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Wrap(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.photo_library_rounded, color: Colors.blue),
+                  leading: const Icon(
+                    Icons.photo_library_rounded,
+                    color: Colors.blue,
+                  ),
                   title: const Text('Chọn từ Thư viện'),
                   onTap: () {
                     Navigator.pop(context);
@@ -78,7 +81,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.photo_camera_rounded, color: Colors.orange),
+                  leading: const Icon(
+                    Icons.photo_camera_rounded,
+                    color: Colors.orange,
+                  ),
                   title: const Text('Chụp ảnh mới'),
                   onTap: () {
                     Navigator.pop(context);
@@ -95,9 +101,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isUploading = true);
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     String finalImageUrl = _currentImageUrl ?? '';
 
@@ -120,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         phoneNumber: _phoneController.text.trim(),
         imageUrl: finalImageUrl,
       );
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Cập nhật thông tin thành công')),
@@ -136,17 +142,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
         errorMsg = 'Mật khẩu cũ không chính xác';
       } else if (e.code == 'requires-recent-login') {
-        errorMsg = 'Vì lý do bảo mật, bạn cần Đăng xuất và Đăng nhập lại để thực hiện đổi mật khẩu.';
+        errorMsg =
+            'Vì lý do bảo mật, bạn cần Đăng xuất và Đăng nhập lại để thực hiện đổi mật khẩu.';
       } else if (e.message != null) {
         errorMsg = e.message!;
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     } finally {
       setState(() => _isUploading = false);
@@ -156,7 +167,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<AuthProvider>(context).user;
-    if (user == null) return const Scaffold(body: Center(child: Text('Không tìm thấy người dùng')));
+    if (user == null)
+      return const Scaffold(
+        body: Center(child: Text('Không tìm thấy người dùng')),
+      );
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -197,137 +211,179 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Avatar Section
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cs.primary.withValues(alpha: 0.2), width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: _webPickedImage != null
-                            ? Image.network(_webPickedImage!.path, fit: BoxFit.cover)
-                            : (_pickedImage != null
-                                ? Image.file(_pickedImage!, fit: BoxFit.cover)
-                                : (user.imageUrl.isNotEmpty
-                                    ? Image.network(user.imageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                              color: cs.primaryContainer,
-                                              child: Icon(Icons.person_rounded,
-                                                  size: 80, color: cs.primary),
-                                            ))
-                                    : Container(
-                                        color: cs.primaryContainer,
-                                        child: Icon(Icons.person_rounded,
-                                            size: 80, color: cs.primary),
-                                      ))),
-                      ),
-                    ),
-                    if (_isEditing)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Material(
-                          color: cs.primary,
-                          shape: const CircleBorder(),
-                          elevation: 4,
-                          child: InkWell(
-                            onTap: () => _showImageSourceActionSheet(context),
-                            customBorder: const CircleBorder(),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+      body: RefreshIndicator(
+        onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Avatar Section
+                  Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: cs.primary.withValues(alpha: 0.2),
+                              width: 4,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: _webPickedImage != null
+                                ? Image.network(
+                                    _webPickedImage!.path,
+                                    fit: BoxFit.cover,
+                                  )
+                                : (_pickedImage != null
+                                      ? Image.file(
+                                          _pickedImage!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : (user.imageUrl.isNotEmpty
+                                            ? Image.network(
+                                                user.imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    Container(
+                                                      color:
+                                                          cs.primaryContainer,
+                                                      child: Icon(
+                                                        Icons.person_rounded,
+                                                        size: 80,
+                                                        color: cs.primary,
+                                                      ),
+                                                    ),
+                                              )
+                                            : Container(
+                                                color: cs.primaryContainer,
+                                                child: Icon(
+                                                  Icons.person_rounded,
+                                                  size: 80,
+                                                  color: cs.primary,
+                                                ),
+                                              ))),
+                          ),
+                        ),
+                        if (_isEditing)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Material(
+                              color: cs.primary,
+                              shape: const CircleBorder(),
+                              elevation: 4,
+                              child: InkWell(
+                                onTap: () =>
+                                    _showImageSourceActionSheet(context),
+                                customBorder: const CircleBorder(),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Info Section
+                  _buildInfoField(
+                    label: 'Họ và tên',
+                    controller: _nameController,
+                    icon: Icons.person_outline_rounded,
+                    isEditing: _isEditing,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Vui lòng nhập tên' : null,
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildInfoField(
+                    label: 'Email',
+                    initialValue: user.email,
+                    icon: Icons.email_outlined,
+                    isEditing: false, // Email is not editable
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildInfoField(
+                    label: 'Số điện thoại',
+                    controller: _phoneController,
+                    icon: Icons.phone_android_rounded,
+                    isEditing: _isEditing,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildInfoField(
+                    label: 'Vai trò',
+                    initialValue: _roleLabel(user.role),
+                    icon: Icons.badge_outlined,
+                    isEditing: false, // Role is not editable
+                  ),
+
+                  if (!_isEditing) ...[
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showChangePasswordDialog(context),
+                        icon: const Icon(Icons.lock_outline_rounded, size: 20),
+                        label: const Text('Đổi mật khẩu'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: cs.secondary,
+                          side: BorderSide(
+                            color: cs.secondary.withOpacity(0.5),
                           ),
                         ),
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Info Section
-              _buildInfoField(
-                label: 'Họ và tên',
-                controller: _nameController,
-                icon: Icons.person_outline_rounded,
-                isEditing: _isEditing,
-                validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập tên' : null,
-              ),
-              const SizedBox(height: 20),
-              
-              _buildInfoField(
-                label: 'Email',
-                initialValue: user.email,
-                icon: Icons.email_outlined,
-                isEditing: false, // Email is not editable
-              ),
-              const SizedBox(height: 20),
-
-              _buildInfoField(
-                label: 'Số điện thoại',
-                controller: _phoneController,
-                icon: Icons.phone_android_rounded,
-                isEditing: _isEditing,
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 20),
-
-              _buildInfoField(
-                label: 'Vai trò',
-                initialValue: _roleLabel(user.role),
-                icon: Icons.badge_outlined,
-                isEditing: false, // Role is not editable
-              ),
-
-              if (!_isEditing) ...[
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showChangePasswordDialog(context),
-                    icon: const Icon(Icons.lock_outline_rounded, size: 20),
-                    label: const Text('Đổi mật khẩu'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: cs.secondary,
-                      side: BorderSide(color: cs.secondary.withOpacity(0.5)),
                     ),
-                  ),
-                ),
-              ],
+                  ],
 
-              if (_isEditing) ...[
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _isUploading ? null : _saveChanges,
-                    icon: _isUploading 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.save_rounded),
-                    label: Text(_isUploading ? 'Đang lưu...' : 'Lưu thay đổi'),
-                  ),
-                ),
-              ],
-            ],
+                  if (_isEditing) ...[
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _isUploading ? null : _saveChanges,
+                        icon: _isUploading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save_rounded),
+                        label: Text(
+                          _isUploading ? 'Đang lưu...' : 'Lưu thay đổi',
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -347,7 +403,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.primary)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: cs.primary,
+          ),
+        ),
         const SizedBox(height: 8),
         if (isEditing && controller != null)
           TextFormField(
@@ -413,12 +476,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: const Row(
                 children: [
-                   Icon(Icons.lock_reset_rounded, color: Colors.orange, size: 28),
-                   SizedBox(width: 12),
-                   Text('Đổi mật khẩu', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Icon(
+                    Icons.lock_reset_rounded,
+                    color: Colors.orange,
+                    size: 28,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Đổi mật khẩu',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
               content: SizedBox(
@@ -437,11 +509,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             labelText: 'Mật khẩu cũ',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
-                              icon: Icon(obscureOld ? Icons.visibility_off : Icons.visibility),
-                              onPressed: () => setState(() => obscureOld = !obscureOld),
+                              icon: Icon(
+                                obscureOld
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () =>
+                                  setState(() => obscureOld = !obscureOld),
                             ),
                           ),
-                          validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập mật khẩu cũ' : null,
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Vui lòng nhập mật khẩu cũ'
+                              : null,
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
@@ -451,12 +530,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             labelText: 'Mật khẩu mới',
                             prefixIcon: const Icon(Icons.vpn_key_outlined),
                             suffixIcon: IconButton(
-                              icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
-                              onPressed: () => setState(() => obscureNew = !obscureNew),
+                              icon: Icon(
+                                obscureNew
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () =>
+                                  setState(() => obscureNew = !obscureNew),
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'Vui lòng nhập mật khẩu mới';
+                            if (v == null || v.isEmpty)
+                              return 'Vui lòng nhập mật khẩu mới';
                             if (v.length < 6) return 'Tối thiểu 6 ký tự';
                             if (v == oldPasswordController.text) {
                               return 'Mật khẩu mới không được giống mật khẩu cũ';
@@ -472,12 +557,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             labelText: 'Nhập lại mật khẩu mới',
                             prefixIcon: const Icon(Icons.check_circle_outline),
                             suffixIcon: IconButton(
-                              icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
-                              onPressed: () => setState(() => obscureConfirm = !obscureConfirm),
+                              icon: Icon(
+                                obscureConfirm
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(
+                                () => obscureConfirm = !obscureConfirm,
+                              ),
                             ),
                           ),
                           validator: (v) {
-                            if (v != newPasswordController.text) return 'Mật khẩu xác nhận không khớp';
+                            if (v != newPasswordController.text)
+                              return 'Mật khẩu xác nhận không khớp';
                             return null;
                           },
                         ),
@@ -493,50 +585,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Text('Hủy'),
                 ),
                 FilledButton(
-                  onPressed: isLoading ? null : () async {
-                    if (formKey.currentState!.validate()) {
-                      setState(() => isLoading = true);
-                      try {
-                        await authProvider.changePassword(
-                          oldPasswordController.text.trim(),
-                          newPasswordController.text.trim(),
-                        );
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('✅ Đổi mật khẩu thành công')),
-                          );
-                        }
-                      } on FirebaseAuthException catch (e) {
-                         setState(() => isLoading = false);
-                         String errorMsg = 'Đã có lỗi xảy ra';
-                         if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-                           errorMsg = 'Mật khẩu cũ không chính xác';
-                         } else if (e.message != null) {
-                           errorMsg = e.message!;
-                         }
-                         if (context.mounted) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             SnackBar(content: Text('❌ $errorMsg')),
-                           );
-                         }
-                      } catch (e) {
-                         setState(() => isLoading = false);
-                         if (context.mounted) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             SnackBar(content: Text('❌ Lỗi: $e')),
-                           );
-                         }
-                      }
-                    }
-                  },
-                  child: isLoading 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Lưu'),
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() => isLoading = true);
+                            try {
+                              await authProvider.changePassword(
+                                oldPasswordController.text.trim(),
+                                newPasswordController.text.trim(),
+                              );
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('✅ Đổi mật khẩu thành công'),
+                                  ),
+                                );
+                              }
+                            } on FirebaseAuthException catch (e) {
+                              setState(() => isLoading = false);
+                              String errorMsg = 'Đã có lỗi xảy ra';
+                              if (e.code == 'wrong-password' ||
+                                  e.code == 'invalid-credential') {
+                                errorMsg = 'Mật khẩu cũ không chính xác';
+                              } else if (e.message != null) {
+                                errorMsg = e.message!;
+                              }
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('❌ $errorMsg')),
+                                );
+                              }
+                            } catch (e) {
+                              setState(() => isLoading = false);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('❌ Lỗi: $e')),
+                                );
+                              }
+                            }
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Lưu'),
                 ),
               ],
             );
-          }
+          },
         );
       },
     );

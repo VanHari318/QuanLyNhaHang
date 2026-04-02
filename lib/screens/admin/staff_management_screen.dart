@@ -55,26 +55,37 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   }
 
   Widget _buildList(List<UserModel> staffList, String emptyMsg) {
-    if (staffList.isEmpty) {
-      return Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.people_outline_rounded,
-              size: 64,
-              color: Theme.of(context).colorScheme.outlineVariant),
-          const SizedBox(height: 12),
-          Text(emptyMsg),
-        ]),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: staffList.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 4),
-      itemBuilder: (_, i) => _StaffTile(
-        user: staffList[i],
-        onEdit: () => _showRoleDialog(staffList[i]),
-        onDelete: () => _confirmDelete(staffList[i]),
-      ),
+    final cs = Theme.of(context).colorScheme;
+    return RefreshIndicator(
+      onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+      child: staffList.isEmpty
+          ? SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Container(
+                height: MediaQuery.of(context).size.height - 200,
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.people_outline_rounded,
+                        size: 64, color: cs.outlineVariant),
+                    const SizedBox(height: 12),
+                    Text(emptyMsg),
+                  ],
+                ),
+              ),
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(12),
+              itemCount: staffList.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (_, i) => _StaffTile(
+                user: staffList[i],
+                onEdit: () => _showRoleDialog(staffList[i]),
+                onDelete: () => _confirmDelete(staffList[i]),
+              ),
+            ),
     );
   }
 

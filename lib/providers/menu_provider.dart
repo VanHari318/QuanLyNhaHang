@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/dish_model.dart';
+import '../models/recipe_model.dart';
+import '../models/inventory_model.dart';
 import '../services/database_service.dart';
+import '../utils/recipe_helper.dart';
 
 /// Provider quản lý menu món ăn với category filter và best-seller toggle
 class MenuProvider with ChangeNotifier {
   final _db = DatabaseService();
 
   List<DishModel> _allItems = [];
+  Map<String, DishRecipeModel> _recipes = {};
   String _selectedCategory = ''; // '' = tất cả
   String _searchQuery = '';
   bool? _isSortAsc;
@@ -46,6 +50,39 @@ class MenuProvider with ChangeNotifier {
       _allItems = items;
       notifyListeners();
     });
+
+    // Lắng nghe tất cả công thức nấu ăn
+    _db.getAllRecipes().listen((recipes) {
+      _recipes = recipes;
+      notifyListeners();
+    });
+  }
+
+  /// Kiểm tra xem món ăn có hết hàng hay không dựa trên tồn kho thực tế
+  bool isOutOfStock(String dishId, List<InventoryModel> inventory) {
+    if (inventory.isEmpty) return false;
+    final recipe = _recipes[dishId];
+    if (recipe == null) return false; // Không có công thức -> Coi như không giới hạn kho (hoặc xử lý khác tùy ý)
+
+    for (var requirement in recipe.ingredients) {
+      // Tìm nguyên liệu trong kho theo tên (khớp chính xác như trong DatabaseService)
+      final invItem = inventory.firstWhere(
+        (i) => i.name == requirement.name,
+        orElse: () => const InventoryModel(id: '', name: '', quantity: 0, unit: ''),
+      );
+
+      final needed = RecipeHelper.calculateNeededQuantity(
+        totalQuantityForBulk: requirement.quantity,
+        bulkServings: recipe.servings,
+        unit: requirement.unit,
+        orderQuantity: 1, // Kiểm tra cho 1 suất
+      );
+
+      if (invItem.quantity < needed) {
+        return true; // Chỉ cần 1 nguyên liệu thiếu là hết hàng
+      }
+    }
+    return false;
   }
 
   void setCategory(String category) {
