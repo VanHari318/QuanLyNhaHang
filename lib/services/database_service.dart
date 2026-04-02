@@ -7,6 +7,7 @@ import '../models/category_model.dart';
 import '../models/inventory_model.dart';
 import '../models/chatbot_model.dart';
 import '../models/recipe_model.dart';
+import '../utils/recipe_helper.dart';
 import 'dart:math' as math;
 
 /// Lớp service tương tác với Firestore – project: quan-ly-nha-hang-20f37
@@ -344,21 +345,23 @@ class DatabaseService {
         final name = ing['name'] as String;
         final totalNeeded100 = (ing['total_quantity'] as num).toDouble();
         final unitStr = ing['unit'] as String;
-        
-        // Tính định mức 1 suất -> nhân với số lượng đặt
-        double deductAmount = (totalNeeded100 / servings) * qty;
-        
-        // Quy đổi sang kg/lít nếu nguyên liệu dùng đơn vị > 1000g/ml
-        if (totalNeeded100 >= 1000 && (unitStr == 'g' || unitStr == 'ml')) {
-          deductAmount = deductAmount / 1000;
-        }
 
-        // 3. Tìm nguyên liệu thực tế trong kho (theo tên chuẩn xác)
+        // 3. Tìm nguyên liệu thực tế trong kho (theo tên chuẩn xác) để lấy đơn vị quy đổi
         final invQuery = await _inventory.where('name', isEqualTo: name).limit(1).get();
         if (invQuery.docs.isNotEmpty) {
           final invDoc = invQuery.docs.first;
+          final invUnit = invDoc.data()?['unit'] as String? ?? '';
+
+          // Tính lượng trừ kho chính xác (có quy đổi đơn vị g->kg, ml->l nếu cần)
+          double deductAmount = RecipeHelper.calculateNeededQuantity(
+            totalQuantityForBulk: totalNeeded100,
+            bulkServings: servings,
+            unit: unitStr,
+            targetUnit: invUnit,
+            orderQuantity: qty,
+          );
+
           final currentQty = (invDoc.data()['quantity'] as num).toDouble();
-          
           final newQty = currentQty - deductAmount;
           batch.update(invDoc.reference, {'quantity': newQty < 0 ? 0 : newQty});
           
@@ -539,7 +542,27 @@ class DatabaseService {
     return result;
   }
 
-  /// Top 5 món bán chạy (đếm tần suất xuất hiện trong orders completed)
+  /// Lấy danh sách ID các món bán chạy nhất (dựa trên số lượng trong đơn hàng đã hoàn tất)
+  Future<List<String>> getTopSellingDishIds({int limit = 5}) async {
+    final snap = await _orders
+        .where('status', isEqualTo: OrderStatus.completed.name)
+        .get();
+    
+    final Map<String, int> freq = {};
+    for (final doc in snap.docs) {
+      final items = (doc.data()['items'] as List<dynamic>? ?? []);
+      for (final item in items) {
+        final id = (item['dish']?['id'] ?? '') as String;
+        if (id.isEmpty) continue;
+        final qty = (item['quantity'] ?? 1) as int;
+        freq[id] = (freq[id] ?? 0) + qty;
+      }
+    }
+    final sorted = freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return sorted.take(limit).map((e) => e.key).toList();
+  }
+
+  /// Top món bán chạy để hiển thị biểu đồ (trả về Name để vẽ chart)
   Future<List<MapEntry<String, int>>> getTopDishes({int limit = 5}) async {
     final snap = await _orders
         .where('status', isEqualTo: OrderStatus.completed.name)

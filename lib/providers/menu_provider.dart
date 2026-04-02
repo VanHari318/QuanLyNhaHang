@@ -10,6 +10,7 @@ class MenuProvider with ChangeNotifier {
   final _db = DatabaseService();
 
   List<DishModel> _allItems = [];
+  List<String> _topSellingIds = [];
   Map<String, DishRecipeModel> _recipes = {};
   String _selectedCategory = ''; // '' = tất cả
   String _searchQuery = '';
@@ -17,10 +18,14 @@ class MenuProvider with ChangeNotifier {
   bool _isLoading = false;
 
   List<DishModel> get allItems => _allItems;
+  List<String> get topSellingIds => _topSellingIds;
   String get selectedCategory => _selectedCategory;
   String get searchQuery => _searchQuery;
   bool? get isSortAsc => _isSortAsc;
   bool get isLoading => _isLoading;
+
+  /// Helper: Kiểm tra một món có nằm trong Top bán chạy không
+  bool isTopSelling(String dishId) => _topSellingIds.contains(dishId);
 
   /// Danh sách đã lọc theo category, search và sort
   List<DishModel> get filteredItems {
@@ -48,6 +53,7 @@ class MenuProvider with ChangeNotifier {
     // Lắng nghe tất cả món từ Firestore realtime
     _db.getDishes().listen((items) {
       _allItems = items;
+      _refreshTopSellers();
       notifyListeners();
     });
 
@@ -56,6 +62,13 @@ class MenuProvider with ChangeNotifier {
       _recipes = recipes;
       notifyListeners();
     });
+  }
+
+  Future<void> _refreshTopSellers() async {
+    try {
+      _topSellingIds = await _db.getTopSellingDishIds(limit: 5);
+      notifyListeners();
+    } catch (_) {}
   }
 
   /// Kiểm tra xem món ăn có hết hàng hay không dựa trên tồn kho thực tế

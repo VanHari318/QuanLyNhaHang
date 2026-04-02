@@ -14,7 +14,7 @@ class HomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final menuProvider = context.watch<MenuProvider>();
     final bestSellers = menuProvider.allItems
-        .where((d) => d.isBestSeller)
+        .where((d) => menuProvider.isTopSelling(d.id))
         .take(6)
         .toList();
 

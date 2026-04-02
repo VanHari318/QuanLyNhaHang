@@ -3,6 +3,7 @@ import '../../services/database_service.dart';
 import '../../models/order_model.dart';
 import '../../components/dashboard_card.dart';
 import '../../components/chart_view.dart';
+import 'monthly_revenue_detail_screen.dart';
 
 /// Dashboard thống kê doanh thu – MD3 enhanced with charts
 class DashboardStatsScreen extends StatefulWidget {
@@ -144,6 +145,12 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                       title: 'Tháng này',
                       value: '${_fmtPrice(snap.data ?? 0)}đ',
                       color: Colors.teal,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MonthlyRevenueDetailScreen(month: _selectedDate),
+                        ),
+                      ),
                     ),
                   ),
                 ),

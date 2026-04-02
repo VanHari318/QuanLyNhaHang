@@ -108,8 +108,6 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
                     dish: dish,
                     onEdit: () => _showDishDialog(context, dish: dish),
                     onDelete: () => _confirmDelete(context, dish),
-                    onToggleBestSeller: (val) =>
-                        menuProvider.toggleBestSeller(dish.id, val),
                     onToggleAvailable: (val) =>
                         menuProvider.toggleAvailability(dish.id, val),
                   );
@@ -263,14 +261,12 @@ class _DishTile extends StatelessWidget {
   final DishModel dish;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final void Function(bool) onToggleBestSeller;
   final void Function(bool) onToggleAvailable;
 
   const _DishTile({
     required this.dish,
     required this.onEdit,
     required this.onDelete,
-    required this.onToggleBestSeller,
     required this.onToggleAvailable,
   });
 
@@ -362,21 +358,11 @@ class _DishTile extends StatelessWidget {
                     ),
                   ],
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
                     Icon(Icons.star_rounded,
-                        size: 16,
-                        color: dish.isBestSeller
+                        size: 20,
+                        color: context.watch<MenuProvider>().isTopSelling(dish.id)
                             ? Colors.amber
-                            : cs.outlineVariant),
-                    Switch(
-                      value: dish.isBestSeller,
-                      onChanged: onToggleBestSeller,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ],
-                ),
+                            : cs.outlineVariant.withOpacity(0.3)),
               ],
             ),
           ],
@@ -435,7 +421,6 @@ class _DishDialogState extends State<_DishDialog> {
   late final TextEditingController _descCtrl;
   late final TextEditingController _priceCtrl;
   late String _selectedCat;
-  late bool _isBestSeller;
 
   File? _localImage;
   XFile? _webImage;
@@ -454,7 +439,6 @@ class _DishDialogState extends State<_DishDialog> {
     _priceCtrl =
         TextEditingController(text: d?.price.toStringAsFixed(0));
     _selectedCat = d?.category ?? 'main';
-    _isBestSeller = d?.isBestSeller ?? false;
 
     if (d != null) _loadRecipe(d.id);
   }
@@ -526,7 +510,7 @@ class _DishDialogState extends State<_DishDialog> {
       price: double.tryParse(_priceCtrl.text) ?? 0,
       imageUrl: imageUrl,
       category: _selectedCat,
-      isBestSeller: _isBestSeller,
+      isBestSeller: widget.existingDish?.isBestSeller ?? false,
       isAvailable: widget.existingDish?.isAvailable ?? true,
     );
 
@@ -635,12 +619,6 @@ class _DishDialogState extends State<_DishDialog> {
                 onChanged: (v) => setState(() => _selectedCat = v!),
               ),
               const SizedBox(height: 6),
-              SwitchListTile.adaptive(
-                title: const Text('Best Seller ⭐'),
-                value: _isBestSeller,
-                onChanged: (v) => setState(() => _isBestSeller = v),
-                contentPadding: EdgeInsets.zero,
-              ),
 
               // ── Recipe section ──────────────────────────────────────────
               const Divider(height: 24),

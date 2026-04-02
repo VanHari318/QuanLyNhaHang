@@ -37,12 +37,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final admin = Provider.of<AuthProvider>(context, listen: false).user;
     final inv = context.watch<InventoryProvider>();
 
-    // Count low-stock items
-    final lowStockCount = inv.items.where((item) {
-      return item.maxQuantity > 0
-          ? item.quantity < item.maxQuantity * 0.2
-          : item.quantity < 5;
-    }).length;
+    final lowStockCount = inv.lowStockCount;
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
@@ -240,21 +235,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             .where((o) => o.status == OrderStatus.completed)
                             .fold(0.0, (sum, o) => sum + o.totalPrice);
 
-                        // Top dish from today
-                        final dishCount = <String, int>{};
-                        for (final o in todayOrders) {
+                        // Top dish (All history)
+                        final allFreq = <String, int>{};
+                        for (final o in orders) {
+                          if (o.status != OrderStatus.completed) continue;
                           for (final item in o.items) {
-                            dishCount[item.dish.name] =
-                                (dishCount[item.dish.name] ?? 0) +
-                                item.quantity;
+                            allFreq[item.dish.name] = (allFreq[item.dish.name] ?? 0) + item.quantity;
                           }
                         }
-                        final topDish = dishCount.isNotEmpty
-                            ? (dishCount.entries.toList()..sort(
-                                    (a, b) => b.value.compareTo(a.value),
-                                  ))
-                                  .first
-                                  .key
+                        final topDish = allFreq.isNotEmpty
+                            ? (allFreq.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key
                             : '–';
 
                         return GridView.count(

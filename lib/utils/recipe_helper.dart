@@ -8,17 +8,26 @@ class RecipeHelper {
     required double totalQuantityForBulk,
     required int bulkServings,
     required String unit,
+    String? targetUnit,
     int orderQuantity = 1,
   }) {
     // 1. Calculate per-serving amount and multiply by order quantity
     double needed = (totalQuantityForBulk / bulkServings) * orderQuantity;
     
     // 2. Unit normalization:
-    // If the bulk recipe uses g/ml but in large amounts (>=1000),
-    // the system assumes inventory is in kg/l.
-    // Reference: DatabaseService.dart lines 263-266
-    if (totalQuantityForBulk >= 1000 && (unit == 'g' || unit == 'ml')) {
-      needed = needed / 1000;
+    // If the bulk recipe uses g/ml but inventory is in kg/l, we MUST convert.
+    final u = unit.toLowerCase();
+    final tu = targetUnit?.toLowerCase() ?? '';
+
+    // Gram -> Kilogram
+    if (u == 'g' && (tu == 'kg' || totalQuantityForBulk >= 1000)) {
+      needed /= 1000;
+    }
+    
+    // Milliliter -> Liter
+    if ((u == 'ml' || u == 'mlit' || u == 'mlitre') && 
+        (tu == 'l' || tu == 'lít' || tu == 'lit' || totalQuantityForBulk >= 1000)) {
+      needed /= 1000;
     }
     
     return needed;
