@@ -14,6 +14,7 @@ import '../../providers/cart_provider.dart';
 import '../../providers/inventory_provider.dart'; // Thêm import
 import 'qr_scanner_screen.dart';
 import '../../services/database_service.dart';
+import '../../utils/web_presence.dart' as web_presence;
 import 'dart:math' as math;
 
 /// Trang Menu của Khách – mở khi quét mã QR
@@ -33,7 +34,7 @@ class CustomerMenuPage extends StatefulWidget {
 }
 
 class _CustomerMenuPageState extends State<CustomerMenuPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   String? _customerId;
   bool _isLoadingId = true;
@@ -44,8 +45,25 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 3, vsync: this);
     _initCustomerId();
+    
+    // Mark table as occupied immediately if this is a QR scan
+    if (!_isBrowseMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Tăng counter viewer – chỉ giải phóng bàn khi viewer cuối cùng rời đi
+        _db.joinTableSession(widget.tableId);
+      });
+      
+      // Đăng ký sự kiện JS trực tiếp cho Web (visibilitychange + beforeunload)
+      // Trên Web chỉ dùng JS events, không dùng AppLifecycleState (quá trigger-happy)
+      web_presence.registerWebPresence(
+        widget.tableId,
+        () => _db.leaveTableSession(widget.tableId),   // Tab bị ẩn/đóng
+        () => _db.joinTableSession(widget.tableId),    // Tab được mở lại
+      );
+    }
   }
 
   Future<void> _initCustomerId() async {
@@ -76,8 +94,33 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Trên Web đã có JS visibilitychange xử lý, bỏ qua lifecycle để tránh double-decrement
+    if (const bool.fromEnvironment('dart.library.html')) return;
+    
+    // Mobile/Desktop: chỉ bắt paused và detached (không bắt inactive vì quá trigger-happy)
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      if (!_isBrowseMode) {
+        _db.leaveTableSession(widget.tableId);
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_isBrowseMode) {
+        _db.joinTableSession(widget.tableId);
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
+    
+    if (!_isBrowseMode) {
+      web_presence.unregisterWebPresence();
+      // Giảm counter viewer khi dispose (Mobile/Desktop)
+      _db.leaveTableSession(widget.tableId);
+    }
+    
     super.dispose();
   }
 

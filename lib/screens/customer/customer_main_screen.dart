@@ -62,7 +62,7 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
         index: _selectedIndex,
         children: [
           const HomeTab(),
-          CustomerMenuPage(tableId: tid, sessionId: sid),
+          CustomerMenuPage(key: ValueKey('menu_$tid'), tableId: tid, sessionId: sid),
           const GPSOrderScreen(),
           const CartTab(),
           _buildAccountTab(context, user),

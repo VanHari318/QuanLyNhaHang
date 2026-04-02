@@ -98,25 +98,7 @@ class CashierScreen extends StatelessWidget {
                       onPressed: () async {
                         await orderProvider.updateStatus(
                             order.id, OrderStatus.completed);
-                        // Trả bàn về trạng thái trống nếu dine-in và không còn đơn nào khác đang active
-                        if (order.tableId != null) {
-                          try {
-                            final table = tableProvider.tables.firstWhere(
-                                (t) => t.id == order.tableId);
-                            
-                            final hasOtherOrders = orderProvider.orders.any(
-                                (o) => o.tableId == table.id && 
-                                       o.id != order.id &&
-                                       o.status != OrderStatus.completed &&
-                                       o.status != OrderStatus.cancelled
-                            );
-
-                            if (!hasOtherOrders) {
-                              await tableProvider.updateStatus(
-                                  table.id, TableStatus.available);
-                            }
-                          } catch (_) {}
-                        }
+                        
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

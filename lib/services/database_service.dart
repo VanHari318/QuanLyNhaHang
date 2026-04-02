@@ -57,6 +57,68 @@ class DatabaseService {
     await _tables.doc(tableId).update({'status': status.name});
   }
 
+  /// Ghi nhận khách vào xem bàn (tăng biến đếm)
+  Future<void> joinTableSession(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      await _tables.doc(tableId).update({
+        'viewerCount': FieldValue.increment(1),
+        'status': TableStatus.occupied.name,
+      });
+    } catch (e) {
+      print('Lỗi joinTableSession: $e');
+    }
+  }
+
+  /// Ghi nhận khách rời bàn (giảm biến đếm).
+  /// Chỉ giải phóng bàn khi không còn người xem VÀ không còn đơn đang active.
+  Future<void> leaveTableSession(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      // Giảm counter nguyên tử
+      await _tables.doc(tableId).update({
+        'viewerCount': FieldValue.increment(-1),
+      });
+
+      // Đọc lại để kiểm tra
+      final tableDoc = await _tables.doc(tableId).get();
+      final viewers = (tableDoc.data()?['viewerCount'] as num?)?.toInt() ?? 0;
+
+      if (viewers <= 0) {
+        // Reset về 0 để tránh âm
+        await _tables.doc(tableId).update({'viewerCount': 0});
+        await freeTableIfNoActiveOrders(tableId);
+      }
+    } catch (e) {
+      print('Lỗi leaveTableSession: $e');
+    }
+  }
+
+  Future<void> freeTableIfNoActiveOrders(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      final snapshot = await _orders.where('tableId', isEqualTo: tableId).get();
+      
+      bool hasActive = false;
+      for (var doc in snapshot.docs) {
+        final statusStr = doc.data()['status'] as String?;
+        if (statusStr != OrderStatus.completed.name && statusStr != OrderStatus.cancelled.name) {
+          hasActive = true;
+          break;
+        }
+      }
+      
+      if (!hasActive) {
+        await _tables.doc(tableId).update({
+          'status': TableStatus.available.name,
+          'viewerCount': 0,
+        });
+      }
+    } catch (e) {
+      print('Lỗi khi giải phóng bàn: $e');
+    }
+  }
+
   // ─── USERS ───────────────────────────────────────────────────────────────────
 
   Future<void> saveUser(UserModel user) async {
@@ -232,8 +294,34 @@ class DatabaseService {
         }
       }
     }
+    
     await _orders.doc(orderId).update({'status': status.name});
+
+    // Tự động giải phóng bàn nếu đơn bị hủy hoặc đã hoàn thành
+    if (status == OrderStatus.completed || status == OrderStatus.cancelled) {
+      final orderDoc = await _orders.doc(orderId).get();
+      if (orderDoc.exists) {
+        final tableId = orderDoc.data()?['tableId'] as String?;
+        if (tableId != null && tableId.isNotEmpty) {
+          final snapshot = await _orders.where('tableId', isEqualTo: tableId).get();
+          
+          bool hasActive = false;
+          for (var doc in snapshot.docs) {
+            final statusStr = doc.data()['status'] as String?;
+            if (statusStr != OrderStatus.completed.name && statusStr != OrderStatus.cancelled.name) {
+              hasActive = true;
+              break;
+            }
+          }
+          
+          if (!hasActive) {
+            await updateTableStatus(tableId, TableStatus.available);
+          }
+        }
+      }
+    }
   }
+
 
   Future<void> _deductInventoryForOrder(OrderModel order) async {
     final batch = _db.batch();
