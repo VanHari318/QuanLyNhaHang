@@ -497,6 +497,48 @@ class DatabaseService {
     return total;
   }
 
+  /// Tối ưu: Lấy doanh thu trong 1 khoảng thời gian (tránh N+1 queries)
+  Future<double> getRevenueForRange(DateTime start, DateTime end) async {
+    final snap = await _orders
+        .where('status', isEqualTo: OrderStatus.completed.name)
+        .get();
+
+    double total = 0;
+    for (final doc in snap.docs) {
+      try {
+        final order = OrderModel.fromMap(doc.data());
+        final d = order.createdAt;
+        // Kiểm tra d nằm trong [start, end]
+        // Reset giờ về 0 để so sánh chính xác ngày nếu cần
+        if (d.isAtSameMomentAs(start) || d.isAtSameMomentAs(end) || 
+           (d.isAfter(start) && d.isBefore(end))) {
+          total += order.totalPrice;
+        }
+      } catch (_) {}
+    }
+    return total;
+  }
+
+  /// Tối ưu: Lấy danh sách đơn hàng trong khoảng thời gian để xử lý nâng cao (Biểu đồ)
+  Future<List<OrderModel>> getOrdersInRange(DateTime start, DateTime end) async {
+    final snap = await _orders
+        .where('status', isEqualTo: OrderStatus.completed.name)
+        .get();
+
+    final result = <OrderModel>[];
+    for (final doc in snap.docs) {
+      try {
+        final order = OrderModel.fromMap(doc.data());
+        final d = order.createdAt;
+        if (d.isAtSameMomentAs(start) || d.isAtSameMomentAs(end) || 
+           (d.isAfter(start) && d.isBefore(end))) {
+          result.add(order);
+        }
+      } catch (_) {}
+    }
+    return result;
+  }
+
   /// Top 5 món bán chạy (đếm tần suất xuất hiện trong orders completed)
   Future<List<MapEntry<String, int>>> getTopDishes({int limit = 5}) async {
     final snap = await _orders

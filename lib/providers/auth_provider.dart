@@ -38,6 +38,45 @@ class AuthProvider with ChangeNotifier {
     return result != null;
   }
 
+  Future<bool> loginWithGoogle() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final credential = await _authService.signInWithGoogle();
+      if (credential != null && credential.user != null) {
+        final firebaseUser = credential.user!;
+        // Check if user exists in Firestore
+        final existingUser = await _dbService.getUser(firebaseUser.uid);
+        
+        if (existingUser == null) {
+          // Create new user automatically
+          final newUser = UserModel(
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName ?? 'Người dùng Google',
+            email: firebaseUser.email ?? '',
+            role: UserRole.customer,
+            imageUrl: firebaseUser.photoURL ?? '',
+          );
+          await _dbService.saveUser(newUser);
+          _user = newUser;
+        } else {
+          _user = existingUser;
+        }
+        
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      print('Login With Google Error: $e');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
   Future<bool> register(String email, String password, String name, UserRole role, {String imageUrl = ''}) async {
     _isLoading = true;
     notifyListeners();

@@ -106,6 +106,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _googleSignIn() async {
+    setState(() => _isLoading = true);
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.loginWithGoogle();
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Đăng nhập Google thất bại'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -229,6 +246,30 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(
                             _isLogin ? 'Đăng nhập' : 'Đăng ký'),
                       ),
+              ),
+              const SizedBox(height: 16),
+
+              // Separator
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('Hoặc', style: TextStyle(color: cs.outline)),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Google Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _googleSignIn,
+                  icon: const Icon(Icons.g_mobiledata, size: 28),
+                  label: const Text('Tiếp tục với Google'),
+                ),
               ),
               const SizedBox(height: 12),
 

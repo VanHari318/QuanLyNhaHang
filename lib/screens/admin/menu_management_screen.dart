@@ -306,11 +306,16 @@ class _DishTile extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(dish.name,
+                      Expanded(
+                        child: Text(
+                          dish.name,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
                               .textTheme
                               .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600)),
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
                       if (dish.isBestSeller)
                         Container(
                           margin: const EdgeInsets.only(left: 6),
@@ -573,7 +578,7 @@ class _DishDialogState extends State<_DishDialog> {
       title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới'),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
-        width: 480,
+        width: MediaQuery.of(context).size.width * 0.9,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
