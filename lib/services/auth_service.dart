@@ -11,9 +11,17 @@ class AuthService {
   // Stream of auth state changes
   Stream<User?> get userStream => _auth.authStateChanges();
 
+  // Lấy tài khoản Google đang đăng nhập (nếu có)
+  Future<GoogleSignInAccount?> getCurrentGoogleAccount() async {
+    return _googleSignIn.currentUser ?? await _googleSignIn.signInSilently();
+  }
+
   // Sign in with Google
-  Future<UserCredential?> signInWithGoogle() async {
+  Future<UserCredential?> signInWithGoogle({bool forceNewAccount = false}) async {
     try {
+      if (forceNewAccount) {
+        await _googleSignIn.signOut();
+      }
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 

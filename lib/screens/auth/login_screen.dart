@@ -111,43 +111,167 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleSignIn() async {
-    setState(() => _isLoading = true);
     final auth = context.read<AuthProvider>();
-    try {
-      await auth.loginWithGoogle();
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        String message = 'Đăng nhập thất bại (${e.code})';
-        if (e.code == 'account-exists-with-different-credential') {
-          message = 'Email này đã được đăng ký bằng mật khẩu. Vui lòng đăng nhập bằng Email/Mật khẩu.';
-        } else if (e.code == 'network-request-failed') {
-          message = 'Lỗi kết nối mạng.';
-        } else if (e.message != null) {
-          message = 'Lỗi Firebase: ${e.message}';
+
+    // Kiểm tra xem đã có tài khoản Google cached chưa
+    final existingAccount = await auth.getCurrentGoogleAccount();
+
+    if (existingAccount != null && mounted) {
+      // Hiện bottom sheet chọn tài khoản
+      final choice = await _showAccountChooserSheet(existingAccount.email, existingAccount.displayName);
+      if (choice == null || !mounted) return; // Người dùng đóng sheet
+      
+      setState(() => _isLoading = true);
+      try {
+        await auth.loginWithGoogle(forceNewAccount: !choice);
+      } on FirebaseAuthException catch (e) {
+        if (mounted) {
+          String message = 'Đăng nhập thất bại (${e.code})';
+          if (e.code == 'account-exists-with-different-credential') {
+            message = 'Email này đã được đăng ký bằng mật khẩu. Vui lòng đăng nhập bằng Email/Mật khẩu.';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
+          );
         }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        // Hiển thị chi tiết lỗi nếu không phải FirebaseAuthException (như PlatformException của Google)
-        String errorText = e.toString();
-        if (errorText.contains('sign_in_failed')) {
-          errorText = 'Lỗi Google Sign-In (thường do SHA-1 hoặc cấu hình): $errorText';
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: $e'), backgroundColor: Theme.of(context).colorScheme.error, duration: const Duration(seconds: 5)),
+          );
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $errorText'), 
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: const Duration(seconds: 5), // Hiện lâu hơn để dễ đọc
-          ),
-        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    } else {
+      // Không có tài khoản cached → đăng nhập bình thường
+      setState(() => _isLoading = true);
+      try {
+        await auth.loginWithGoogle();
+      } on FirebaseAuthException catch (e) {
+        if (mounted) {
+          String message = 'Đăng nhập thất bại (${e.code})';
+          if (e.code == 'account-exists-with-different-credential') {
+            message = 'Email này đã được đăng ký bằng mật khẩu. Vui lòng đăng nhập bằng Email/Mật khẩu.';
+          } else if (e.message != null) {
+            message = 'Lỗi Firebase: ${e.message}';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          String errorText = e.toString();
+          if (errorText.contains('sign_in_failed')) {
+            errorText = 'Lỗi Google Sign-In (thường do SHA-1 hoặc cấu hình): $errorText';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: $errorText'), backgroundColor: Theme.of(context).colorScheme.error, duration: const Duration(seconds: 5)),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
+  }
+
+  // Bottom sheet chọn tài khoản Google
+  // Trả về: true = dùng tài khoản hiện tại, false = dùng tài khoản mới, null = hủy
+  Future<bool?> _showAccountChooserSheet(String email, String? displayName) {
+    final cs = Theme.of(context).colorScheme;
+    return showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Chọn tài khoản Google',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: cs.onSurface),
+            ),
+            const SizedBox(height: 16),
+
+            // Tài khoản hiện tại
+            InkWell(
+              onTap: () => Navigator.pop(ctx, true),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: cs.primaryContainer,
+                      child: Text(
+                        (displayName?.isNotEmpty == true ? displayName![0] : email[0]).toUpperCase(),
+                        style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (displayName != null && displayName.isNotEmpty)
+                            Text(displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Text(email, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.check_circle_rounded, color: cs.primary),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Dùng tài khoản khác
+            InkWell(
+              onTap: () => Navigator.pop(ctx, false),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: cs.surfaceContainerHighest,
+                      child: Icon(Icons.add_rounded, color: cs.onSurfaceVariant),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('Dùng tài khoản Google khác',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

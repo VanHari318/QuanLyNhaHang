@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
@@ -38,19 +39,21 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> loginWithGoogle() async {
+  Future<GoogleSignInAccount?> getCurrentGoogleAccount() {
+    return _authService.getCurrentGoogleAccount();
+  }
+
+  Future<void> loginWithGoogle({bool forceNewAccount = false}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final credential = await _authService.signInWithGoogle();
+      final credential = await _authService.signInWithGoogle(forceNewAccount: forceNewAccount);
       if (credential != null && credential.user != null) {
         final firebaseUser = credential.user!;
-        // Check if user exists in Firestore
         final existingUser = await _dbService.getUser(firebaseUser.uid);
         
         if (existingUser == null) {
-          // Create new user automatically
           final newUser = UserModel(
             id: firebaseUser.uid,
             name: firebaseUser.displayName ?? 'Người dùng Google',
