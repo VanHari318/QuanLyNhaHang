@@ -117,11 +117,13 @@ class _LoginScreenState extends State<LoginScreen> {
       await auth.loginWithGoogle();
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        String message = 'Đăng nhập Google thất bại.';
+        String message = 'Đăng nhập thất bại (${e.code})';
         if (e.code == 'account-exists-with-different-credential') {
           message = 'Email này đã được đăng ký bằng mật khẩu. Vui lòng đăng nhập bằng Email/Mật khẩu.';
         } else if (e.code == 'network-request-failed') {
           message = 'Lỗi kết nối mạng.';
+        } else if (e.message != null) {
+          message = 'Lỗi Firebase: ${e.message}';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,8 +132,17 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
+        // Hiển thị chi tiết lỗi nếu không phải FirebaseAuthException (như PlatformException của Google)
+        String errorText = e.toString();
+        if (errorText.contains('sign_in_failed')) {
+          errorText = 'Lỗi Google Sign-In (thường do SHA-1 hoặc cấu hình): $errorText';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+          SnackBar(
+            content: Text('Lỗi: $errorText'), 
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 5), // Hiện lâu hơn để dễ đọc
+          ),
         );
       }
     } finally {
