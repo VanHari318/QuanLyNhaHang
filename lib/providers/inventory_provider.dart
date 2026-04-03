@@ -9,6 +9,7 @@ class InventoryProvider with ChangeNotifier {
   final _db = DatabaseService();
   List<InventoryModel> _items = [];
   Map<String, double> _maxUsagePerDish = {};
+  Map<String, DishRecipeModel> _cachedRecipes = {}; // cache để recalc khi kho thay đổi
 
   List<InventoryModel> get items => _items;
   Map<String, double> get maxUsagePerDish => _maxUsagePerDish;
@@ -31,10 +32,13 @@ class InventoryProvider with ChangeNotifier {
   InventoryProvider() {
     _db.getInventory().listen((items) {
       _items = items;
+      // Recalculate mỗi khi kho thay đổi (fix race condition)
+      _calculateMaxUsage(_cachedRecipes);
       notifyListeners();
     });
 
     _db.getAllRecipes().listen((recipes) {
+      _cachedRecipes = recipes;
       _calculateMaxUsage(recipes);
       notifyListeners();
     });

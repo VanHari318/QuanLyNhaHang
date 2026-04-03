@@ -75,24 +75,25 @@ class MenuProvider with ChangeNotifier {
   bool isOutOfStock(String dishId, List<InventoryModel> inventory) {
     if (inventory.isEmpty) return false;
     final recipe = _recipes[dishId];
-    if (recipe == null) return false; // Không có công thức -> Coi như không giới hạn kho (hoặc xử lý khác tùy ý)
+    if (recipe == null) return false;
 
     for (var requirement in recipe.ingredients) {
-      // Tìm nguyên liệu trong kho theo tên (khớp chính xác như trong DatabaseService)
       final invItem = inventory.firstWhere(
         (i) => i.name == requirement.name,
         orElse: () => const InventoryModel(id: '', name: '', quantity: 0, unit: ''),
       );
 
+      // Truyền targetUnit để RecipeHelper convert đúng đơn vị (g→kg, ml→l)
       final needed = RecipeHelper.calculateNeededQuantity(
         totalQuantityForBulk: requirement.quantity,
         bulkServings: recipe.servings,
         unit: requirement.unit,
-        orderQuantity: 1, // Kiểm tra cho 1 suất
+        targetUnit: invItem.unit, // ← quan trọng: convert đơn vị đúng
+        orderQuantity: 1,
       );
 
       if (invItem.quantity < needed) {
-        return true; // Chỉ cần 1 nguyên liệu thiếu là hết hàng
+        return true;
       }
     }
     return false;
