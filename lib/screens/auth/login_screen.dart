@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import 'package:image_picker/image_picker.dart';
@@ -64,11 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     final auth = context.read<AuthProvider>();
-    bool ok;
-
     try {
       if (_isLogin) {
-        ok = await auth.login(email, password);
+        await auth.login(email, password);
       } else {
         String imageUrl = '';
         if (_imageFile != null || _webImage != null) {
@@ -79,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
             folder: CloudinaryService.avatarFolder,
           );
         }
-        ok = await auth.register(
+        await auth.register(
           email,
           password,
           _nameCtrl.text.trim(),
@@ -87,39 +86,56 @@ class _LoginScreenState extends State<LoginScreen> {
           imageUrl: imageUrl,
         );
       }
-    } catch (_) {
-      ok = false;
-    }
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      if (!ok) {
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        String message = 'Đã xảy ra lỗi. Vui lòng thử lại.';
+        if (e.code == 'user-not-found') message = 'Email không tồn tại trong hệ thống.';
+        else if (e.code == 'wrong-password') message = 'Mật khẩu không chính xác.';
+        else if (e.code == 'email-already-in-use') message = 'Email này đã được đăng ký tài khoản khác.';
+        else if (e.code == 'invalid-email') message = 'Địa chỉ email không hợp lệ.';
+        else if (e.code == 'user-disabled') message = 'Tài khoản này đã bị vô hiệu hóa.';
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isLogin
-                ? 'Email hoặc mật khẩu không đúng'
-                : 'Đăng ký thất bại. Vui lòng thử lại.'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: ${e.toString()}'), backgroundColor: Theme.of(context).colorScheme.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _googleSignIn() async {
     setState(() => _isLoading = true);
     final auth = context.read<AuthProvider>();
-    final ok = await auth.loginWithGoogle();
-    if (mounted) {
-      setState(() => _isLoading = false);
-      if (!ok) {
+    try {
+      await auth.loginWithGoogle();
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        String message = 'Đăng nhập Google thất bại.';
+        if (e.code == 'account-exists-with-different-credential') {
+          message = 'Email này đã được đăng ký bằng mật khẩu. Vui lòng đăng nhập bằng Email/Mật khẩu.';
+        } else if (e.code == 'network-request-failed') {
+          message = 'Lỗi kết nối mạng.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Đăng nhập Google thất bại'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

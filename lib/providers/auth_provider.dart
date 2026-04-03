@@ -27,18 +27,18 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<void> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
-    
-    final result = await _authService.signIn(email, password);
-    
-    _isLoading = false;
-    notifyListeners();
-    return result != null;
+    try {
+      await _authService.signIn(email, password);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  Future<bool> loginWithGoogle() async {
+  Future<void> loginWithGoogle() async {
     _isLoading = true;
     notifyListeners();
 
@@ -63,29 +63,22 @@ class AuthProvider with ChangeNotifier {
         } else {
           _user = existingUser;
         }
-        
-        _isLoading = false;
-        notifyListeners();
-        return true;
       }
-    } catch (e) {
-      print('Login With Google Error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
 
-  Future<bool> register(String email, String password, String name, UserRole role, {String imageUrl = ''}) async {
+  Future<void> register(String email, String password, String name, UserRole role, {String imageUrl = ''}) async {
     _isLoading = true;
     notifyListeners();
-    
-    final result = await _authService.register(email, password, name, role, imageUrl: imageUrl);
-    
-    _isLoading = false;
-    notifyListeners();
-    return result != null;
+    try {
+      await _authService.register(email, password, name, role, imageUrl: imageUrl);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> updateProfile({String? name, String? phoneNumber, String? imageUrl}) async {

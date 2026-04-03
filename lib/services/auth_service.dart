@@ -6,6 +6,7 @@ import 'database_service.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseService _db = DatabaseService();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Stream of auth state changes
   Stream<User?> get userStream => _auth.authStateChanges();
@@ -13,7 +14,9 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      // Force account selection by signing out first
+      await _googleSignIn.signOut();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -23,9 +26,12 @@ class AuthService {
       );
 
       return await _auth.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      print('Google Auth Error (${e.code}): ${e.message}');
+      rethrow;
     } catch (e) {
       print('Google Auth Error: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -36,9 +42,12 @@ class AuthService {
         email: email,
         password: password,
       );
+    } on FirebaseAuthException catch (e) {
+      print('Auth Error (${e.code}): ${e.message}');
+      rethrow;
     } catch (e) {
       print('Auth Error: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -61,9 +70,12 @@ class AuthService {
       await _db.saveUser(newUser);
       
       return credential;
+    } on FirebaseAuthException catch (e) {
+      print('Auth Error (${e.code}): ${e.message}');
+      rethrow;
     } catch (e) {
       print('Auth Error: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -98,5 +110,6 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
+    await _googleSignIn.signOut();
   }
 }
