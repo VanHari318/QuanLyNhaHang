@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,253 @@ import '../../../models/category_model.dart';
 import '../../../theme/role_themes.dart';
 import '../customer_chatbot_screen.dart';
 
+// ─── Data model cho banner ────────────────────────────────────────────────────
+class _BannerData {
+  final List<Color> gradient;
+  final String imageUrl;
+  final String badge;
+  final Color badgeColor;
+  final String title;
+  final String subtitle;
+
+  const _BannerData({
+    required this.gradient,
+    required this.imageUrl,
+    required this.badge,
+    required this.badgeColor,
+    required this.title,
+    required this.subtitle,
+  });
+}
+
+const _kBanners = [
+  _BannerData(
+    gradient: [Color(0xFFFF6B35), Color(0xFFFF9A3D)],
+    imageUrl:
+        'https://res.cloudinary.com/dojcgjli4/image/upload/v1775230230/banner1_hv0yhw.jpg',
+    badge: 'ƯU ĐÃI HÔM NAY',
+    badgeColor: Color(0xFFFF6B35),
+    title: 'Đại Tiệc Lẩu Vị Lai',
+    subtitle: 'Giảm ngay 20% cho nhóm từ 4 người',
+  ),
+  _BannerData(
+    gradient: [Color(0xFF6C63FF), Color(0xFF8B85FF)],
+    imageUrl:
+        'https://res.cloudinary.com/dojcgjli4/image/upload/v1775230230/banner2_krj93i.jpg',
+    badge: 'COMBO ĐẶC BIỆT',
+    badgeColor: Color(0xFF6C63FF),
+    title: 'Set Cơm Phần Thượng Hạng',
+    subtitle: 'Trọn bộ cơm + canh + món phụ 79.000đ',
+  ),
+  _BannerData(
+    gradient: [Color(0xFF11998E), Color(0xFF38EF7D)],
+    imageUrl:
+        'https://res.cloudinary.com/dojcgjli4/image/upload/v1775230230/banner3_yenmnn.jpg',
+    badge: 'MỚI – THỨC UỐNG',
+    badgeColor: Color(0xFF11998E),
+    title: 'Trà Sữa Thêm Topping',
+    subtitle: 'Miễn phí 1 topping khi order qua app',
+  ),
+];
+
+// ─── Widget Banner tự cuộn ────────────────────────────────────────────────────
+class _PromoBannerSlider extends StatefulWidget {
+  const _PromoBannerSlider();
+
+  @override
+  State<_PromoBannerSlider> createState() => _PromoBannerSliderState();
+}
+
+class _PromoBannerSliderState extends State<_PromoBannerSlider> {
+  final PageController _controller = PageController();
+  int _current = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      final next = (_current + 1) % _kBanners.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Slides ──
+        SizedBox(
+          height: 190,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: _kBanners.length,
+            onPageChanged: (i) => setState(() => _current = i),
+            itemBuilder: (_, i) => _BannerSlide(data: _kBanners[i]),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ── Scroll-dot indicator ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_kBanners.length, (i) {
+            final active = i == _current;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOut,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: active ? 28 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                gradient: active
+                    ? LinearGradient(colors: _kBanners[i].gradient)
+                    : null,
+                color: active ? null : Colors.grey.withValues(alpha: 0.3),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Một slide banner ────────────────────────────────────────────────────────
+class _BannerSlide extends StatelessWidget {
+  final _BannerData data;
+  const _BannerSlide({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      // Full width, padding nhỏ 2 bên để thấy giới hạn card
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: data.gradient.first.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Ảnh nền
+          Image.network(
+            data.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: data.gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+
+          // Gradient overlay phía dưới
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  data.gradient.first.withValues(alpha: 0.85),
+                ],
+                stops: const [0.3, 1.0],
+              ),
+            ),
+          ),
+
+          // Nội dung
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    data.badge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Tiêu đề
+                Text(
+                  data.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    shadows: [
+                      Shadow(
+                          blurRadius: 6,
+                          color: Colors.black38,
+                          offset: Offset(0, 2))
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Mô tả
+                Text(
+                  data.subtitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    shadows: [
+                      Shadow(blurRadius: 4, color: Colors.black26)
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── HomeTab chính ────────────────────────────────────────────────────────────
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
@@ -28,8 +276,11 @@ class HomeTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
-            _buildBanner(context),
+            const SizedBox(height: 16),
+
+            // ── 3 Banner quảng cáo full width + scroll-dot ──
+            const _PromoBannerSlider(),
+
             const SizedBox(height: 28),
 
             _buildSectionHeader(context, 'Danh mục', null),
@@ -47,80 +298,6 @@ class HomeTab extends StatelessWidget {
             const SizedBox(height: 28),
             _buildLoyaltyCard(context),
             const SizedBox(height: 100),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── BANNER ──────────────────────────────────────────────────────────────────
-  Widget _buildBanner(BuildContext context) {
-    return Container(
-      height: 190,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        image: const DecorationImage(
-          image: NetworkImage(
-            'https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&w=800&q=80',
-          ),
-          fit: BoxFit.cover,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: CustomerTheme.primary.withValues(alpha: 0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.7),
-              Colors.transparent,
-            ],
-          ),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: CustomerTheme.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'ƯU ĐÃI HÔM NAY',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Đại Tiệc Lẩu Vị Lai',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Text(
-              'Giảm ngay 20% cho nhóm từ 4 người',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
           ],
         ),
       ),
@@ -289,9 +466,7 @@ class HomeTab extends StatelessWidget {
                   SizedBox(height: 3),
                   Text(
                     'Gợi ý thực đơn & tư vấn món ngay lập tức',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70),
+                    style: TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
               ),
@@ -352,8 +527,8 @@ class HomeTab extends StatelessWidget {
               children: [
                 // Image
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
                   child: Stack(
                     children: [
                       Image.network(
@@ -363,8 +538,7 @@ class HomeTab extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           height: 120,
-                          color:
-                              CustomerTheme.primary.withValues(alpha: 0.1),
+                          color: CustomerTheme.primary.withValues(alpha: 0.1),
                           child: const Center(
                             child: Icon(Icons.image_not_supported_rounded,
                                 color: Colors.grey),

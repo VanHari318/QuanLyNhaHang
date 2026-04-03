@@ -16,6 +16,7 @@ import 'qr_scanner_screen.dart';
 import '../../services/database_service.dart';
 import '../../utils/web_presence.dart' as web_presence;
 import 'dart:math' as math;
+import 'dart:async';
 
 /// Trang Menu của Khách – mở khi quét mã QR
 /// URL: /menu?tableId=table_3&sessionId=table_3_0930
@@ -507,6 +508,251 @@ class _BrowsePrompt extends StatelessWidget {
   }
 }
 
+// ─── Banner quảng cáo ────────────────────────────────────────────────────────
+
+class _PromoBanner extends StatefulWidget {
+  const _PromoBanner();
+
+  @override
+  State<_PromoBanner> createState() => _PromoBannerState();
+}
+
+class _PromoBannerState extends State<_PromoBanner> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _autoScrollTimer;
+
+  static const _banners = [
+    _BannerData(
+      gradient: [Color(0xFFFF6B35), Color(0xFFFF9A3D)],
+      emoji: '🍜',
+      title: 'Ưu đãi hôm nay',
+      subtitle: 'Giảm 20% tất cả món mì',
+      badge: 'HOT DEAL',
+      badgeColor: Color(0xFFFFD700),
+    ),
+    _BannerData(
+      gradient: [Color(0xFF6C63FF), Color(0xFF8B85FF)],
+      emoji: '🍱',
+      title: 'Combo đặc biệt',
+      subtitle: 'Set cơm phần chỉ 79.000đ',
+      badge: 'BEST VALUE',
+      badgeColor: Color(0xFF00E5FF),
+    ),
+    _BannerData(
+      gradient: [Color(0xFF11998E), Color(0xFF38EF7D)],
+      emoji: '🧋',
+      title: 'Thức uống mới',
+      subtitle: 'Trà sữa thêm topping miễn phí',
+      badge: 'MỚI',
+      badgeColor: Color(0xFFFFFFFF),
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted) return;
+      final next = (_currentPage + 1) % _banners.length;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoScrollTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 140,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: _banners.length,
+            onPageChanged: (i) => setState(() => _currentPage = i),
+            itemBuilder: (_, i) => _BannerSlide(data: _banners[i]),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Scroll dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_banners.length, (i) {
+            final isActive = i == _currentPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: isActive ? 24 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                color: isActive
+                    ? _banners[i].gradient.first
+                    : Colors.grey.withValues(alpha: 0.35),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+}
+
+class _BannerData {
+  final List<Color> gradient;
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final String badge;
+  final Color badgeColor;
+
+  const _BannerData({
+    required this.gradient,
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.badgeColor,
+  });
+}
+
+class _BannerSlide extends StatelessWidget {
+  final _BannerData data;
+  const _BannerSlide({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: data.gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: data.gradient.first.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Stack(
+          children: [
+            // Decorative circles
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 30,
+              bottom: -30,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: data.badgeColor.withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: data.badgeColor.withValues(alpha: 0.6)),
+                          ),
+                          child: Text(
+                            data.badge,
+                            style: TextStyle(
+                              color: data.badgeColor == const Color(0xFFFFFFFF)
+                                  ? Colors.white
+                                  : data.badgeColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          data.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          data.subtitle,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    data.emoji,
+                    style: const TextStyle(fontSize: 60),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Tab Menu ────────────────────────────────────────────────────────────────
+
 class _MenuTab extends StatelessWidget {
   final bool canOrder;
   final String selectedCategory;
@@ -539,11 +785,14 @@ class _MenuTab extends StatelessWidget {
 
     return Column(
       children: [
+        // ── Promo Banner ──
+        const _PromoBanner(),
+
         // Category Chips
         SizedBox(
-          height: 64,
+          height: 52,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             scrollDirection: Axis.horizontal,
             itemCount: categories.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
