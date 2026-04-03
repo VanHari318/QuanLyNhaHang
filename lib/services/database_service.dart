@@ -110,13 +110,33 @@ class DatabaseService {
       }
       
       if (!hasActive) {
-        await _tables.doc(tableId).update({
-          'status': TableStatus.available.name,
-          'viewerCount': 0,
-        });
+        // Kiểm tra xem còn khách nào đang quét mã xem menu không
+        final tableDoc = await _tables.doc(tableId).get();
+        final viewers = (tableDoc.data()?['viewerCount'] as num?)?.toInt() ?? 0;
+
+        if (viewers <= 0) {
+          await _tables.doc(tableId).update({
+            'status': TableStatus.available.name,
+            'viewerCount': 0,
+          });
+        }
       }
     } catch (e) {
       print('Lỗi khi giải phóng bàn: $e');
+    }
+  }
+
+  /// Cưỡng bức giải phóng bàn (Dành cho nhân viên dọn bàn khi bị lỗi view count)
+  Future<void> forceReleaseTable(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      await _tables.doc(tableId).update({
+        'status': TableStatus.available.name,
+        'viewerCount': 0,
+      });
+    } catch (e) {
+      print('Lỗi forceReleaseTable: $e');
+      rethrow;
     }
   }
 
@@ -304,20 +324,8 @@ class DatabaseService {
       if (orderDoc.exists) {
         final tableId = orderDoc.data()?['tableId'] as String?;
         if (tableId != null && tableId.isNotEmpty) {
-          final snapshot = await _orders.where('tableId', isEqualTo: tableId).get();
-          
-          bool hasActive = false;
-          for (var doc in snapshot.docs) {
-            final statusStr = doc.data()['status'] as String?;
-            if (statusStr != OrderStatus.completed.name && statusStr != OrderStatus.cancelled.name) {
-              hasActive = true;
-              break;
-            }
-          }
-          
-          if (!hasActive) {
-            await updateTableStatus(tableId, TableStatus.available);
-          }
+          // Sử dụng hàm chung để kiểm tra cả đơn hàng và số lượng người xem
+          await freeTableIfNoActiveOrders(tableId);
         }
       }
     }

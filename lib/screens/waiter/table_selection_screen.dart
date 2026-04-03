@@ -241,17 +241,17 @@ class TableSelectionScreen extends StatelessWidget {
       itemCount: tableProvider.tables.length,
       itemBuilder: (context, index) {
         final table = tableProvider.tables[index];
-        final activeOrder = orderProvider.orders
+        final activeOrders = orderProvider.orders
             .where(
               (o) =>
                   o.tableId == table.id &&
                   o.status != OrderStatus.completed &&
                   o.status != OrderStatus.cancelled,
             )
-            .firstOrNull;
+            .toList();
 
         final isOccupied = table.status == TableStatus.occupied ||
-            activeOrder != null;
+            activeOrders.isNotEmpty;
         final isAvailable =
             !isOccupied && table.status == TableStatus.available;
 
@@ -259,7 +259,7 @@ class TableSelectionScreen extends StatelessWidget {
             isOccupied ? TableStatus.occupied : table.status;
         final statusColorStr = _statusStr(effectiveStatus);
         final statusColor = WaiterTheme.tableStatusColor(statusColorStr);
-        final hasReadyItems = activeOrder?.status == OrderStatus.ready;
+        final hasReadyItems = activeOrders.any((o) => o.status == OrderStatus.ready);
 
         return _TableCard(
           table: table,
@@ -267,7 +267,7 @@ class TableSelectionScreen extends StatelessWidget {
           isAvailable: isAvailable,
           isOccupied: isOccupied,
           hasReadyItems: hasReadyItems,
-          activeOrder: activeOrder,
+          activeOrders: activeOrders,
           onTap: () {
             if (isAvailable) {
               Navigator.push(
@@ -275,8 +275,9 @@ class TableSelectionScreen extends StatelessWidget {
                 MaterialPageRoute(
                     builder: (_) => OrderingScreen(table: table)),
               );
-            } else if (isOccupied && activeOrder != null) {
-              showActiveTableDialog(context, table, activeOrder);
+            } else if (isOccupied) {
+              // Vẫn mở dialog kể cả khi activeOrders rỗng để nhân viên có thể "Dọn bàn" cưỡng bức
+              showActiveTableDialog(context, table, activeOrders);
             }
           },
         );
@@ -300,7 +301,7 @@ class _TableCard extends StatefulWidget {
   final bool isAvailable;
   final bool isOccupied;
   final bool hasReadyItems;
-  final OrderModel? activeOrder;
+  final List<OrderModel> activeOrders;
   final VoidCallback onTap;
 
   const _TableCard({
@@ -309,7 +310,7 @@ class _TableCard extends StatefulWidget {
     required this.isAvailable,
     required this.isOccupied,
     required this.hasReadyItems,
-    required this.activeOrder,
+    required this.activeOrders,
     required this.onTap,
   });
 

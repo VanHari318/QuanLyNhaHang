@@ -96,15 +96,20 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Trên Web đã có JS visibilitychange xử lý, bỏ qua lifecycle để tránh double-decrement
+    // Trên Web đã có JS visibilitychange xử lý trong web_presence, bỏ qua lifecycle để tránh double-decrement
     if (const bool.fromEnvironment('dart.library.html')) return;
     
-    // Mobile/Desktop: chỉ bắt paused và detached (không bắt inactive vì quá trigger-happy)
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+    // Mobile/Desktop: Bắt các trạng thái rời khỏi app (inactive, paused, detached)
+    // inactive: App mất focus (vd: vuốt đa nhiệm, có cuộc gọi)
+    // paused: App xuống background hoàn toàn
+    if (state == AppLifecycleState.inactive || 
+        state == AppLifecycleState.paused || 
+        state == AppLifecycleState.detached) {
       if (!_isBrowseMode) {
         _db.leaveTableSession(widget.tableId);
       }
     } else if (state == AppLifecycleState.resumed) {
+      // Khi quay lại app, tham gia lại session
       if (!_isBrowseMode) {
         _db.joinTableSession(widget.tableId);
       }

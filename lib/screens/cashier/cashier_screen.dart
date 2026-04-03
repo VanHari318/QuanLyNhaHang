@@ -23,6 +23,15 @@ class CashierScreen extends StatelessWidget {
         .where((o) => o.status == OrderStatus.served)
         .toList();
 
+    // Gộp đơn theo bàn (Dine-in grouped, Online separate)
+    final Map<String, List<OrderModel>> groups = {};
+    for (var o in servedOrders) {
+      final key = o.tableId ?? 'online_${o.id}';
+      if (!groups.containsKey(key)) groups[key] = [];
+      groups[key]!.add(o);
+    }
+    final groupKeys = groups.keys.toList();
+
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarIconBrightness: Brightness.dark,
       statusBarColor: Colors.transparent,
@@ -36,7 +45,7 @@ class CashierScreen extends StatelessWidget {
         onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
         child: servedOrders.isEmpty
             ? _buildEmpty(context)
-            : _buildList(context, servedOrders, orderProvider),
+            : _buildList(context, groupKeys, groups, orderProvider),
       ),
     );
   }
@@ -181,10 +190,14 @@ class CashierScreen extends StatelessWidget {
   }
 
   // ── ORDER LIST ─────────────────────────────────────────────────────────────
-  Widget _buildList(BuildContext context, List<OrderModel> orders,
-      OrderProvider orderProvider) {
-    final totalPending = orders.fold<double>(
-        0, (sum, o) => sum + o.totalPrice);
+  Widget _buildList(BuildContext context, List<String> keys,
+      Map<String, List<OrderModel>> groups, OrderProvider orderProvider) {
+    double totalPending = 0;
+    for (var list in groups.values) {
+      for (var o in list) {
+        totalPending += o.totalPrice;
+      }
+    }
 
     return Column(
       children: [
@@ -233,14 +246,15 @@ class CashierScreen extends StatelessWidget {
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            itemCount: orders.length,
+            itemCount: keys.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final order = orders[index];
+              final key = keys[index];
+              final orders = groups[key]!;
               return _PaymentCard(
-                order: order,
+                orders: orders,
                 orderProvider: orderProvider,
-                onShowDetails: () => _showDetails(context, order),
+                onShowDetails: () => _showDetails(context, orders, key),
               );
             },
           ),
@@ -250,8 +264,11 @@ class CashierScreen extends StatelessWidget {
   }
 
   // ── DETAIL DIALOG ──────────────────────────────────────────────────────────
-  void _showDetails(BuildContext context, OrderModel order) {
-    final tableLabel = order.tableId ?? 'Online';
+  void _showDetails(BuildContext context, List<OrderModel> orders, String key) {
+    final tableLabel = key.startsWith('online_') ? 'Đơn Online' : key;
+    final allItems = orders.expand((o) => o.items).toList();
+    final totalPrice = orders.fold<double>(0, (sum, o) => sum + o.totalPrice);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -300,11 +317,11 @@ class CashierScreen extends StatelessWidget {
                 child: ListView.separated(
                   controller: scrollController,
                   shrinkWrap: true,
-                  itemCount: order.items.length,
+                  itemCount: allItems.length,
                   separatorBuilder: (_, __) =>
                       const Divider(height: 1),
                   itemBuilder: (_, i) {
-                    final item = order.items[i];
+                    final item = allItems[i];
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(
@@ -347,7 +364,7 @@ class CashierScreen extends StatelessWidget {
                   const Text('Tổng cộng',
                       style: TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 16)),
-                  Text('${_fmtPrice(order.totalPrice)}đ',
+                  Text('${_fmtPrice(totalPrice)}đ',
                       style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 20,
@@ -393,11 +410,11 @@ class CashierScreen extends StatelessWidget {
 
 // ── PAYMENT CARD WIDGET ────────────────────────────────────────────────────
 class _PaymentCard extends StatefulWidget {
-  final OrderModel order;
+  final List<OrderModel> orders;
   final OrderProvider orderProvider;
   final VoidCallback onShowDetails;
   const _PaymentCard({
-    required this.order,
+    required this.orders,
     required this.orderProvider,
     required this.onShowDetails,
   });
@@ -429,6 +446,8 @@ class _PaymentCardState extends State<_PaymentCard> {
           value: 'ewallet'),
     ];
 
+    final totalPrice = widget.orders.fold<double>(0, (sum, o) => sum + o.totalPrice);
+
     final chosen = await showModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -459,7 +478,7 @@ class _PaymentCardState extends State<_PaymentCard> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Tổng: ${_fmtPrice(widget.order.totalPrice)}đ',
+                'Tổng hóa đơn: ${_fmtPrice(totalPrice)}đ',
                 style: TextStyle(
                     color: Colors.grey.shade600, fontSize: 14),
               ),
@@ -477,37 +496,40 @@ class _PaymentCardState extends State<_PaymentCard> {
     if (chosen == null || !mounted) return;
 
     setState(() => _isPaying = true);
-    await widget.orderProvider.updateStatus(
-        widget.order.id, OrderStatus.completed);
-    if (mounted) {
-      final label = methods
-          .firstWhere((m) => m.value == chosen)
-          .label;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_rounded,
-                  color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text('Thanh toán $label thành công! 🎉'),
-            ],
+    
+    try {
+      // Thực hiện thanh toán hàng loạt (batch update)
+      await Future.wait(widget.orders.map((o) => 
+        widget.orderProvider.updateStatus(o.id, OrderStatus.completed)));
+
+      if (mounted) {
+        final label = methods.firstWhere((m) => m.value == chosen).label;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Text('Thanh toán $label thành công cho ${widget.orders.length} đơn! 🎉'),
+              ],
+            ),
+            backgroundColor: CashierTheme.primary,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
           ),
-          backgroundColor: CashierTheme.primary,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPaying = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final order = widget.order;
-    final tableLabel = order.tableId ?? 'Online';
-    final isOnline = order.tableId == null;
+    final tableLabel = widget.orders.first.tableId ?? 'Online';
+    final isOnline = widget.orders.first.tableId == null;
+    final totalPrice = widget.orders.fold<double>(0, (sum, o) => sum + o.totalPrice);
+    final totalItems = widget.orders.fold<int>(0, (sum, o) => sum + o.items.length);
 
     return GestureDetector(
       onTap: widget.onShowDetails,
@@ -562,7 +584,7 @@ class _PaymentCardState extends State<_PaymentCard> {
                             fontSize: 16,
                             color: Color(0xFF2D3436))),
                     const SizedBox(height: 3),
-                    Text('${order.items.length} món',
+                    Text('$totalItems món (${widget.orders.length} đợt gọi)',
                         style: TextStyle(
                             color: Colors.grey.shade500, fontSize: 13)),
                   ],
@@ -573,7 +595,7 @@ class _PaymentCardState extends State<_PaymentCard> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${_fmtPrice(order.totalPrice)}đ',
+                    '${_fmtPrice(totalPrice)}đ',
                     style: const TextStyle(
                       color: CashierTheme.primary,
                       fontWeight: FontWeight.w900,
