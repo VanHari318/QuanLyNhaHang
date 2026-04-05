@@ -135,7 +135,7 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
   Future<void> _placeOrder() async {
     final cart = context.read<CartProvider>();
     if (cart.items.isEmpty) return;
-    if (_isBrowseMode) return;
+    if (_isBrowseMode) return; // Bảo vệ: không cho đặt đơn tại tab này nếu chưa quét mã
 
     // ── GPS Geofencing (15m radius for dine-in) ───────────────────────────
     final config = await _db.getRestaurantConfig().first;
@@ -326,7 +326,7 @@ class _CustomerMenuPageState extends State<CustomerMenuPage>
             const Center(child: CircularProgressIndicator())
           else ...[
             _MenuTab(
-              canOrder: !_isBrowseMode,
+              isBrowseMode: _isBrowseMode,
               selectedCategory: _selectedCategory,
               onCategoryChanged: (c) => setState(() => _selectedCategory = c),
             ),
@@ -759,12 +759,12 @@ class _BannerSlide extends StatelessWidget {
 // ─── Tab Menu ────────────────────────────────────────────────────────────────
 
 class _MenuTab extends StatelessWidget {
-  final bool canOrder;
+  final bool isBrowseMode;
   final String selectedCategory;
   final void Function(String) onCategoryChanged;
 
   const _MenuTab({
-    required this.canOrder,
+    required this.isBrowseMode,
     required this.selectedCategory,
     required this.onCategoryChanged,
   });
@@ -864,7 +864,7 @@ class _MenuTab extends StatelessWidget {
                         child: _DishCard(
                           dish: dish,
                           qty: qty,
-                          canOrder: canOrder && !isOutOfStock,
+                          canOrder: !isBrowseMode && !isOutOfStock,
                           isOutOfStock: isOutOfStock,
                           onAdd: () => cart.addItem(dish),
                           onRemove: () => cart.removeItem(dish),
@@ -1193,14 +1193,35 @@ class _OrderBatch extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(statusIcon, color: statusColor, size: 20),
+                Icon(
+                  order.type == OrderType.online 
+                      ? Icons.shopping_bag_rounded 
+                      : Icons.table_restaurant_rounded, 
+                  color: statusColor, 
+                  size: 20
+                ),
                 const SizedBox(width: 8),
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.type == OrderType.online 
+                          ? 'Đặt hàng Online' 
+                          : 'Bàn ${order.tableId?.replaceAll('table_', '') ?? ''}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: statusColor.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
                 ),
                 const Spacer(),
                 Text(
@@ -1453,7 +1474,10 @@ class _InvoiceHistoryTabState extends State<_InvoiceHistoryTab> {
                     order.id.substring(0, 8).toUpperCase(),
                   ),
                   _detailRow('Ngày đặt:', _fmtDate(order.createdAt)),
-                  _detailRow('Bàn phục vụ:', order.tableId ?? 'N/A'),
+                  _detailRow(
+                    order.type == OrderType.online ? 'Loại đơn:' : 'Bàn phục vụ:', 
+                    order.type == OrderType.online ? 'Đặt hàng Online' : (order.tableId ?? 'N/A')
+                  ),
                   _detailRow('Thanh toán:', order.paymentMethod ?? 'Tiền mặt'),
                 ],
               ),

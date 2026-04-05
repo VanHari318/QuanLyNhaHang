@@ -122,15 +122,15 @@ class _CartTabState extends State<CartTab> with SingleTickerProviderStateMixin {
     try {
       final order = OrderModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        type: cart.tableId != null ? OrderType.dine_in : OrderType.online,
+        type: OrderType.online, // Luôn là online khi đặt từ Tab Giao hàng
         items: cart.items.entries
             .map((e) => OrderItem(dish: e.key, quantity: e.value))
             .toList(),
         totalPrice: cart.totalPrice,
         status: OrderStatus.pending,
         customerId: auth.user?.id,
-        tableId: cart.tableId,
-        sessionId: cart.sessionId,
+        tableId: null,      // Không gắn bàn khi giao hàng
+        sessionId: null,    // Không gắn session khi giao hàng
         customerNote:
             'Người nhận: ${_nameCtrl.text}\nSĐT: ${_phoneCtrl.text}\nLưu ý: ${_noteCtrl.text}',
         paymentMethod: _paymentMethod,
