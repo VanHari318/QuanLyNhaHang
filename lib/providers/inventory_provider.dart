@@ -1,19 +1,87 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_model.dart';
+<<<<<<< HEAD
 import '../services/database_service.dart';
+=======
+import '../models/recipe_model.dart';
+import '../services/database_service.dart';
+import '../utils/recipe_helper.dart';
+>>>>>>> 6690387 (sua loi)
 
 /// Provider quản lý kho nguyên liệu
 class InventoryProvider with ChangeNotifier {
   final _db = DatabaseService();
   List<InventoryModel> _items = [];
+<<<<<<< HEAD
 
   List<InventoryModel> get items => _items;
+=======
+  Map<String, double> _maxUsagePerDish = {};
+  Map<String, DishRecipeModel> _cachedRecipes = {}; // cache để recalc khi kho thay đổi
+
+  List<InventoryModel> get items => _items;
+  Map<String, double> get maxUsagePerDish => _maxUsagePerDish;
+
+  /// Helper check: Có đang sắp hết (không đủ 20 suất món tốn nhất)
+  bool isLowStock(InventoryModel item) {
+    final maxUsage = _maxUsagePerDish[item.name] ?? 0;
+    if (maxUsage > 0) {
+      return item.quantity < (maxUsage * 20);
+    }
+    // Fallback: Nếu không có công thức, dùng logic cũ (dưới 20% hoặc 5 đơn vị)
+    return item.maxQuantity > 0
+        ? item.quantity < item.maxQuantity * 0.2
+        : item.quantity < 5;
+  }
+
+  /// Tính tổng số món đang sắp hết cho Dashboard
+  int get lowStockCount => _items.where((i) => isLowStock(i)).length;
+>>>>>>> 6690387 (sua loi)
 
   InventoryProvider() {
     _db.getInventory().listen((items) {
       _items = items;
+<<<<<<< HEAD
       notifyListeners();
     });
+=======
+      // Recalculate mỗi khi kho thay đổi (fix race condition)
+      _calculateMaxUsage(_cachedRecipes);
+      notifyListeners();
+    });
+
+    _db.getAllRecipes().listen((recipes) {
+      _cachedRecipes = recipes;
+      _calculateMaxUsage(recipes);
+      notifyListeners();
+    });
+  }
+
+  void _calculateMaxUsage(Map<String, DishRecipeModel> recipes) {
+    final Map<String, double> maxUsage = {};
+    for (final recipe in recipes.values) {
+      for (final ing in recipe.ingredients) {
+        // Tìm đơn vị tương ứng trong kho để quy đổi cho đúng
+        final invItem = _items.firstWhere(
+          (i) => i.name == ing.name,
+          orElse: () => const InventoryModel(id: '', name: '', quantity: 0, unit: ''),
+        );
+
+        final usagePerServing = RecipeHelper.calculateNeededQuantity(
+          totalQuantityForBulk: ing.quantity,
+          bulkServings: recipe.servings,
+          unit: ing.unit,
+          targetUnit: invItem.unit,
+        );
+        
+        final current = maxUsage[ing.name] ?? 0;
+        if (usagePerServing > current) {
+          maxUsage[ing.name] = usagePerServing;
+        }
+      }
+    }
+    _maxUsagePerDish = maxUsage;
+>>>>>>> 6690387 (sua loi)
   }
 
   Future<void> addItem(InventoryModel item) async {

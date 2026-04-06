@@ -82,8 +82,18 @@ class OrderModel {
     if (raw != null) {
       if (raw is String) {
         parsedDate = DateTime.tryParse(raw) ?? DateTime.now();
+<<<<<<< HEAD
       } else if (raw.runtimeType.toString().contains('Timestamp')) {
         parsedDate = raw.toDate();
+=======
+      } else {
+        // Cách kiểm tra an toàn cho cả Mobile và Web (Firestore Timestamp)
+        try {
+          parsedDate = (raw as dynamic).toDate();
+        } catch (_) {
+          // Bỏ qua nếu không phải Timestamp
+        }
+>>>>>>> 6690387 (sua loi)
       }
     }
 

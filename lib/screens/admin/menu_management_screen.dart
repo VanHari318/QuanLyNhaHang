@@ -86,6 +86,7 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
           ),
         ),
       ),
+<<<<<<< HEAD
       body: menuProvider.filteredItems.isEmpty
           ? _emptyState(cs)
           : ListView.separated(
@@ -105,6 +106,36 @@ class _MenuManagementBodyState extends State<_MenuManagementBody> {
                 );
               },
             ),
+=======
+      body: RefreshIndicator(
+        onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+        child: menuProvider.filteredItems.isEmpty
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height - 200,
+                  alignment: Alignment.center,
+                  child: _emptyState(cs),
+                ),
+              )
+            : ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(12),
+                itemCount: menuProvider.filteredItems.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 4),
+                itemBuilder: (context, index) {
+                  final dish = menuProvider.filteredItems[index];
+                  return _DishTile(
+                    dish: dish,
+                    onEdit: () => _showDishDialog(context, dish: dish),
+                    onDelete: () => _confirmDelete(context, dish),
+                    onToggleAvailable: (val) =>
+                        menuProvider.toggleAvailability(dish.id, val),
+                  );
+                },
+              ),
+      ),
+>>>>>>> 6690387 (sua loi)
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showDishDialog(context),
         icon: const Icon(Icons.add_rounded),
@@ -252,14 +283,20 @@ class _DishTile extends StatelessWidget {
   final DishModel dish;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+<<<<<<< HEAD
   final void Function(bool) onToggleBestSeller;
+=======
+>>>>>>> 6690387 (sua loi)
   final void Function(bool) onToggleAvailable;
 
   const _DishTile({
     required this.dish,
     required this.onEdit,
     required this.onDelete,
+<<<<<<< HEAD
     required this.onToggleBestSeller,
+=======
+>>>>>>> 6690387 (sua loi)
     required this.onToggleAvailable,
   });
 
@@ -295,11 +332,24 @@ class _DishTile extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+<<<<<<< HEAD
                       Text(dish.name,
                           style: Theme.of(context)
                               .textTheme
                               .titleSmall
                               ?.copyWith(fontWeight: FontWeight.w600)),
+=======
+                      Expanded(
+                        child: Text(
+                          dish.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+>>>>>>> 6690387 (sua loi)
                       if (dish.isBestSeller)
                         Container(
                           margin: const EdgeInsets.only(left: 6),
@@ -346,6 +396,7 @@ class _DishTile extends StatelessWidget {
                     ),
                   ],
                 ),
+<<<<<<< HEAD
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -361,6 +412,13 @@ class _DishTile extends StatelessWidget {
                     ),
                   ],
                 ),
+=======
+                    Icon(Icons.star_rounded,
+                        size: 20,
+                        color: context.watch<MenuProvider>().isTopSelling(dish.id)
+                            ? Colors.amber
+                            : cs.outlineVariant.withOpacity(0.3)),
+>>>>>>> 6690387 (sua loi)
               ],
             ),
           ],
@@ -419,7 +477,10 @@ class _DishDialogState extends State<_DishDialog> {
   late final TextEditingController _descCtrl;
   late final TextEditingController _priceCtrl;
   late String _selectedCat;
+<<<<<<< HEAD
   late bool _isBestSeller;
+=======
+>>>>>>> 6690387 (sua loi)
 
   File? _localImage;
   XFile? _webImage;
@@ -438,7 +499,10 @@ class _DishDialogState extends State<_DishDialog> {
     _priceCtrl =
         TextEditingController(text: d?.price.toStringAsFixed(0));
     _selectedCat = d?.category ?? 'main';
+<<<<<<< HEAD
     _isBestSeller = d?.isBestSeller ?? false;
+=======
+>>>>>>> 6690387 (sua loi)
 
     if (d != null) _loadRecipe(d.id);
   }
@@ -510,7 +574,11 @@ class _DishDialogState extends State<_DishDialog> {
       price: double.tryParse(_priceCtrl.text) ?? 0,
       imageUrl: imageUrl,
       category: _selectedCat,
+<<<<<<< HEAD
       isBestSeller: _isBestSeller,
+=======
+      isBestSeller: widget.existingDish?.isBestSeller ?? false,
+>>>>>>> 6690387 (sua loi)
       isAvailable: widget.existingDish?.isAvailable ?? true,
     );
 
@@ -562,7 +630,11 @@ class _DishDialogState extends State<_DishDialog> {
       title: Text(isEdit ? 'Sửa món ăn' : 'Thêm món mới'),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
+<<<<<<< HEAD
         width: 480,
+=======
+        width: MediaQuery.of(context).size.width * 0.9,
+>>>>>>> 6690387 (sua loi)
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -619,12 +691,15 @@ class _DishDialogState extends State<_DishDialog> {
                 onChanged: (v) => setState(() => _selectedCat = v!),
               ),
               const SizedBox(height: 6),
+<<<<<<< HEAD
               SwitchListTile.adaptive(
                 title: const Text('Best Seller ⭐'),
                 value: _isBestSeller,
                 onChanged: (v) => setState(() => _isBestSeller = v),
                 contentPadding: EdgeInsets.zero,
               ),
+=======
+>>>>>>> 6690387 (sua loi)
 
               // ── Recipe section ──────────────────────────────────────────
               const Divider(height: 24),

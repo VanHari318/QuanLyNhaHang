@@ -37,6 +37,10 @@ dependencies:
   firebase_core: ^4.6.0
   cloud_firestore: ^6.2.0
   firebase_auth: ^6.3.0
+<<<<<<< HEAD
+=======
+  google_sign_in: ^6.2.1
+>>>>>>> 6690387 (sua loi)
   provider: ^6.1.5+1
   intl: ^0.20.2
   geolocator: ^14.0.2

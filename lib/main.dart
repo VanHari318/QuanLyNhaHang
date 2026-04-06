@@ -4,6 +4,10 @@ import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+<<<<<<< HEAD
+=======
+import 'dart:ui';
+>>>>>>> 6690387 (sua loi)
 
 import 'providers/auth_provider.dart';
 import 'providers/menu_provider.dart';
@@ -24,9 +28,13 @@ import 'utils/logout_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+<<<<<<< HEAD
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+=======
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+>>>>>>> 6690387 (sua loi)
   await dotenv.load(fileName: ".env.local");
   runApp(
     MultiProvider(
@@ -51,11 +59,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Material Design 3 – full theme configuration
     final colorScheme = ColorScheme.fromSeed(
+<<<<<<< HEAD
       seedColor: const Color(0xFFD32F2F), // Đỏ – Vị Lai Quán primary
+=======
+      seedColor: const Color(0xFFB71C1C), // Đỏ sâu – Vị Lai Quán primary
+>>>>>>> 6690387 (sua loi)
       brightness: Brightness.light,
     );
 
     return MaterialApp(
+<<<<<<< HEAD
+=======
+      scrollBehavior: MyCustomScrollBehavior(),
+>>>>>>> 6690387 (sua loi)
       title: 'Vị Lai Quán – Quản Lý',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -65,7 +81,11 @@ class MyApp extends StatelessWidget {
 
         // AppBar – MD3 uses surface as default background
         appBarTheme: AppBarTheme(
+<<<<<<< HEAD
           centerTitle: false,
+=======
+          centerTitle: true,
+>>>>>>> 6690387 (sua loi)
           elevation: 0,
           scrolledUnderElevation: 3,
           backgroundColor: colorScheme.surface,
@@ -76,19 +96,39 @@ class MyApp extends StatelessWidget {
         // Card – Haidilao Style: High rounded corners
         cardTheme: CardThemeData(
           elevation: 2,
+<<<<<<< HEAD
           shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           clipBehavior: Clip.antiAlias,
           color: colorScheme.surface,
           surfaceTintColor: Colors.transparent, // Disable surface tint for cleaner red-white look
+=======
+          shadowColor: colorScheme.shadow.withValues(alpha: 0.08),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          clipBehavior: Clip.antiAlias,
+          color: colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+>>>>>>> 6690387 (sua loi)
         ),
 
         // FilledButton (primary action)
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             minimumSize: const Size(0, 54), // Larger buttons
+<<<<<<< HEAD
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+=======
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+>>>>>>> 6690387 (sua loi)
           ),
         ),
 
@@ -96,7 +136,13 @@ class MyApp extends StatelessWidget {
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(0, 54),
+<<<<<<< HEAD
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+=======
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+>>>>>>> 6690387 (sua loi)
             side: BorderSide(color: colorScheme.primary, width: 1.5),
           ),
         ),
@@ -105,7 +151,13 @@ class MyApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             minimumSize: const Size(0, 54),
+<<<<<<< HEAD
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+=======
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+>>>>>>> 6690387 (sua loi)
             elevation: 2,
             shadowColor: colorScheme.shadow.withValues(alpha: 0.2),
           ),
@@ -127,50 +179,108 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(28),
             borderSide: BorderSide(color: colorScheme.primary, width: 2),
           ),
+<<<<<<< HEAD
           contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+=======
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 18,
+          ),
+>>>>>>> 6690387 (sua loi)
         ),
 
         // FAB
         floatingActionButtonTheme: FloatingActionButtonThemeData(
+<<<<<<< HEAD
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+=======
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+>>>>>>> 6690387 (sua loi)
           elevation: 4,
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
         ),
 
+<<<<<<< HEAD
         // ListTile
         listTileTheme: ListTileThemeData(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           selectedTileColor: colorScheme.secondaryContainer,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+=======
+        // Make scaffold background slightly off-white for contrast
+        scaffoldBackgroundColor: colorScheme.background,
+
+        // ListTile
+        listTileTheme: ListTileThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          selectedTileColor: colorScheme.secondaryContainer,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 8,
+          ),
+>>>>>>> 6690387 (sua loi)
         ),
 
         // Chip
         chipTheme: ChipThemeData(
+<<<<<<< HEAD
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           side: BorderSide.none,
           selectedColor: colorScheme.primary,
           labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+=======
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          side: BorderSide.none,
+          selectedColor: colorScheme.primary,
+          labelStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+>>>>>>> 6690387 (sua loi)
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
 
         // Dialog – Haidilao Style: extra rounded
         dialogTheme: DialogThemeData(
+<<<<<<< HEAD
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+=======
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+          ),
+>>>>>>> 6690387 (sua loi)
           elevation: 12,
         ),
 
         // SnackBar
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
+<<<<<<< HEAD
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+=======
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+>>>>>>> 6690387 (sua loi)
           backgroundColor: Colors.black87,
         ),
 
         // Divider
         dividerTheme: DividerThemeData(
+<<<<<<< HEAD
           space: 24, 
           thickness: 1, 
+=======
+          space: 24,
+          thickness: 1,
+>>>>>>> 6690387 (sua loi)
           color: colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
@@ -253,8 +363,15 @@ class _AccessDeniedScreen extends StatelessWidget {
             children: [
               Icon(Icons.lock_outline_rounded, size: 72, color: cs.error),
               const SizedBox(height: 24),
+<<<<<<< HEAD
               Text('Truy cập bị từ chối',
                   style: Theme.of(context).textTheme.headlineSmall),
+=======
+              Text(
+                'Truy cập bị từ chối',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+>>>>>>> 6690387 (sua loi)
               const SizedBox(height: 12),
               const Text(
                 'Tài khoản đang chờ Admin phê duyệt.',
@@ -273,3 +390,16 @@ class _AccessDeniedScreen extends StatelessWidget {
     );
   }
 }
+<<<<<<< HEAD
+=======
+
+class MyCustomScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.unknown,
+  };
+}
+>>>>>>> 6690387 (sua loi)

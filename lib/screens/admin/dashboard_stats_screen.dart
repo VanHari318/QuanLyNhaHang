@@ -3,6 +3,10 @@ import '../../services/database_service.dart';
 import '../../models/order_model.dart';
 import '../../components/dashboard_card.dart';
 import '../../components/chart_view.dart';
+<<<<<<< HEAD
+=======
+import 'monthly_revenue_detail_screen.dart';
+>>>>>>> 6690387 (sua loi)
 
 /// Dashboard thống kê doanh thu – MD3 enhanced with charts
 class DashboardStatsScreen extends StatefulWidget {
@@ -28,6 +32,7 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
   }
 
   void _loadStats() {
+<<<<<<< HEAD
     final now = DateTime.now();
     setState(() {
       _todayRevenue = _db.getRevenueForDate(_selectedDate);
@@ -44,15 +49,60 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
           await _db.getRevenueForDate(DateTime(month.year, month.month, d));
     }
     return total;
+=======
+    setState(() {
+      _todayRevenue = _db.getRevenueForDate(_selectedDate);
+      _monthRevenue = _getMonthRevenue(_selectedDate);
+      _topDishes = _db.getTopDishes(limit: 5);
+      _weekRevenue = _getLast7DaysRevenue(_selectedDate);
+    });
+  }
+
+  Future<double> _getMonthRevenue(DateTime date) async {
+    // Lấy ngày đầu tiên và cuối cùng của tháng được chọn
+    final firstDay = DateTime(date.year, date.month, 1);
+    final lastDay = DateTime(date.year, date.month + 1, 0, 23, 59, 59);
+    
+    // Nếu là tháng hiện tại, ta chỉ nên tính đến hết ngày hiện tại
+    final now = DateTime.now();
+    DateTime end = lastDay;
+    if (date.year == now.year && date.month == now.month) {
+      end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    }
+
+    return await _db.getRevenueForRange(firstDay, end);
+>>>>>>> 6690387 (sua loi)
   }
 
   Future<List<MapEntry<String, double>>> _getLast7DaysRevenue(
       DateTime today) async {
     final result = <MapEntry<String, double>>[];
+<<<<<<< HEAD
     for (int i = 6; i >= 0; i--) {
       final day = today.subtract(Duration(days: i));
       final rev = await _db.getRevenueForDate(day);
       result.add(MapEntry('${day.day}/${day.month}', rev));
+=======
+    final startFilter = today.subtract(const Duration(days: 6));
+    final startDate = DateTime(startFilter.year, startFilter.month, startFilter.day);
+    final endDate = DateTime(today.year, today.month, today.day, 23, 59, 59);
+
+    // Lấy dữ liệu 1 lần duy nhất để tối ưu hiệu năng
+    // Ta sử dụng luôn logic lọc thủ công để đảm bảo tính chính xác với định dạng lưu trữ hiện tại
+    final orders = await _db.getOrdersInRange(startDate, endDate);
+
+    for (int i = 6; i >= 0; i--) {
+      final day = today.subtract(Duration(days: i));
+      double dailyTotal = 0;
+      for (final o in orders) {
+        if (o.createdAt.year == day.year && 
+            o.createdAt.month == day.month && 
+            o.createdAt.day == day.day) {
+          dailyTotal += o.totalPrice;
+        }
+      }
+      result.add(MapEntry('${day.day}/${day.month}', dailyTotal));
+>>>>>>> 6690387 (sua loi)
     }
     return result;
   }
@@ -124,6 +174,15 @@ class _DashboardStatsScreenState extends State<DashboardStatsScreen> {
                       title: 'Tháng này',
                       value: '${_fmtPrice(snap.data ?? 0)}đ',
                       color: Colors.teal,
+<<<<<<< HEAD
+=======
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MonthlyRevenueDetailScreen(month: _selectedDate),
+                        ),
+                      ),
+>>>>>>> 6690387 (sua loi)
                     ),
                   ),
                 ),

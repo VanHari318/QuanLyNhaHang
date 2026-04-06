@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import '../models/inventory_model.dart';
 
 /// Inventory row card with low-stock detection at < 20% of maxQuantity.
+=======
+import 'package:provider/provider.dart';
+import '../models/inventory_model.dart';
+import '../providers/inventory_provider.dart';
+
+/// Inventory row card with smart low-stock detection (sufficient for 20 servings).
+>>>>>>> 6690387 (sua loi)
 class InventoryItemCard extends StatelessWidget {
   final InventoryModel item;
   final VoidCallback? onImport;
@@ -19,9 +27,16 @@ class InventoryItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+<<<<<<< HEAD
     final isLow = item.maxQuantity > 0
         ? item.quantity < item.maxQuantity * 0.2
         : item.quantity < 5;
+=======
+    final invProvider = context.watch<InventoryProvider>();
+    
+    final isLow = invProvider.isLowStock(item);
+
+>>>>>>> 6690387 (sua loi)
     final percent = item.maxQuantity > 0
         ? (item.quantity / item.maxQuantity).clamp(0.0, 1.0)
         : null;
@@ -106,6 +121,7 @@ class InventoryItemCard extends StatelessWidget {
                 ),
               ],
             ),
+<<<<<<< HEAD
             // Stock progress bar
             if (percent != null) ...[
               const SizedBox(height: 10),
@@ -135,6 +151,9 @@ class InventoryItemCard extends StatelessWidget {
                 ],
               ),
             ],
+=======
+            // Stock progress bar đã được loại bỏ theo yêu cầu của người dùng
+>>>>>>> 6690387 (sua loi)
           ],
         ),
       ),

@@ -7,6 +7,10 @@ import '../models/category_model.dart';
 import '../models/inventory_model.dart';
 import '../models/chatbot_model.dart';
 import '../models/recipe_model.dart';
+<<<<<<< HEAD
+=======
+import '../utils/recipe_helper.dart';
+>>>>>>> 6690387 (sua loi)
 import 'dart:math' as math;
 
 /// Lớp service tương tác với Firestore – project: quan-ly-nha-hang-20f37
@@ -57,6 +61,91 @@ class DatabaseService {
     await _tables.doc(tableId).update({'status': status.name});
   }
 
+<<<<<<< HEAD
+=======
+  /// Ghi nhận khách vào xem bàn (tăng biến đếm)
+  Future<void> joinTableSession(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      await _tables.doc(tableId).update({
+        'viewerCount': FieldValue.increment(1),
+        'status': TableStatus.occupied.name,
+      });
+    } catch (e) {
+      print('Lỗi joinTableSession: $e');
+    }
+  }
+
+  /// Ghi nhận khách rời bàn (giảm biến đếm).
+  /// Chỉ giải phóng bàn khi không còn người xem VÀ không còn đơn đang active.
+  Future<void> leaveTableSession(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      // Giảm counter nguyên tử
+      await _tables.doc(tableId).update({
+        'viewerCount': FieldValue.increment(-1),
+      });
+
+      // Đọc lại để kiểm tra
+      final tableDoc = await _tables.doc(tableId).get();
+      final viewers = (tableDoc.data()?['viewerCount'] as num?)?.toInt() ?? 0;
+
+      if (viewers <= 0) {
+        // Reset về 0 để tránh âm
+        await _tables.doc(tableId).update({'viewerCount': 0});
+        await freeTableIfNoActiveOrders(tableId);
+      }
+    } catch (e) {
+      print('Lỗi leaveTableSession: $e');
+    }
+  }
+
+  Future<void> freeTableIfNoActiveOrders(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      final snapshot = await _orders.where('tableId', isEqualTo: tableId).get();
+      
+      bool hasActive = false;
+      for (var doc in snapshot.docs) {
+        final statusStr = doc.data()['status'] as String?;
+        if (statusStr != OrderStatus.completed.name && statusStr != OrderStatus.cancelled.name) {
+          hasActive = true;
+          break;
+        }
+      }
+      
+      if (!hasActive) {
+        // Kiểm tra xem còn khách nào đang quét mã xem menu không
+        final tableDoc = await _tables.doc(tableId).get();
+        final viewers = (tableDoc.data()?['viewerCount'] as num?)?.toInt() ?? 0;
+
+        if (viewers <= 0) {
+          await _tables.doc(tableId).update({
+            'status': TableStatus.available.name,
+            'viewerCount': 0,
+          });
+        }
+      }
+    } catch (e) {
+      print('Lỗi khi giải phóng bàn: $e');
+    }
+  }
+
+  /// Cưỡng bức giải phóng bàn (Dành cho nhân viên dọn bàn khi bị lỗi view count)
+  Future<void> forceReleaseTable(String tableId) async {
+    if (tableId.isEmpty) return;
+    try {
+      await _tables.doc(tableId).update({
+        'status': TableStatus.available.name,
+        'viewerCount': 0,
+      });
+    } catch (e) {
+      print('Lỗi forceReleaseTable: $e');
+      rethrow;
+    }
+  }
+
+>>>>>>> 6690387 (sua loi)
   // ─── USERS ───────────────────────────────────────────────────────────────────
 
   Future<void> saveUser(UserModel user) async {
@@ -232,9 +321,29 @@ class DatabaseService {
         }
       }
     }
+<<<<<<< HEAD
     await _orders.doc(orderId).update({'status': status.name});
   }
 
+=======
+    
+    await _orders.doc(orderId).update({'status': status.name});
+
+    // Tự động giải phóng bàn nếu đơn bị hủy hoặc đã hoàn thành
+    if (status == OrderStatus.completed || status == OrderStatus.cancelled) {
+      final orderDoc = await _orders.doc(orderId).get();
+      if (orderDoc.exists) {
+        final tableId = orderDoc.data()?['tableId'] as String?;
+        if (tableId != null && tableId.isNotEmpty) {
+          // Sử dụng hàm chung để kiểm tra cả đơn hàng và số lượng người xem
+          await freeTableIfNoActiveOrders(tableId);
+        }
+      }
+    }
+  }
+
+
+>>>>>>> 6690387 (sua loi)
   Future<void> _deductInventoryForOrder(OrderModel order) async {
     final batch = _db.batch();
     
@@ -256,6 +365,7 @@ class DatabaseService {
         final name = ing['name'] as String;
         final totalNeeded100 = (ing['total_quantity'] as num).toDouble();
         final unitStr = ing['unit'] as String;
+<<<<<<< HEAD
         
         // Tính định mức 1 suất -> nhân với số lượng đặt
         double deductAmount = (totalNeeded100 / servings) * qty;
@@ -271,6 +381,25 @@ class DatabaseService {
           final invDoc = invQuery.docs.first;
           final currentQty = (invDoc.data()['quantity'] as num).toDouble();
           
+=======
+
+        // 3. Tìm nguyên liệu thực tế trong kho (theo tên chuẩn xác) để lấy đơn vị quy đổi
+        final invQuery = await _inventory.where('name', isEqualTo: name).limit(1).get();
+        if (invQuery.docs.isNotEmpty) {
+          final invDoc = invQuery.docs.first;
+          final invUnit = invDoc.data()?['unit'] as String? ?? '';
+
+          // Tính lượng trừ kho chính xác (có quy đổi đơn vị g->kg, ml->l nếu cần)
+          double deductAmount = RecipeHelper.calculateNeededQuantity(
+            totalQuantityForBulk: totalNeeded100,
+            bulkServings: servings,
+            unit: unitStr,
+            targetUnit: invUnit,
+            orderQuantity: qty,
+          );
+
+          final currentQty = (invDoc.data()['quantity'] as num).toDouble();
+>>>>>>> 6690387 (sua loi)
           final newQty = currentQty - deductAmount;
           batch.update(invDoc.reference, {'quantity': newQty < 0 ? 0 : newQty});
           
@@ -359,6 +488,22 @@ class DatabaseService {
     await _bulkIngredients.doc(dishId).delete();
   }
 
+<<<<<<< HEAD
+=======
+  /// Lắng nghe tất cả công thức nấu ăn (để phục vụ kiểm tra kho realtime)
+  Stream<Map<String, DishRecipeModel>> getAllRecipes() {
+    return _bulkIngredients.snapshots().map((s) {
+      final res = <String, DishRecipeModel>{};
+      for (var doc in s.docs) {
+        try {
+          res[doc.id] = DishRecipeModel.fromMap(doc.data());
+        } catch (_) {}
+      }
+      return res;
+    });
+  }
+
+>>>>>>> 6690387 (sua loi)
   // ─── CHATBOT ─────────────────────────────────────────────────────────────────
 
   Stream<List<ChatBotModel>> getChatBotData() {
@@ -396,7 +541,73 @@ class DatabaseService {
     return total;
   }
 
+<<<<<<< HEAD
   /// Top 5 món bán chạy (đếm tần suất xuất hiện trong orders completed)
+=======
+  /// Tối ưu: Lấy doanh thu trong 1 khoảng thời gian (tránh N+1 queries)
+  Future<double> getRevenueForRange(DateTime start, DateTime end) async {
+    final snap = await _orders
+        .where('status', isEqualTo: OrderStatus.completed.name)
+        .get();
+
+    double total = 0;
+    for (final doc in snap.docs) {
+      try {
+        final order = OrderModel.fromMap(doc.data());
+        final d = order.createdAt;
+        // Kiểm tra d nằm trong [start, end]
+        // Reset giờ về 0 để so sánh chính xác ngày nếu cần
+        if (d.isAtSameMomentAs(start) || d.isAtSameMomentAs(end) || 
+           (d.isAfter(start) && d.isBefore(end))) {
+          total += order.totalPrice;
+        }
+      } catch (_) {}
+    }
+    return total;
+  }
+
+  /// Tối ưu: Lấy danh sách đơn hàng trong khoảng thời gian để xử lý nâng cao (Biểu đồ)
+  Future<List<OrderModel>> getOrdersInRange(DateTime start, DateTime end) async {
+    final snap = await _orders
+        .where('status', isEqualTo: OrderStatus.completed.name)
+        .get();
+
+    final result = <OrderModel>[];
+    for (final doc in snap.docs) {
+      try {
+        final order = OrderModel.fromMap(doc.data());
+        final d = order.createdAt;
+        if (d.isAtSameMomentAs(start) || d.isAtSameMomentAs(end) || 
+           (d.isAfter(start) && d.isBefore(end))) {
+          result.add(order);
+        }
+      } catch (_) {}
+    }
+    return result;
+  }
+
+  /// Lấy danh sách ID các món bán chạy nhất (dựa trên số lượng trong đơn hàng đã hoàn tất)
+  Future<List<String>> getTopSellingDishIds({int limit = 5}) async {
+    final snap = await _orders
+        .where('status', isEqualTo: OrderStatus.completed.name)
+        .get();
+    
+    final Map<String, int> freq = {};
+    for (final doc in snap.docs) {
+      final items = (doc.data()['items'] as List<dynamic>? ?? []);
+      for (final item in items) {
+        final id = (item['dish']?['id'] ?? '') as String;
+        if (id.isEmpty) continue;
+        final qty = (item['quantity'] ?? 1) as int;
+        freq[id] = (freq[id] ?? 0) + qty;
+      }
+    }
+    final sorted = freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return sorted.take(limit).map((e) => e.key).toList();
+  }
+
+  /// Top món bán chạy để hiển thị biểu đồ (trả về Name để vẽ chart)
+>>>>>>> 6690387 (sua loi)
   Future<List<MapEntry<String, int>>> getTopDishes({int limit = 5}) async {
     final snap = await _orders
         .where('status', isEqualTo: OrderStatus.completed.name)

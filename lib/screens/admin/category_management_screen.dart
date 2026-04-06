@@ -26,6 +26,7 @@ class _CategoryManagementScreenState
             return const Center(child: CircularProgressIndicator());
           }
           final cats = snapshot.data!;
+<<<<<<< HEAD
           if (cats.isEmpty) {
             return _emptyState(context);
           }
@@ -38,6 +39,30 @@ class _CategoryManagementScreenState
               onEdit: () => _showDialog(cats[i]),
               onDelete: () => _confirmDelete(cats[i]),
             ),
+=======
+          return RefreshIndicator(
+            onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+            child: cats.isEmpty
+                ? SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height - 200,
+                      alignment: Alignment.center,
+                      child: _emptyState(context),
+                    ),
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: cats.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) => _CategoryTile(
+                      category: cats[i],
+                      onEdit: () => _showDialog(cats[i]),
+                      onDelete: () => _confirmDelete(cats[i]),
+                    ),
+                  ),
+>>>>>>> 6690387 (sua loi)
           );
         },
       ),

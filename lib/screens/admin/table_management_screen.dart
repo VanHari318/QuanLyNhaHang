@@ -22,6 +22,7 @@ class TableManagementScreen extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final tables = snapshot.data!;
+<<<<<<< HEAD
                 if (tables.isEmpty) {
                   return Center(
                     child: Column(
@@ -50,6 +51,44 @@ class TableManagementScreen extends StatelessWidget {
                     onTap: () => _showStatusDialog(ctx, db, tables[i]),
                     onShowQr: () => _showQrDialog(ctx, tables[i]),
                   ),
+=======
+                return RefreshIndicator(
+                  onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+                  child: tables.isEmpty
+                      ? SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                            height: MediaQuery.of(context).size.height - 200,
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.table_bar_rounded,
+                                    size: 64,
+                                    color: Theme.of(context).colorScheme.outlineVariant),
+                                const SizedBox(height: 12),
+                                const Text('Chưa có bàn. Dùng Seed Data để khởi tạo.'),
+                              ],
+                            ),
+                          ),
+                        )
+                      : GridView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 0.65,
+                          ),
+                          itemCount: tables.length,
+                          itemBuilder: (ctx, i) => _TableCard(
+                            table: tables[i],
+                            onTap: () => _showStatusDialog(ctx, db, tables[i]),
+                            onShowQr: () => _showQrDialog(ctx, tables[i]),
+                          ),
+                        ),
+>>>>>>> 6690387 (sua loi)
                 );
               },
             ),

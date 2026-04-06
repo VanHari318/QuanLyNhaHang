@@ -9,6 +9,10 @@ import '../../providers/menu_provider.dart';
 import '../../models/order_model.dart';
 import '../../models/dish_model.dart';
 import '../../services/database_service.dart';
+<<<<<<< HEAD
+=======
+import '../../providers/inventory_provider.dart';
+>>>>>>> 6690387 (sua loi)
 
 class GPSOrderScreen extends StatefulWidget {
   const GPSOrderScreen({super.key});
@@ -189,6 +193,10 @@ class _GPSOrderScreenState extends State<GPSOrderScreen> {
   // ── STEP 0: MENU ──────────────────────────────────────────────────────────
   Widget _buildMenuStep(ColorScheme cs) {
     final menu = context.watch<MenuProvider>();
+<<<<<<< HEAD
+=======
+    final inventory = context.watch<InventoryProvider>().items;
+>>>>>>> 6690387 (sua loi)
     final dishes = menu.allItems.where((d) => d.isAvailable).toList();
 
     return Column(
@@ -203,12 +211,30 @@ class _GPSOrderScreenState extends State<GPSOrderScreen> {
           ]),
         ),
         Expanded(
+<<<<<<< HEAD
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: dishes.length,
             itemBuilder: (_, i) => _OnlineDishCard(
               dish: dishes[i], 
               onBuyNow: (qty) => _startOrder([OrderItem(dish: dishes[i], quantity: qty)]),
+=======
+          child: RefreshIndicator(
+            onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+            itemCount: dishes.length,
+            itemBuilder: (_, i) {
+              final dish = dishes[i];
+              final isOutOfStock = menu.isOutOfStock(dish.id, inventory);
+              return _OnlineDishCard(
+                dish: dish, 
+                isOutOfStock: isOutOfStock,
+                onBuyNow: (qty) => _startOrder([OrderItem(dish: dish, quantity: qty)]),
+                );
+              },
+>>>>>>> 6690387 (sua loi)
             ),
           ),
         ),
@@ -356,8 +382,14 @@ class _GPSOrderScreenState extends State<GPSOrderScreen> {
 
 class _OnlineDishCard extends StatefulWidget {
   final DishModel dish;
+<<<<<<< HEAD
   final Function(int) onBuyNow;
   const _OnlineDishCard({required this.dish, required this.onBuyNow});
+=======
+  final bool isOutOfStock;
+  final Function(int) onBuyNow;
+  const _OnlineDishCard({required this.dish, required this.onBuyNow, this.isOutOfStock = false});
+>>>>>>> 6690387 (sua loi)
   @override
   State<_OnlineDishCard> createState() => _OnlineDishCardState();
 }
@@ -367,9 +399,17 @@ class _OnlineDishCardState extends State<_OnlineDishCard> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+<<<<<<< HEAD
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
+=======
+    return Opacity(
+      opacity: widget.isOutOfStock ? 0.5 : 1.0,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
+>>>>>>> 6690387 (sua loi)
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(children: [
@@ -377,6 +417,11 @@ class _OnlineDishCardState extends State<_OnlineDishCard> {
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.dish.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+<<<<<<< HEAD
+=======
+            if (widget.isOutOfStock)
+              const Text('HẾT MÓN', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
+>>>>>>> 6690387 (sua loi)
             Text('${widget.dish.price.toInt()}đ', style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary, fontSize: 15)),
             const SizedBox(height: 8),
             Row(children: [
@@ -386,7 +431,11 @@ class _OnlineDishCardState extends State<_OnlineDishCard> {
               const Spacer(),
               IconButton(
                 icon: Icon(Icons.add_shopping_cart_rounded, size: 20, color: cs.primary),
+<<<<<<< HEAD
                 onPressed: () {
+=======
+                onPressed: widget.isOutOfStock ? null : () {
+>>>>>>> 6690387 (sua loi)
                   context.read<CartProvider>().addItem(widget.dish, quantity: _qty);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text('Đã thêm ${_qty} ${widget.dish.name} vào giỏ hàng'),
@@ -395,11 +444,23 @@ class _OnlineDishCardState extends State<_OnlineDishCard> {
                   ));
                 },
               ),
+<<<<<<< HEAD
               _ActionBtn(label: 'Mua ngay', color: cs.primary, onTap: () => widget.onBuyNow(_qty)),
+=======
+              _ActionBtn(
+                label: 'Mua ngay', 
+                color: widget.isOutOfStock ? Colors.grey : cs.primary, 
+                onTap: widget.isOutOfStock ? null : () => widget.onBuyNow(_qty)
+              ),
+>>>>>>> 6690387 (sua loi)
             ]),
           ])),
         ]),
       ),
+<<<<<<< HEAD
+=======
+    ),
+>>>>>>> 6690387 (sua loi)
     );
   }
 }
@@ -425,7 +486,11 @@ class _QtyBtn extends StatelessWidget {
 class _ActionBtn extends StatelessWidget {
   final String label;
   final Color color;
+<<<<<<< HEAD
   final VoidCallback onTap;
+=======
+  final VoidCallback? onTap;
+>>>>>>> 6690387 (sua loi)
   const _ActionBtn({required this.label, required this.color, required this.onTap});
   @override
   Widget build(BuildContext context) {
